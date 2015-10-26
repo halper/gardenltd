@@ -19,7 +19,7 @@
 <body class="hold-transition skin-blue layout-top-nav">
 <div class="wrapper">
 
-    <header class="main-header">
+    <header class="header">
         <nav class="navbar navbar-static-top">
             <div class="container">
 
@@ -42,7 +42,7 @@
 
                                     <p>
                                         <?=Auth::user()->getAttribute("name")?>
-{{--                                        <small>{{Auth::user()->permission}}</small>--}}
+                                        <small>{{Auth::user()->isAdmin() == true ? 'Admin' : 'Kullanıcı'}}</small>
                                         {{-- TODO
                                         Buraya kullanıcı grupları gelecek--}}
                                     </p>
@@ -52,9 +52,11 @@
                                     <div class="pull-left">
                                         <a href="#" class="btn btn-default btn-flat">Bilgilerim</a>
                                     </div>
+                                    @if(Auth::user()->isAdmin())
                                     <div class="col-md-4">
                                         <a href="ayarlar" class="btn btn-default btn-flat">Ayarlar</a>
                                     </div>
+                                    @endif
                                     <div class="pull-right">
                                         <a href="auth/logout" class="btn btn-default btn-flat">Çıkış</a>
                                     </div>

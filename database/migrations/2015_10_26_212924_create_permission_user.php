@@ -3,7 +3,7 @@
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateUsersPermissionsTable extends Migration
+class CreatePermissionUser extends Migration
 {
     /**
      * Run the migrations.
@@ -12,16 +12,13 @@ class CreateUsersPermissionsTable extends Migration
      */
     public function up()
     {
-        Schema::create('users_permissions', function (Blueprint $table) {
+        Schema::create('permission_user', function (Blueprint $table) {
             $table->increments('id');
-            $table->integer('user_id')->unsigned();
-            $table->index('user_id');
+            $table->integer('user_id')->unsigned()->index();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
-            $table->integer('permission_id')->unsigned();
-            $table->index('permission_id');
+            $table->integer('permission_id')->unsigned()->index();
             $table->foreign('permission_id')->references('id')->on('permissions')->onDelete('cascade')->onUpdate('cascade');
-            $table->integer('module_id')->unsigned()->nullable();
-            $table->index('module_id');
+            $table->integer('module_id')->unsigned()->nullable()->index();
             $table->foreign('module_id')->references('id')->on('modules')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
         });
@@ -34,6 +31,6 @@ class CreateUsersPermissionsTable extends Migration
      */
     public function down()
     {
-        Schema::drop('users_permissions');
+        Schema::drop('permission_user');
     }
 }

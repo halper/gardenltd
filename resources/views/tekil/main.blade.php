@@ -198,6 +198,7 @@ EOF;
     $i = 0;
     ?>
     @foreach($modules->all() as $module)
+        @if($module->id != 999)
         <?php
         if (strpos($module->icon, "ion-") !== false) {
             $i_icon = "ion ";
@@ -243,6 +244,7 @@ EOF;
             </div>
         </div>
         {!! $i_modulus == 3 ? "</div>" : "" !!}
+        @endif
 
     @endforeach
     {!! $i_modulus != 3 ? "</div>" : "" !!}

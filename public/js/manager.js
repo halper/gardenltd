@@ -198,13 +198,6 @@ $(function () {
         FastClick.attach(document.body);
     }
 
-    //Activate direct chat widget
-    if (o.directChat.enable) {
-        $(document).on('click', o.directChat.contactToggleSelector, function () {
-            var box = $(this).parents('.direct-chat').first();
-            box.toggleClass('direct-chat-contacts-open');
-        });
-    }
 
     /*
      * INITIALIZE BUTTON TOGGLE
@@ -249,7 +242,7 @@ function _init() {
         },
         fix: function () {
             //Get window height and the wrapper height
-            var neg = $('.header').outerHeight();
+            var neg = $('.header').outerHeight() + 30;
             var window_height = $(window).height();
             $(".content-wrapper, .right-side").css('min-height', window_height - neg);
 

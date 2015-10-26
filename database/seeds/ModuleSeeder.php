@@ -47,7 +47,7 @@ class ModulesTableSeeder extends Seeder
         
         Module::create(array(
             'name' => 'Yemek',
-            'icon' => 'fa-cutlery',
+            'icon' => 'ion-android-restaurant',
         ));
 
         
@@ -83,16 +83,24 @@ class ModulesTableSeeder extends Seeder
         
         Module::create(array(
             'name' => 'Kasa',
+            'icon' => 'ion-lock-combination',
         ));
 
         
         Module::create(array(
             'name' => 'Taşeron Cari Hesap',
+            'icon' => 'ion-social-usd',
         ));
 
         
         Module::create(array(
             'name' => 'Bağlantı Malzeme Takip',
+            'icon' => 'ion-share',
+        ));
+
+        Module::create(array(
+            'id' => '999',
+            'name' => 'All modules',
         ));
 
     }

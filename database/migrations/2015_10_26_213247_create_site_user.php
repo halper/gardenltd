@@ -3,7 +3,7 @@
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateSitesUsersTable extends Migration
+class CreateSiteUser extends Migration
 {
     /**
      * Run the migrations.
@@ -12,13 +12,11 @@ class CreateSitesUsersTable extends Migration
      */
     public function up()
     {
-        Schema::create('sites_users', function (Blueprint $table) {
+        Schema::create('site_user', function (Blueprint $table) {
             $table->increments('id');
-            $table->integer('site_id')->unsigned();
-            $table->index('site_id');
+            $table->integer('site_id')->unsigned()->index();
             $table->foreign('site_id')->references('id')->on('sites')->onDelete('cascade')->onUpdate('cascade');
-            $table->integer('user_id')->unsigned();
-            $table->index('user_id');
+            $table->integer('user_id')->unsigned()->index();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
         });
@@ -31,6 +29,6 @@ class CreateSitesUsersTable extends Migration
      */
     public function down()
     {
-        Schema::drop('sites_users');
+        Schema::drop('site_user');
     }
 }

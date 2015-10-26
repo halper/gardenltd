@@ -41,12 +41,17 @@ class User extends Model implements AuthenticatableContract,
 
     public function site()
     {
-        return $this->belongsToMany('Site', 'sites_users', 'user_id', 'site_id')->withTimestamps();
+        return $this->belongsToMany('App\Site')->withTimestamps();
     }
 
     public function permission()
     {
-        return $this->belongsToMany('Permission', 'users_permissions', 'user_id', 'permission_id')->withPivot('module_id')->join('modules', 'module_id', 'modules.id');
+        return $this->belongsToMany('App\Permission')->withPivot('module_id')->join('modules', 'module_id', '=', 'modules.id');
 
+    }
+
+    public function isAdmin()
+    {
+        return $this->permission()->where('permission', '>=', '999')->count() >= 1 ? true : false;
     }
 }

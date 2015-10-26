@@ -25,6 +25,6 @@ class Site extends Eloquent implements SluggableInterface
 
      public function user()
     {
-        return $this->belongsToMany('User', 'sites_users', 'site_id', 'user_id')->withTimestamps();
+        return $this->belongsToMany('App\User')->withTimestamps();
     }
 }

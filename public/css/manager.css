@@ -67,12 +67,6 @@ body > .header {
     z-index: 1030;
 }
 
-.main-header {
-    position: relative;
-    max-height: 100px;
-    z-index: 1030;
-}
-
 .skin-blue .main-sidebar, .skin-blue .left-side {
     background-color: #222d32;
 }
@@ -82,7 +76,7 @@ body > .header {
     top: 0;
     left: 0;
     min-height: 100%;
-    width: 220px;
+    width: 230px;
     z-index: 810;
     -webkit-transition: -webkit-transform .3s ease-in-out, width .3s ease-in-out;
     -moz-transition: -moz-transform .3s ease-in-out,
@@ -198,7 +192,7 @@ body > .header {
 /*left side - contains sidebar*/
 .left-side {
     position: absolute;
-    width: 220px;
+    width: 230px;
     top: 0;
 }
 
@@ -218,7 +212,7 @@ body > .header {
 
     /* Left side collapse */
     .left-side.collapse-left {
-        left: -220px;
+        left: -230px;
     }
 }
 
@@ -548,7 +542,7 @@ body > .header {
 body > .header .navbar {
     height: 50px;
     margin-bottom: 0;
-    margin-left: 220px;
+    margin-left: 230px;
 }
 
 body > .header .navbar .sidebar-toggle {
@@ -619,7 +613,7 @@ body > .header .logo {
     line-height: 50px;
     text-align: center;
     padding: 0 10px;
-    width: 220px;
+    width: 230px;
     font-family: 'Kaushan Script', cursive;
     font-weight: 500;
     height: 50px;

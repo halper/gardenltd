@@ -87,6 +87,7 @@
                 <li class="header">{{mb_strtoupper($site->job_name, 'utf-8')}}</li>
 
                 @foreach($modules->all() as $module)
+                    @if($module->id != 999)
                     <?php
                     if (strpos($module->icon, "ion-") !== false) {
                         $i_icon = "ion ";
@@ -100,6 +101,7 @@
                             {!! empty($module->icon) ? "" : ("<i class=\"$i_icon\"></i>")!!}
                             {{ $module->name}}
                         </a></li>
+                    @endif
 
                 @endforeach
 

@@ -3,7 +3,6 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
-use App\User;
 
 class Permission extends Model
 {
@@ -19,6 +18,6 @@ class Permission extends Model
 
     public function user()
     {
-        return $this->belongsToMany('User', 'users_permissions', 'permission_id', 'user_id')->withTimestamps();
+        return $this->belongsToMany('App\User')->withTimestamps();
     }
 }

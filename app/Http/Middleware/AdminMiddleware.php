@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\User;
 use Closure;
 use Illuminate\Auth\Guard;
+use Illuminate\Http\RedirectResponse;
 
 class AdminMiddleware
 {
@@ -21,7 +22,7 @@ class AdminMiddleware
      *
      * @param  Guard  $auth
      */
-    public function __construct(User $auth)
+    public function __construct(Guard $auth)
     {
         $this->auth = $auth;
     }
@@ -34,9 +35,9 @@ class AdminMiddleware
      */
     public function handle($request, Closure $next)
     {
-        /*if($request->user()->permission < 999){
-            abort(401);
-        }*/
+        if(!$this->auth->user()->isAdmin()){
+            return new RedirectResponse(url('/'));
+        }
         return $next($request);
     }
 }

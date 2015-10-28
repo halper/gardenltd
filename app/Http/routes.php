@@ -27,10 +27,16 @@ Route::bind('module', function($slug){
    return \App\Module::whereSlug($slug)->first();
 });
 
+Route::model('user', 'App\User');
+
 Route::get('tekil/{site}/yemek', 'Tekil\ModuleController@getYemek');
 Route::get('tekil/{site}', 'TekilController@getSite');
 
+
 Route::controller('santiye', 'SantiyeController');
-Route::controller('ayarlar', 'AyarlarController');
+Route::get('admin/duzenle/{user}', 'AdminController@edit');
+Route::patch('admin/update/{user}', 'AdminController@update');
+Route::controller('admin', 'AdminController');
+
 
 Route::controller('/', 'HomeController');

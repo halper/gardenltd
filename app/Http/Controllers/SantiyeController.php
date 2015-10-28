@@ -11,8 +11,7 @@ use Illuminate\Support\Facades\Session;
 class SantiyeController extends ManagementController
 {
     public function getIndex(){
-        $sites = Site::all();
-        return view("landing/santiye", compact('sites'));
+        return view("landing/santiye");
     }
 
     public function postAdd(Request $request)

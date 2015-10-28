@@ -52,6 +52,14 @@ class User extends Model implements AuthenticatableContract,
 
     public function isAdmin()
     {
-        return $this->permission()->where('permission', '>=', '999')->count() >= 1 ? true : false;
+        return $this->permission()->where('permission', '>=', '999')->count() >= 1;
+    }
+
+    public function canViewAllSites(){
+        return $this->site()->where('sites.id', '99999')->count() >= 1;
+    }
+
+    public function hasSite($site_id){
+        return ! is_null($this->site()->where('site_id', $site_id)->first());
     }
 }

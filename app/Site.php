@@ -27,4 +27,9 @@ class Site extends Eloquent implements SluggableInterface
     {
         return $this->belongsToMany('App\User')->withTimestamps();
     }
+
+    public static function getSites()
+    {
+        return Site::where('id', '<', 99998)->get();
+    }
 }

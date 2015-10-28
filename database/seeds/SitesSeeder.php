@@ -4,7 +4,7 @@ use Illuminate\Database\Seeder;
 use App\Site;
 use Illuminate\Database\Eloquent\Model;
 
-class SiteSeeder extends Seeder
+class SitesSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -28,6 +28,16 @@ class SitesTableSeeder extends Seeder
     {
         DB::table('sites')->delete();
         Site::create(array(
+            'id' => '99999',
+            'job_name'     => 'Mevcut ve sonraki santiyeler icin izin',
+            'management_name'    => 'Mevcut ve sonraki santiyeler icin izin',
+            'start_date' => '2015-08-31',
+            'contract_date' => '2015-08-01',
+            'end_date' => '2015-12-31',
+            'address' => 'Eskişehir Yolu 9. KM Ankara',
+            'site_chief' => 'Tolga Alper',
+        ));
+        Site::create(array(
             'job_name'     => 'TOKİ Mahal',
             'management_name'    => 'Sinpaş Toki Konsorsiyum',
             'start_date' => '2015-08-31',
@@ -37,13 +47,23 @@ class SitesTableSeeder extends Seeder
             'site_chief' => 'Tolga Alper',
         ));
 
-Site::create(array(
+        Site::create(array(
             'job_name'     => 'Sinpaş OrAn',
             'management_name'    => 'Sinpaş',
             'start_date' => '2015-08-31',
             'contract_date' => '2015-08-01',
             'end_date' => '2015-12-01',
             'address' => 'Oran Ankara',
+            'site_chief' => 'Tolga Alper',
+        ));
+        Site::create(array(
+            'id' => '99998',
+            'job_name'     => 'Mevcut santiyeler icin izin',
+            'management_name'    => 'Mevcut santiyeler icin izin',
+            'start_date' => '2015-08-31',
+            'contract_date' => '2015-08-01',
+            'end_date' => '2015-12-31',
+            'address' => 'Eskişehir Yolu 9. KM Ankara',
             'site_chief' => 'Tolga Alper',
         ));
 

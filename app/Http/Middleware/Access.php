@@ -35,8 +35,8 @@ class Access
     public function handle($request, Closure $next)
     {
         $tmp = explode("/",$request->url());
-        $site_slug = end($tmp);
-        if(!$this->auth->user()->hasSite(Site::slugToId($site_slug))){
+        $site_slug = $tmp[4];
+        if(!$this->auth->user()->hasSite(Site::slugToId($site_slug)) && !$this->auth->user()->isAdmin()){
             return new RedirectResponse(url('/'));
         }
         return $next($request);

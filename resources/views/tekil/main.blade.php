@@ -199,7 +199,7 @@ EOF;
     $i_modulus = 0;
     ?>
     @foreach($modules->getModules() as $module)
-        @if(Auth::User()->hasAnyPermissionOnModule($module->id))
+        @if(Auth::User()->hasAnyPermissionOnModule($module->id) || Auth::User()->isAdmin())
         <?php
         if (strpos($module->icon, "ion-") !== false) {
             $i_icon = "ion ";

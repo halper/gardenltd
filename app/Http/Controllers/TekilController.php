@@ -10,13 +10,15 @@ use App\Http\Requests;
 class TekilController extends Controller
 {
     //
-    public function getSite(Site $site, Module $modules)
+
+
+    public function getIndex(Site $site, Module $modules)
     {
         return view('tekil/main', compact('site', 'modules'));
     }
 
-    public function getYemek()
+    public function getGunlukRapor()
     {
-        return view('santiye');
+        return redirect('/');
     }
 }

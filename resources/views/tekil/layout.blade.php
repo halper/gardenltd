@@ -42,14 +42,14 @@
                     <!-- Menu Toggle Button -->
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                         <!-- The user image in the navbar-->
-                        <i class="fa fa-user-plus"></i>
+                        <i class="fa {{ Auth::User()->isAdmin() ? "fa-user-plus" : "fa-user"}} "></i>
                         <!-- hidden-xs hides the username on small devices so only the image appears. -->
                         <span class="hidden-xs"><?=Auth::user()->getAttribute("name")?></span>
                     </a>
                     <ul class="dropdown-menu">
                         <!-- The user image in the menu -->
                         <li class="user-header">
-                            <i class="fa fa-user-plus fa-4x"></i>
+                            <i class="fa {{ Auth::User()->isAdmin() ? "fa-user-plus" : "fa-user"}} fa-4x"></i>
 
                             <p>
                                 <?=Auth::user()->getAttribute("name")?>
@@ -92,7 +92,7 @@
                 <li class="header">{{mb_strtoupper($site->job_name, 'utf-8')}}</li>
 
                 @foreach($modules->getModules() as $module)
-                    @if(Auth::User()->hasAnyPermissionOnModule($module->id))
+                    @if(Auth::User()->hasAnyPermissionOnModule($module->id) || Auth::User()->isAdmin())
                     <?php
                     if (strpos($module->icon, "ion-") !== false) {
                         $i_icon = "ion ";

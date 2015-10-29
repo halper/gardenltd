@@ -68,7 +68,7 @@ var modulesMaster = $('#modules-master');
                 </div>
                 <!-- /.tab-pane -->
                 <div class="tab-pane" id="tab_2">
-                    Kullanıcın erişim sağlayabileceği şantiyeleri seçin.<br/><br/>
+                    Kullanıcının erişim sağlayabileceği şantiyeleri seçin.<br/><br/>
                     <legend>Şantiyeler</legend>
                     <label class="checkbox-inline">
                         <input type="checkbox" id="sites-master" name="sites-master">

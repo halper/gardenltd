@@ -12,6 +12,8 @@
 */
 
 // Authentication routes...
+use Illuminate\Http\RedirectResponse;
+
 Route::get('auth/login', 'Auth\AuthController@getLogin');
 Route::post('auth/login', 'Auth\AuthController@postLogin');
 Route::get('auth/logout', 'Auth\AuthController@getLogout');
@@ -30,14 +32,18 @@ Route::bind('module', function($slug){
 Route::model('user', 'App\User');
 
 Route::group(['middleware' => ['auth', 'access']], function() {
-    Route::get('tekil/{site}/yemek', 'Tekil\ModuleController@getYemek');
-    Route::get('tekil/{site}', 'TekilController@getSite');
+//    Route::get('tekil/{site}/yemek', 'Tekil\ModuleController@getYemek');
+//    Route::get('tekil/{site}', 'TekilController@getSite');
+    Route::controller('tekil/{site}', 'TekilController');
 });
 
 
 Route::controller('santiye', 'SantiyeController');
 Route::group(['middleware' => ['auth', 'admin']], function() {
     Route::get('admin/duzenle/{user}', 'AdminController@edit');
+    Route::get('admin/duzenle', function(){
+        return new RedirectResponse(url('/admin'));
+    });
     Route::patch('admin/update/{user}', 'AdminController@update');
     Route::patch('admin/sites/{user}', 'AdminController@editSitePermissions');
     Route::patch('admin/modules/{user}', 'AdminController@editModulePermissions');

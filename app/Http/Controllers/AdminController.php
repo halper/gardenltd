@@ -41,12 +41,16 @@ class AdminController extends Controller
             'password' => 'required|confirmed|min:6',
         ]);
 
-        User::create(
+        $user = User::create(
             [
                 'name' => $request->get('name'),
                 'email' => $request->get('email'),
                 'password' => bcrypt($request->get('password'))
             ]);
+
+        if(array_key_exists("admin", $request->all())){
+            $user->permission()->attach(3, ["module_id" => 1]);
+        }
 
         Session::flash('flash_message', 'Yeni kullanıcı <em>' . $request->get('name') . '</em> oluşturuldu');
         return redirect('admin/ayarlar');
@@ -65,10 +69,20 @@ class AdminController extends Controller
 
     public function update(Request $request, User $user)
     {
+
         $this->validate($request, [
             'name' => 'required',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
         ]);
+
+        if(!array_key_exists("admin", $request->all())){
+            if($user->isAdmin()){
+                $user->permission()->detach(3);
+            }
+        }
+        else{
+            $user->permission()->attach(3, ["module_id"=>1]);
+        }
 
         if (!empty($request->get("password"))) {
             $this->validate($request, [

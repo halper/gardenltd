@@ -6,6 +6,26 @@
         <div class="col-sm-10">
             {!! Form::text('name', null, ['class' => 'form-control', 'placeholder' => 'Kullanıcı adı giriniz']) !!}
         </div>
+
+
+    </div>
+</div>
+
+<div class="form-group">
+    <div class="row">
+        <div class="col-sm-2">
+            {!! Form::label('admin', 'Yönetici Hesabı: ', ['class' => 'control-label']) !!}
+        </div>
+        <div class="col-sm-10">
+
+            <label class="checkbox-inline">
+                {!! Form::checkbox('admin', null,
+                $user->isAdmin(),
+                [
+                'id'=>'admin-cb',
+                ])
+                !!}Yönetici hakkı ver</label>
+        </div>
     </div>
 </div>
 

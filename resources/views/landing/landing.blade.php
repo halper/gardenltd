@@ -8,7 +8,7 @@
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
     @include('base.css')
 
-            <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
     <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
@@ -31,14 +31,14 @@
                             <!-- Menu Toggle Button -->
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                                 <!-- The user image in the navbar-->
-                                <i class="fa fa-user-plus"></i>
+                                <i class="fa {{ Auth::User()->isAdmin() ? "fa-user-plus" : "fa-user"}}"></i>
                                 <!-- hidden-xs hides the username on small devices so only the image appears. -->
                                 <span class="hidden-xs"><?=Auth::user()->getAttribute("name")?></span>
                             </a>
                             <ul class="dropdown-menu">
                                 <!-- The user image in the menu -->
                                 <li class="user-header">
-                                    <i class="fa fa-user-plus fa-4x"></i>
+                                    <i class="fa {{ Auth::User()->isAdmin() ? "fa-user-plus" : "fa-user"}} fa-4x"></i>
 
                                     <p>
                                         <?=Auth::user()->getAttribute("name")?>
@@ -53,9 +53,9 @@
                                         <a href="#" class="btn btn-default btn-flat">Bilgilerim</a>
                                     </div>
                                     @if(Auth::user()->isAdmin())
-                                    <div class="col-md-4">
-                                        <a href="/admin/ayarlar" class="btn btn-default btn-flat">Ayarlar</a>
-                                    </div>
+                                        <div class="col-md-4">
+                                            <a href="/admin/ayarlar" class="btn btn-default btn-flat">Ayarlar</a>
+                                        </div>
                                     @endif
                                     <div class="pull-right">
                                         <a href="/auth/logout" class="btn btn-default btn-flat">Çıkış</a>
@@ -70,8 +70,49 @@
             <!-- /.container-fluid -->
         </nav>
     </header>
+
+    <?php
+    $actual_link = "$_SERVER[REQUEST_URI]";
+    $tmp = explode("/", $actual_link);
+
+
+    ?>
     <!-- Full Width Column -->
     <div class="content-wrapper">
+        <section class="content-header">
+            <h1>
+                <?php
+                $page_header = end($tmp);
+                if (strpos($page_header, "-")) {
+                    $page_header = str_replace("-", " ", $page_header);
+                    $page_header = ucwords($page_header);
+                } else {
+                    $page_header = ucfirst($page_header);
+                }
+                $current_path = "";
+                if (str_contains("duzenle", $tmp)) {
+                    $page_header = "Kullanıcı Bilgileri Düzenle";
+                }
+                ?>
+                {{$page_header}}
+            </h1>
+            <ol class="breadcrumb">
+                @foreach($tmp as $bread_li)
+
+                    <li class="{{strcmp($bread_li, (string)end($tmp)) == 0 ? "active" : ""}}">
+                        @if(strcmp($bread_li, (string)end($tmp)) == 0)
+                            {{$bread_li == "" ? "Ana sayfa" : ucwords($bread_li)}}
+                        @else
+                            <a href="{{$bread_li == "" ? "/" : $current_path.$bread_li}}">{{$bread_li == "" ? "Ana sayfa" : ucwords($bread_li)}}</a>
+                        @endif
+                    </li>
+                    <?php
+
+                    $current_path .= $bread_li . "/";
+                    ?>
+                @endforeach
+            </ol>
+        </section>
         <div class="container">
 
 
@@ -103,7 +144,7 @@
 
 
 @include('base.js')
-        <!-- SlimScroll -->
+<!-- SlimScroll -->
 <script src="<?= URL::to('/');?>/js/slimScroll/jquery.slimscroll.min.js"></script>
 <!-- FastClick -->
 <script src="<?= URL::to('/');?>/js/fastclick/fastclick.min.js"></script>

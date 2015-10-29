@@ -30,6 +30,10 @@ class Site extends Eloquent implements SluggableInterface
 
     public static function getSites()
     {
-        return Site::where('id', '<', 99998)->get();
+        return Site::where('id', '>', 1)->get();
+    }
+
+    public static function slugToId($slug){
+        return Site::where('slug', $slug)->first()->id;
     }
 }

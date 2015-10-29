@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Tekil;
 
-use App\Http\Controllers\ManagementController;
+use App\Http\Controllers\Controller;
 use App\Http\Requests;
 
 
-class ModuleController extends ManagementController
+class ModuleController extends Controller
 {
     //
 

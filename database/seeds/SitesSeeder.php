@@ -27,16 +27,7 @@ class SitesTableSeeder extends Seeder
     public function run()
     {
         DB::table('sites')->delete();
-        Site::create(array(
-            'id' => '99999',
-            'job_name'     => 'Mevcut ve sonraki santiyeler icin izin',
-            'management_name'    => 'Mevcut ve sonraki santiyeler icin izin',
-            'start_date' => '2015-08-31',
-            'contract_date' => '2015-08-01',
-            'end_date' => '2015-12-31',
-            'address' => 'Eskişehir Yolu 9. KM Ankara',
-            'site_chief' => 'Tolga Alper',
-        ));
+
         Site::create(array(
             'job_name'     => 'TOKİ Mahal',
             'management_name'    => 'Sinpaş Toki Konsorsiyum',
@@ -56,7 +47,7 @@ class SitesTableSeeder extends Seeder
             'address' => 'Oran Ankara',
             'site_chief' => 'Tolga Alper',
         ));
-        Site::create(array(
+        /*Site::create(array(
             'id' => '99998',
             'job_name'     => 'Mevcut santiyeler icin izin',
             'management_name'    => 'Mevcut santiyeler icin izin',
@@ -65,8 +56,17 @@ class SitesTableSeeder extends Seeder
             'end_date' => '2015-12-31',
             'address' => 'Eskişehir Yolu 9. KM Ankara',
             'site_chief' => 'Tolga Alper',
+        ));*/
+        Site::create(array(
+            'id' => '1',
+            'job_name'     => 'Mevcut ve sonraki santiyeler icin izin',
+            'management_name'    => 'Mevcut ve sonraki santiyeler icin izin',
+            'start_date' => '2015-08-31',
+            'contract_date' => '2015-08-01',
+            'end_date' => '2015-12-31',
+            'address' => 'Eskişehir Yolu 9. KM Ankara',
+            'site_chief' => 'Tolga Alper',
         ));
-
     }
 
 }

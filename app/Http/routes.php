@@ -29,14 +29,20 @@ Route::bind('module', function($slug){
 
 Route::model('user', 'App\User');
 
-Route::get('tekil/{site}/yemek', 'Tekil\ModuleController@getYemek');
-Route::get('tekil/{site}', 'TekilController@getSite');
+Route::group(['middleware' => ['auth', 'access']], function() {
+    Route::get('tekil/{site}/yemek', 'Tekil\ModuleController@getYemek');
+    Route::get('tekil/{site}', 'TekilController@getSite');
+});
 
 
 Route::controller('santiye', 'SantiyeController');
-Route::get('admin/duzenle/{user}', 'AdminController@edit');
-Route::patch('admin/update/{user}', 'AdminController@update');
-Route::controller('admin', 'AdminController');
+Route::group(['middleware' => ['auth', 'admin']], function() {
+    Route::get('admin/duzenle/{user}', 'AdminController@edit');
+    Route::patch('admin/update/{user}', 'AdminController@update');
+    Route::patch('admin/sites/{user}', 'AdminController@editSitePermissions');
+    Route::patch('admin/modules/{user}', 'AdminController@editModulePermissions');
+    Route::controller('admin', 'AdminController');
+});
 
 
 Route::controller('/', 'HomeController');

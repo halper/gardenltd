@@ -62,4 +62,13 @@ class User extends Model implements AuthenticatableContract,
     public function hasSite($site_id){
         return ! is_null($this->site()->where('site_id', $site_id)->first());
     }
+
+    public function hasPermissionOnModule($permission, $module){
+        return ! is_null($this->permission()->where('permission_id', $permission)->where('module_id', $module)->first());
+    }
+
+    public function hasAnyPermissionOnModule($module)
+    {
+        return !is_null($this->permission()->where('module_id', $module)->first());
+    }
 }

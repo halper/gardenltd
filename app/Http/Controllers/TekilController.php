@@ -7,7 +7,7 @@ use App\Site;
 use App\Http\Requests;
 
 
-class TekilController extends ManagementController
+class TekilController extends Controller
 {
     //
     public function getSite(Site $site, Module $modules)

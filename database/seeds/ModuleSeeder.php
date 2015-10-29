@@ -99,7 +99,7 @@ class ModulesTableSeeder extends Seeder
         ));
 
         Module::create(array(
-            'id' => '999',
+            'id' => '1',
             'name' => 'All modules',
         ));
 

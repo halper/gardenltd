@@ -22,4 +22,8 @@ class Module extends Eloquent implements SluggableInterface
 
     protected $fillable = ['name', 'icon'];
 
+    public static function getModules(){
+        return Module::where('id', '>', 1)->get();
+    }
+
 }

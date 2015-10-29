@@ -3,7 +3,10 @@ use App\Site;
 
 
 if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
-    $sites = Site::where('id', '<', 99998)->get();
+    $sites = Site::getSites();
+}
+else{
+    $sites = Auth::user()->site()->get();
 }
 
 ?>
@@ -18,7 +21,8 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
             <a href="#" class="close" data-dismiss="alert">&times;</a>
         </div>
     @endif
-    @if(isset($sites))
+    @if(isset($sites) && count($sites) > 0)
+
         <div class="callout callout-info">
             <h4>Şantiyeler sayfası</h4>
 
@@ -79,26 +83,28 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
                         {!!
                         Auth::user()->isAdmin() ?
                         "<a href=\"#\" class=\"close siteDelBut\" data-toggle=\"modal\"
-                           data-id=\"$site->id\" data-name= \"$site->job_name\" data-target=\"deleteSiteConfirm\"><i
-                                    class=\"fa fa-trash-o\"></i></a>" : ""
+                        data-id=\"$site->id\" data-name= \"$site->job_name\" data-target=\"deleteSiteConfirm\"><i
+                                class=\"fa fa-trash-o\"></i></a>" : ""
                         !!}
                         <span class="info-box-text">{{$site->job_name}}</span>
                         <span class="info-box-number">{{"Kalan süre: $left gün"}}</span>
 
                         <div class="progress">
-                            <div class="progress-bar" {!! "style=\"width: $total_per%\""!!}></div>
+                            <div class="progress-bar" {!!
+                            "style=\"width: $total_per%\"" !!}>
                         </div>
-                        <a href={{ "tekil/$site->slug" }} class="details">
+                    </div>
+                    <a href={{ "tekil/$site->slug" }} class="details">
 
                   <span class="progress-description">
                     Şantiye detayları için tıklayınız
                       <i class="fa fa-arrow-circle-right"></i>
                   </span>
-                        </a>
+                    </a>
 
-                    </div>
-                    <!-- /.info-box-content -->
                 </div>
+                <!-- /.info-box-content -->
+            </div>
             </div>
         @endforeach
     @endif
@@ -128,7 +134,8 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
                                 {!! Form::label('job_name', 'İşin Adı: ', ['class' => 'control-label']) !!}
                             </div>
                             <div class="col-sm-10">
-                                {!! Form::text('job_name', null, ['class' => 'form-control', 'placeholder' => 'İşin adını giriniz']) !!}
+                                {!! Form::text('job_name', null, ['class' => 'form-control', 'placeholder' => 'İşin
+                                adını giriniz']) !!}
 
                             </div>
                         </div>
@@ -139,7 +146,8 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
                                 {!! Form::label('management_name', 'İdarenin Adı: ', ['class' => 'control-label']) !!}
                             </div>
                             <div class="col-sm-10">
-                                {!! Form::text('management_name', null, ['class' => 'form-control', 'placeholder' => 'İdarenin adını giriniz']) !!}
+                                {!! Form::text('management_name', null, ['class' => 'form-control', 'placeholder' =>
+                                'İdarenin adını giriniz']) !!}
 
                             </div>
                         </div>
@@ -150,7 +158,8 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
                                 {!! Form::label('start_date', 'Başlangıç Tarihi: ', ['class' => 'control-label']) !!}
                             </div>
                             <div class="col-sm-10">
-                                {!! Form::text('start_date', null, ['class' => 'form-control', 'placeholder' => 'Tarihi 01.01.2000 şeklinde giriniz']) !!}
+                                {!! Form::text('start_date', null, ['class' => 'form-control', 'placeholder' => 'Tarihi
+                                01.01.2000 şeklinde giriniz']) !!}
 
                             </div>
                         </div>
@@ -162,7 +171,8 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
                                 {!! Form::label('contract_date', 'Sözleşme Tarihi: ', ['class' => 'control-label']) !!}
                             </div>
                             <div class="col-sm-10">
-                                {!! Form::text('contract_date', null, ['class' => 'form-control', 'placeholder' => 'Tarihi 01.01.2000 şeklinde giriniz']) !!}
+                                {!! Form::text('contract_date', null, ['class' => 'form-control', 'placeholder' =>
+                                'Tarihi 01.01.2000 şeklinde giriniz']) !!}
 
                             </div>
                         </div>
@@ -174,7 +184,8 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
                                 {!! Form::label('end_date', 'İş Bitim Tarihi: ', ['class' => 'control-label']) !!}
                             </div>
                             <div class="col-sm-10">
-                                {!! Form::text('end_date', null, ['class' => 'form-control', 'placeholder' => 'Tarihi 01.01.2000 şeklinde giriniz']) !!}
+                                {!! Form::text('end_date', null, ['class' => 'form-control', 'placeholder' => 'Tarihi
+                                01.01.2000 şeklinde giriniz']) !!}
 
                             </div>
                         </div>
@@ -201,7 +212,8 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
                                 {!! Form::label('site_chief', 'Şantiye şefi: ', ['class' => 'control-label']) !!}
                             </div>
                             <div class="col-sm-10">
-                                {!! Form::text('site_chief', null, ['class' => 'form-control', 'placeholder' => 'Şantiye şefini giriniz']) !!}
+                                {!! Form::text('site_chief', null, ['class' => 'form-control', 'placeholder' => 'Şantiye
+                                şefini giriniz']) !!}
 
                             </div>
                         </div>
@@ -266,7 +278,7 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
             var myForm = $('.modal-footer #siteDeleteForm');
             var myP = $('.modal-body .siteDel');
             myP.html("<em>" + mySiteName + "</em> şantiyesini silmek istediğinizden emin misiniz?" +
-                    "<p>NOT: <span>SİLME İŞLEMİ GERİ DÖNDÜRÜLEMEZ!</span></p>");
+            "<p>NOT: <span>SİLME İŞLEMİ GERİ DÖNDÜRÜLEMEZ!</span></p>");
             $('<input>').attr({
                 type: 'hidden',
                 name: 'siteDeleteIn',

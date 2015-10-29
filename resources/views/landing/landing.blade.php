@@ -54,11 +54,11 @@
                                     </div>
                                     @if(Auth::user()->isAdmin())
                                     <div class="col-md-4">
-                                        <a href="ayarlar" class="btn btn-default btn-flat">Ayarlar</a>
+                                        <a href="/admin/ayarlar" class="btn btn-default btn-flat">Ayarlar</a>
                                     </div>
                                     @endif
                                     <div class="pull-right">
-                                        <a href="auth/logout" class="btn btn-default btn-flat">Çıkış</a>
+                                        <a href="/auth/logout" class="btn btn-default btn-flat">Çıkış</a>
                                     </div>
                                 </li>
                             </ul>

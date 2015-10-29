@@ -196,9 +196,10 @@ EOF;
 
     <?php
     $i = 0;
+    $i_modulus = 0;
     ?>
-    @foreach($modules->all() as $module)
-        @if($module->id != 999)
+    @foreach($modules->getModules() as $module)
+        @if(Auth::User()->hasAnyPermissionOnModule($module->id))
         <?php
         if (strpos($module->icon, "ion-") !== false) {
             $i_icon = "ion ";

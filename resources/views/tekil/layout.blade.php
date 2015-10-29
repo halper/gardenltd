@@ -8,7 +8,7 @@
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
     @include('base.css')
     @yield('page-specific-css')
-            <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
     <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
@@ -53,7 +53,10 @@
 
                             <p>
                                 <?=Auth::user()->getAttribute("name")?>
-                                <small>Admin</small>
+
+                                <small>{{ Auth::User()->isAdmin() ?
+                                    "Admin" : "Kullanıcı" }}
+                                </small>
                                 {{-- TODO
                                 Buraya kullanıcı grupları gelecek--}}
                             </p>
@@ -63,11 +66,13 @@
                             <div class="pull-left">
                                 <a href="#" class="btn btn-default btn-flat">Bilgilerim</a>
                             </div>
-                            <div class="col-md-4">
-                                <a href="../ayarlar" class="btn btn-default btn-flat">Ayarlar</a>
-                            </div>
+                            @if(Auth::User()->isAdmin())
+                                <div class="col-md-4">
+                                    <a href="/admin/ayarlar" class="btn btn-default btn-flat">Ayarlar</a>
+                                </div>
+                            @endif
                             <div class="pull-right">
-                                <a href="../auth/logout" class="btn btn-default btn-flat">Çıkış</a>
+                                <a href="/auth/logout" class="btn btn-default btn-flat">Çıkış</a>
                             </div>
                         </li>
                     </ul>
@@ -86,8 +91,8 @@
             <ul class="sidebar-menu">
                 <li class="header">{{mb_strtoupper($site->job_name, 'utf-8')}}</li>
 
-                @foreach($modules->all() as $module)
-                    @if($module->id != 999)
+                @foreach($modules->getModules() as $module)
+                    @if(Auth::User()->hasAnyPermissionOnModule($module->id))
                     <?php
                     if (strpos($module->icon, "ion-") !== false) {
                         $i_icon = "ion ";

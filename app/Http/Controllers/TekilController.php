@@ -17,8 +17,8 @@ class TekilController extends Controller
         return view('tekil/main', compact('site', 'modules'));
     }
 
-    public function getGunlukRapor()
+    public function getGunlukRapor(Site $site, Module $modules)
     {
-        return redirect('/');
+        return view('tekil/daily', compact('site', 'modules'));
     }
 }

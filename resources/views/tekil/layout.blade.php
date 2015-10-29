@@ -89,7 +89,7 @@
         <section class="sidebar">
             <!-- sidebar menu: : style can be found in sidebar.less -->
             <ul class="sidebar-menu">
-                <li class="header">{{mb_strtoupper($site->job_name, 'utf-8')}}</li>
+                <li class="header"><a href="/tekil/{{$site->slug}}">{{mb_strtoupper($site->job_name, 'utf-8')}}</a></li>
 
                 @foreach($modules->getModules() as $module)
                     @if(Auth::User()->hasAnyPermissionOnModule($module->id) || Auth::User()->isAdmin())
@@ -102,7 +102,7 @@
                     $i_icon .= $module->icon
                     ?>
 
-                    <li><a href="{{$site->slug."/".$module->slug}}">
+                    <li><a href="/tekil/{{$site->slug."/".$module->slug}}" class="menu">
                             {!! empty($module->icon) ? "" : ("<i class=\"$i_icon\"></i>")!!}
                             {{ $module->name}}
                         </a></li>

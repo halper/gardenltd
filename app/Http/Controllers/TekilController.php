@@ -27,4 +27,9 @@ class TekilController extends Controller
         return view('tekil/account', compact('site', 'modules'));
     }
 
+    public function getTaseronCariHesap(Site $site, Module $modules)
+    {
+        return view('tekil/subcontractor-account', compact('site', 'modules'));
+    }
+
 }

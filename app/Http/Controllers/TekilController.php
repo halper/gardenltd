@@ -21,4 +21,10 @@ class TekilController extends Controller
     {
         return view('tekil/daily', compact('site', 'modules'));
     }
+
+    public function getKasa(Site $site, Module $modules)
+    {
+        return view('tekil/account', compact('site', 'modules'));
+    }
+
 }

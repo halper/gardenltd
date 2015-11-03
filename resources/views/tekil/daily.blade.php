@@ -3,7 +3,7 @@
 @section('content')
 
     <div class="row">
-        <div class="col-xs-12 col-md-4 col-md-offset-3">
+        <div class="col-xs-12 col-md-6 col-md-offset-3">
             <div class="box box-primary box-solid">
                 <div class="box-header with-border">
                     <h3 class="box-title">Şantiye Günlük Raporu</h3>
@@ -22,12 +22,22 @@
                             <tbody>
 
                             <tr>
+                                <td></td>
+
                                 <td><strong>PROJE ADI:</strong></td>
                                 <td>{{$site->job_name}}</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+
                             </tr>
                             <tr>
+                                <td></td>
                                 <td><strong>TARİH:</strong></td>
                                 <td>{{Carbon\Carbon::today('Europe/istanbul')->format('d.m.Y')}}</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
                             </tr>
                             <tr>
                                 <?php
@@ -41,18 +51,29 @@
                                 ?>
                                 <td><strong>İŞ BİTİM TARİHİ:</strong></td>
                                 <td>{{$myFormatForView}}</td>
+                                <td></td>
+                                <td></td>
+                                <td><strong>KALAN SÜRE:</strong></td>
+                                <td>{{$left}} gün</td>
                             </tr>
                             <tr>
-                                <td><strong>KALAN SÜRE:</strong></td>
-                                <td>{{$left}}</td>
+
                             </tr>
                             <tr>
                                 <td><strong>HAVA DURUMU:</strong></td>
+                                <td>Güneşli</td>
                                 <td></td>
+                                <td></td>
+                                <td><strong>SICAKLIK:</strong></td>
+                                <td>5 / 15</td>
                             </tr>
                             <tr>
                                 <td><strong>ŞANTİYE ŞEFİ:</strong></td>
                                 <td>{{$site->site_chief}}</td>
+                                <td></td>
+                                <td></td>
+                                <td><strong>ÇALIŞMA:</strong></td>
+                                <td>Var</td>
                             </tr>
 
                             </tbody>
@@ -67,6 +88,183 @@
     </div>
 
     <div class="row">
+        <div class="col-xs-12 col-md-4">
+            <div class="table-responsive">
+                <table class="table table-bordered table-condensed">
+                    <thead>
+                    <tr>
+                        <th>Görevi</th>
+                        <th>Sayısı</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach(App\Department::all() as $dept)
+                        <tr>
+                            <td><strong>{{mb_strtoupper($dept->department, 'utf-8')}} GRUBU</strong></td>
+                            <td></td>
+                        </tr>
+                        @foreach($dept->staff()->get() as $staff)
+                            <tr>
+                                <td>{{mb_strtoupper($staff->staff, 'utf-8')}}</td>
+                                <td>{{random_int(1,8)}}</td>
+                            </tr>
+                        @endforeach
+                    @endforeach
+                    <tr>
+                        <td>TOPLAM ŞANTİYE PERSONELİ</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>ŞANTİYE GENEL TOPLAMI</td>
+                        <td></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-xs-12 col-md-8">
+            <div class="row">
+                <div class="col-xs-12 col-md-12">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-condensed">
+                            <thead>
+                            <tr>
+                                <th>NO</th>
+                                <th>ŞANTİYE İŞ MAKİNELERİ</th>
+                                <th>ÇALIŞ. SAATİ</th>
+                                <th>SAYISI</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @for($i = 1; $i<8; $i++)
+
+                                <tr>
+                                    <td style="text-align: center">{{$i}}</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+
+                                </tr>
+
+                            @endfor
+                            <tr>
+                                <td></td>
+                                <td>ÇALIŞAN TOPLAM MAKİNA</td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-xs-12 col-md-12">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-condensed">
+                            <thead>
+                            <tr>
+                                <th>TAŞERON GRUBU</th>
+                                <th>TAŞERON FİRMA</th>
+                                <th>SAYISI</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @for($i = 1; $i<24; $i++)
+
+                                <tr>
+                                    @if($i%4==0)
+                                        <td style="color: darkred">TOPLAM:</td>
+                                    @else
+                                        <td></td>
+                                    @endif
+                                    <td></td>
+                                    <td></td>
+
+                                </tr>
+
+                            @endfor
+                            <tr>
+                                <td></td>
+                                <td>ÇALIŞAN TOPLAM MAKİNA</td>
+                                <td></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row">
+        <div class="col-xs-12 col-md-12">
+            <div class="table-responsive">
+                <table class="table table-bordered table-condensed">
+                    <thead>
+                    <tr>
+                        <th>S.N</th>
+                        <th>ÇALIŞAN BİRİM</th>
+                        <th>YAPILAN İŞLER</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @for($i = 1; $i<6; $i++)
+
+                        <tr>
+                            <td>{{$i}}</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+
+                    @endfor
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xs-12 col-md-12">
+            <div class="table-responsive">
+                <table class="table table-bordered table-condensed">
+                    <thead>
+                    <tr>
+                        <th>S.N</th>
+                        <th>GELEN MALZEME</th>
+                        <th>BİRİM</th>
+                        <th>MİK.</th>
+                        <th>AÇIKLAMASI</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @for($i = 1; $i<6; $i++)
+
+                        <tr>
+                            <td>{{$i}}</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+
+                    @endfor
+                    <tr>
+                        <td></td>
+                        <td>TOPLAM:</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {{--<div class="row">
         <div class="col-xs-12 col-md-6">
             <div class="box box-success box-solid">
                 <div class="box-header with-border">
@@ -309,6 +507,6 @@
             </div>
             <!-- /.box -->
         </div>
-    </div>
+    </div>--}}
 
 @stop

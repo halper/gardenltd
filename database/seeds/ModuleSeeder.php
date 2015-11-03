@@ -32,13 +32,7 @@ class ModulesTableSeeder extends Seeder
             'icon' => 'fa-bar-chart',
         ));
 
-        
-        Module::create(array(
-            'name' => 'Kredi Kartı',
-            'icon' => 'fa-credit-card',
-        ));
 
-        
         Module::create(array(
             'name' => 'Puantaj',
             'icon' => 'ion-ios-timer-outline',

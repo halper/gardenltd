@@ -10,6 +10,7 @@ use App\Http\Requests;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Validator;
 
 
 class TekilController extends Controller
@@ -55,15 +56,12 @@ class TekilController extends Controller
 
     public function postDemandMaterials(Request $request, Site $site)
     {
-        $this->validate($request, [
-            'unit[]' => 'required',
-            'quantity[]' => 'required',
-        ]);
         $demand = new Demand;
         $demand->demand = $site->job_name . "_" . Carbon::now('Europe/Istanbul')->format('mdY');
         $demand->save();
         foreach($request->get("materials") as $mat){
-            Material::find($mat)->attach($demand->id, ["quantity" => $request->get("quantity")[$mat-1],
+            $my_mat = Material::find($mat);
+            $my_mat->demands()->attach($demand->id, ["quantity" => $request->get("quantity")[$mat-1],
                 "unit" => $request->get("unit")[$mat-1],]);
         }
         Session::flash('flash_message', 'Malzeme talep formu oluşturuldu');

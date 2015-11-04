@@ -17,11 +17,11 @@ class Material extends Model
 
     public function demands()
     {
-        $this->belongsToMany('App\Demand')->withPivot("quantity", "unit");;
+        return $this->belongsToMany('App\Demand')->withPivot("quantity", "unit");;
     }
 
     public function request()
     {
-        $this->hasOne('App\Request');
+        return $this->hasOne('App\Request');
     }
 }

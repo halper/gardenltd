@@ -41,6 +41,8 @@
                             </tr>
                             <tr>
                                 <?php
+                                use Cmfcmf\OpenWeatherMap;
+
                                 $time = strtotime($site->end_date);
                                 $myFormatForView = date("d.m.Y", $time);
 
@@ -48,6 +50,19 @@
                                 $now = date_create();
                                 $end_date = date_create($site->end_date);
                                 $left = str_replace("+", "", date_diff($now, $end_date)->format("%R%a"));
+                                $owm = new OpenWeatherMap();
+
+                                $weather = $owm->getWeather('Ankara', 'metric', 'tr');
+
+                                {{--try {
+                                } catch(OWMException $e) {
+                                    echo 'OpenWeatherMap exception: ' . $e->getMessage() . ' (Code ' . $e->getCode() . ').';
+                                    echo "<br />\n";
+                                } catch(\Exception $e) {
+                                    echo 'General exception: ' . $e->getMessage() . ' (Code ' . $e->getCode() . ').';
+                                    echo "<br />\n";
+                                }--}}
+
                                 ?>
                                 <td><strong>İŞ BİTİM TARİHİ:</strong></td>
                                 <td>{{$myFormatForView}}</td>
@@ -65,7 +80,7 @@
                                 <td></td>
                                 <td></td>
                                 <td><strong>SICAKLIK:</strong></td>
-                                <td>5 / 15</td>
+                                <td>{{ $weather->temperature}}</td>
                             </tr>
                             <tr>
                                 <td><strong>ŞANTİYE ŞEFİ:</strong></td>

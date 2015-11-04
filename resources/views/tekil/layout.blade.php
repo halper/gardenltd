@@ -123,8 +123,8 @@
         <section class="content">
             @if(Session::has('flash_message'))
 
-                <div class="alert alert-success fade in alert-box {{ Session::has('flash_message_important') ? 'alert-important' : '' }}">
-                    @if(Session::has('flash_message_important'))
+                <div class="alert {{ Session::has('flash_message_error') ? 'alert-danger' : 'alert-success' }} fade in alert-box {{ Session::has('flash_message_important') ? 'alert-important' : '' }}">
+                    @if(Session::has('flash_message_important') || Session::has('flash_message_error'))
                         <a href="#" class="close" data-dismiss="alert">&times;</a>
                     @endif
                     {!! Session::get('flash_message') !!}

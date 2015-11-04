@@ -11,6 +11,24 @@
             placeholder: "Eklemek istediğiniz malzemeleri seçiniz",
             allowClear: true
         });
+
+
+        $('#materialDemandForm').submit(function( e){
+            var emptyTexts = $('#materialDemandForm .form-control').filter(function() {
+                return !this.value;
+            });
+            if(emptyTexts.length > 0){
+                e.preventDefault();
+
+                jQuery.each( emptyTexts, function( ) {
+                    $(this).next("span").text("Lütfen ilgili alanları doldurunuz!");
+                    $(this).next("span").addClass('text-danger');
+                    $(this).parent().closest("div").addClass('has-error');
+
+                });
+            }
+        });
+
     </script>
 
 @stop
@@ -35,12 +53,12 @@
                     <p>Talebini yapacağınız malzemeleri aşağıdaki kutudan seçtikten sonra birim ve miktar belirteceğiniz
                         ayrı bir tablo gelecek.</p>
                     {!! Form::open([
-                                        'url' => "/tekil/$site->slug/add-materials",
-                                        'method' => 'POST',
-                                        'class' => 'form',
-                                        'id' => 'materialInsertForm',
-                                        'role' => 'form'
-                                        ]) !!}
+                    'url' => "/tekil/$site->slug/add-materials",
+                    'method' => 'POST',
+                    'class' => 'form',
+                    'id' => 'materialInsertForm',
+                    'role' => 'form'
+                    ]) !!}
 
                     <div class="form-group">
                         <label for="materials">Talep etmek istediğiniz malzemeleri seçiniz: </label>
@@ -84,12 +102,12 @@
                     <div class="box-body">
                         <div class="table-responsive">
                             {!! Form::open([
-                                        'url' => "/tekil/$site->slug/demand-materials",
-                                        'method' => 'POST',
-                                        'class' => 'form',
-                                        'id' => 'materialDemandForm',
-                                        'role' => 'form'
-                                        ]) !!}
+                            'url' => "/tekil/$site->slug/demand-materials",
+                            'method' => 'POST',
+                            'class' => 'form',
+                            'id' => 'materialDemandForm',
+                            'role' => 'form'
+                            ]) !!}
                             <table class="table table-hover table-condensed">
                                 <thead>
                                 <tr>
@@ -104,18 +122,24 @@
                                     <tr>
                                         <td>
                                             {{$materials->get($mat-1)->material}}
-                                            <input type="hidden" name="materials[]" value="{{$materials->get($mat-1)->id}} ">
+                                            <input type="hidden" name="materials[]"
+                                                   value="{{$materials->get($mat-1)->id}}">
                                         </td>
                                         <td>
-                                            <div class="form-group {{ $errors->has('unit') ? 'has-error' : '' }}">
-                                                {!! Form::text('unit[]', null, ['class' => 'form-control', 'placeholder' => $materials->get($mat-1)->material." malzemesinin birimini giriniz"]) !!}
+                                            <div class="form-group">
+                                                {!! Form::text('unit[]', null, ['class' => 'form-control', 'placeholder'
+                                                => $materials->get($mat-1)->material." malzemesinin birimini giriniz"])
+                                                !!}
+                                                <span></span>
 
                                             </div>
                                         </td>
                                         <td>
-                                            <div class="form-group {{ $errors->has('unit') ? 'has-error' : '' }}">
-                                                {!! Form::text('quantity[]', null, ['class' => 'form-control', 'placeholder' => $materials->get($mat-1)->material." malzemesinin birim cinsinden miktarını giriniz"]) !!}
-
+                                            <div class="form-group">
+                                                {!! Form::input('number', 'quantity[]', null, ['class' =>
+                                                'form-control',
+                                                'placeholder' => $materials->get($mat-1)->material." malzemesinin birim cinsinden miktarını giriniz"]) !!}
+                                                <span></span>
                                             </div>
                                         </td>
                                     </tr>
@@ -130,5 +154,6 @@
 
 
             </div>
+        </div>
     @endif
 @stop

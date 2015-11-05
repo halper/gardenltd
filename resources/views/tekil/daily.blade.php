@@ -1,9 +1,32 @@
+<?php
+use App\Library\Weather;
+$my_weather = new Weather;
+?>
 @extends('tekil/layout')
+
+@section('page-specific-css')
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.min.css"/>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker3.min.css"/>
+@stop
+
+@section('page-specific-js')
+    <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#dateRangePicker')
+                    .datepicker({
+                        format: 'dd.mm.yyyy',
+                        startDate: '01.01.2015',
+                        endDate: '30.12.2100'
+                    })
+        });
+    </script>
+@stop
 
 @section('content')
 
     <div class="row">
-        <div class="col-xs-12 col-md-6 col-md-offset-3">
+        <div class="col-xs-12 col-md-12">
             <div class="box box-primary box-solid">
                 <div class="box-header with-border">
                     <h3 class="box-title">Şantiye Günlük Raporu</h3>
@@ -17,31 +40,51 @@
                 </div>
                 <!-- /.box-header -->
                 <div class="box-body">
+                    <div class="row">
+                        <form id="dateRangeForm" method="post" class="form-horizontal">
+                            <div class="form-group">
+                                <label class="col-xs-3 control-label">TARİH: </label>
+                                <div class="col-xs-5 date">
+                                    <div class="input-group input-append date" id="dateRangePicker">
+                                        <input type="text" class="form-control" name="date" />
+                                        <span class="input-group-addon add-on"><span class="glyphicon glyphicon-calendar"></span></span>
+                                    </div>
+                                </div>
+                                </div>
+                            <div class="form-group">
+                                <div class="col-xs-5 col-xs-offset-3">
+                                    <button type="submit" class="btn btn-default">Tarih Seç</button>
+                                </div>
+                            </div>
+
+
+                        </form>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-condensed">
+
                             <tbody>
 
                             <tr>
+                                <td class="col-xs-2"><strong>PROJE ADI:</strong></td>
+                                <td class="col-xs-4">{{$site->job_name}}</td>
                                 <td></td>
+                                <td></td>
+                                {{--<td>{{Carbon\Carbon::today('Europe/istanbul')->format('d.m.Y')}}</td>--}}
 
-                                <td><strong>PROJE ADI:</strong></td>
-                                <td>{{$site->job_name}}</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
 
                             </tr>
                             <tr>
-                                <td></td>
-                                <td><strong>TARİH:</strong></td>
-                                <td>{{Carbon\Carbon::today('Europe/istanbul')->format('d.m.Y')}}</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td><strong>HAVA:</strong></td>
+                                <td>{{$my_weather->getDescription()}}</td>
+                                <td><strong>SICAKLIK:</strong></td>
+                                <td>{!! $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
+                                    <sup>o</sup>C
+                                </td>
                             </tr>
                             <tr>
                                 <?php
-                                use Cmfcmf\OpenWeatherMap;
+
 
                                 $time = strtotime($site->end_date);
                                 $myFormatForView = date("d.m.Y", $time);
@@ -50,24 +93,11 @@
                                 $now = date_create();
                                 $end_date = date_create($site->end_date);
                                 $left = str_replace("+", "", date_diff($now, $end_date)->format("%R%a"));
-                                $owm = new OpenWeatherMap();
 
-                                $weather = $owm->getWeather('Ankara', 'metric', 'tr');
-
-                                {{--try {
-                                } catch(OWMException $e) {
-                                    echo 'OpenWeatherMap exception: ' . $e->getMessage() . ' (Code ' . $e->getCode() . ').';
-                                    echo "<br />\n";
-                                } catch(\Exception $e) {
-                                    echo 'General exception: ' . $e->getMessage() . ' (Code ' . $e->getCode() . ').';
-                                    echo "<br />\n";
-                                }--}}
 
                                 ?>
                                 <td><strong>İŞ BİTİM TARİHİ:</strong></td>
                                 <td>{{$myFormatForView}}</td>
-                                <td></td>
-                                <td></td>
                                 <td><strong>KALAN SÜRE:</strong></td>
                                 <td>{{$left}} gün</td>
                             </tr>
@@ -75,18 +105,15 @@
 
                             </tr>
                             <tr>
-                                <td><strong>HAVA DURUMU:</strong></td>
-                                <td>Güneşli</td>
-                                <td></td>
-                                <td></td>
-                                <td><strong>SICAKLIK:</strong></td>
-                                <td>{{ $weather->temperature}}</td>
+                                <td><strong>NEM:</strong></td>
+                                <td>{!! $my_weather->getHumidity() ." %" !!} </td>
+                                <td><strong>RÜZGAR:</strong></td>
+                                <td>{{$my_weather->getWind()}} m/s</td>
+
                             </tr>
                             <tr>
                                 <td><strong>ŞANTİYE ŞEFİ:</strong></td>
                                 <td>{{$site->site_chief}}</td>
-                                <td></td>
-                                <td></td>
                                 <td><strong>ÇALIŞMA:</strong></td>
                                 <td>Var</td>
                             </tr>

@@ -68,5 +68,25 @@ class TekilController extends Controller
         return redirect()->back();
     }
 
+    public function postSelectDate(Request $request)
+    {
+        $data = ["date" => $request->get("date")];
+        return redirect()->back()->with("data", $data);
+    }
+
+    public function postAddStaffs(Request $request)
+    {
+        $staff_array = $request->get("staffs");
+        return redirect()->back()->with("staff_array", $staff_array);
+    }
+
+    public function postSaveStaff(Request $request){
+        $staff_array = $request->get("staffs");
+        $quantity = $request->get("quantity");
+        Session::flash('flash_message', 'Personel kaydı oluşturuldu');
+        return redirect()->back()->with("staff_array", $staff_array)
+            ->with("quantity_array", $quantity);
+    }
+
 
 }

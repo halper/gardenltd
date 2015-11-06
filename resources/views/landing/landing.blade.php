@@ -78,43 +78,43 @@
 
     ?>
     <!-- Full Width Column -->
-    <div class="content-wrapper">
-        <section class="content-header">
-            <h1>
-                <?php
-                $page_header = end($tmp);
-                if (strpos($page_header, "-")) {
-                    $page_header = str_replace("-", " ", $page_header);
-                    $page_header = ucwords($page_header);
-                } else {
-                    $page_header = ucfirst($page_header);
-                }
-                $current_path = "";
-                if (str_contains("duzenle", $tmp)) {
-                    $page_header = "Kullanıcı Bilgileri Düzenle";
-                }
-                ?>
-                {{$page_header}}
-            </h1>
-            <ol class="breadcrumb">
-                @foreach($tmp as $bread_li)
+    <div class="content-wrapper" style="margin-left: 0">
 
-                    <li class="{{strcmp($bread_li, (string)end($tmp)) == 0 ? "active" : ""}}">
-                        @if(strcmp($bread_li, (string)end($tmp)) == 0)
-                            {{$bread_li == "" ? "Ana sayfa" : ucwords($bread_li)}}
-                        @else
-                            <a href="{{$bread_li == "" ? "/" : $current_path.$bread_li}}">{{$bread_li == "" ? "Ana sayfa" : ucwords($bread_li)}}</a>
-                        @endif
-                    </li>
-                    <?php
-
-                    $current_path .= $bread_li . "/";
-                    ?>
-                @endforeach
-            </ol>
-        </section>
         <div class="container">
+            <section class="content-header">
+                <h1>
+                    <?php
+                    $page_header = end($tmp);
+                    if (strpos($page_header, "-")) {
+                        $page_header = str_replace("-", " ", $page_header);
+                        $page_header = ucwords($page_header);
+                    } else {
+                        $page_header = ucfirst($page_header);
+                    }
+                    $current_path = "";
+                    if (str_contains("duzenle", $tmp)) {
+                        $page_header = "Kullanıcı Bilgileri Düzenle";
+                    }
+                    ?>
+                    {{$page_header}}
+                </h1>
+                <ol class="breadcrumb">
+                    @foreach($tmp as $bread_li)
 
+                        <li class="{{strcmp($bread_li, (string)end($tmp)) == 0 ? "active" : ""}}">
+                            @if(strcmp($bread_li, (string)end($tmp)) == 0)
+                                {{$bread_li == "" ? "Ana sayfa" : ucwords($bread_li)}}
+                            @else
+                                <a href="{{$bread_li == "" ? "/" : $current_path.$bread_li}}">{{$bread_li == "" ? "Ana sayfa" : ucwords($bread_li)}}</a>
+                            @endif
+                        </li>
+                        <?php
+
+                        $current_path .= $bread_li . "/";
+                        ?>
+                    @endforeach
+                </ol>
+            </section>
 
             <!-- Main content -->
             <section class="content">

@@ -118,12 +118,12 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                @foreach($material_array as $mat)
+                                @for($i = 0; $i<sizeof($material_array); $i++)
                                     <tr>
                                         <td>
-                                            {{$materials->get($mat-1)->material}}
+                                            {{$materials->find($material_array[$i])->material}}
                                             <input type="hidden" name="materials[]"
-                                                   value="{{$materials->get($mat-1)->id}}">
+                                                   value="{{$materials->find($material_array[$i])->id}}">
                                         </td>
                                         <td>
                                             <div class="form-group">
@@ -143,7 +143,7 @@
                                             </div>
                                         </td>
                                     </tr>
-                                @endforeach
+                                @endfor
                                 </tbody>
                             </table>
                             <button type="submit" class="btn btn-primary btn-flat">Talep Et</button>

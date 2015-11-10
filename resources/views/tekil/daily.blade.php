@@ -264,6 +264,7 @@ EOT;
                     </div>
 
                     <div class="row">
+                        <div class="col-sm-12">
                         <div class="form-group pull-right">
                             <a href="#" class="btn btn-primary btn-flat add-staff-row">
                                 Personel Ekle
@@ -272,6 +273,7 @@ EOT;
                             <button type="submit" class="btn btn-success btn-flat ">
                                 Kaydet
                             </button>
+                        </div>
                         </div>
 
                     </div>

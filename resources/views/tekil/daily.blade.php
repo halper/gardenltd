@@ -31,8 +31,8 @@ if (session()->has("quantity_array")) {
         });
 
 
-
         $(document).ready(function () {
+            $(".js-example-basic-single").select2();
             $('#dateRangePicker').datepicker({
                 autoclose: true,
                 firstDay: 1,
@@ -58,45 +58,44 @@ if (session()->has("quantity_array")) {
 
     </script>
     <?php
-    $options = '';
+    $staff_options = '';
     foreach (App\Department::all() as $dept) {
-        $options .= "'<optgroup label=\"$dept->department\">'+\n";
+        $staff_options .= "'<optgroup label=\"$dept->department\">'+\n";
         foreach ($dept->staff()->get() as $staff) {
             if (isset($staff_array) && in_array($staff->id, $staff_array))
-                $options .= "'<option value=\"$staff->id\" selected>" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
+                $staff_options .= "'<option value=\"$staff->id\" selected>" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
             else
-                $options .= "'<option value=\"$staff->id\">" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
+                $staff_options .= "'<option value=\"$staff->id\">" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
         }
-        $options .= "'</optgroup>'+\n";
+        $staff_options .= "'</optgroup>'+\n";
     }
 
 
 
     echo <<<EOT
 <script>
-$(document).ready(function() {
-            $(".js-example-basic-single").select2();
-        });
+
+
+
     $(document).ready(function() {
-            var wrapper         = $("#staff-insert-table"); //Fields wrapper
+            var wrapper         = $("#staff-insert"); //Fields wrapper
             var add_button      = $(".add-staff-row"); //Add button ID
 
             $(add_button).click(function(e){ //on add input button click
                 e.preventDefault();
 
-                    $(wrapper).append('<tr><td>' +
-                    '<div class="form-group">' +
-                    '<select name="staffs[]" class="js-example-basic-single form-control">' +
-$options
-            '</select></div></td>' +
-                '<td>' +
-                '<div class="row"><div class="col-sm-9"><input type="number" class="form-control" name="contractor-quantity[]"/></div>'+
-                '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div></div></td></tr>'); //add input box
+                    $(wrapper).append('<div class="row"><div class="col-sm-6"><div class="form-group">' +
+                    '<select name="staffs[]" class="js-additional-staff form-control">' +
+$staff_options
+            '</select></div></div>' +
+                '<div class="col-sm-5"><input type="number" class="form-control" name="contractor-quantity[]"/></div>'+
+                '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div></div>'); //add input box
+                $(".js-additional-staff").select2();
 
             });
 
             $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
-                e.preventDefault(); $(this).parent().closest('tr').remove(); x--;
+                e.preventDefault(); $(this).parent().closest('div.row').remove(); x--;
             })
         });
 </script>
@@ -227,65 +226,58 @@ EOT;
                 <!-- /.box-header -->
                 <div class="box-body">
                     Falanca İnşaat için personel giriniz.
+                    <br>
 
+                    <div class="row">
+                        <div class="text-center">
+                            <div class="col-sm-6">
+                                <span><strong>PERSONEL</strong></span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span><strong>SAYISI</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    {!! Form::open([
+                    'url' => "/tekil/$site->slug/add-staffs",
+                    'method' => 'POST',
+                    'class' => 'form',
+                    'id' => 'staffInsertForm',
+                    'role' => 'form'
+                    ]) !!}
+                    <div id="staff-insert">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <select name="staffs[]" class="js-example-basic-single form-control">
 
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-condensed" id="staff-insert-table">
-                            <thead>
-                            <tr>
-                                <th>Personel</th>
-                                <th>Sayısı</th>
-                            </tr>
-                            </thead>
-                            {!! Form::open([
-                            'url' => "/tekil/$site->slug/add-staffs",
-                            'method' => 'POST',
-                            'class' => 'form',
-                            'id' => 'staffInsertForm',
-                            'role' => 'form'
-                            ]) !!}
-                            <tbody>
+                                        {!! $staff_options !!}
+                                    </select>
+                                </div>
+                            </div>
 
-                            <tr>
-                                <td>
+                            <div class="col-sm-6">
 
+                                <input type="number" class="form-control" name="contractor-quantity[]"/>
+                            </div>
+                        </div>
+                    </div>
 
-                                    <div class="form-group">
-                                        <select name="staffs[]" class="js-example-basic-single form-control"
-                                                >
-
-                                            @foreach(App\Department::all() as $dept)
-                                                <optgroup label="{{$dept->department}}">
-                                                    @foreach($dept->staff()->get() as $staff)
-                                                        @if(isset($staff_array) && in_array($staff->id,$staff_array))
-                                                            <option value="{{$staff->id}}"
-                                                                    selected>{{mb_strtoupper($staff->staff, 'utf-8')}}</option>
-                                                        @else
-                                                            <option value="{{$staff->id}}">{{mb_strtoupper($staff->staff, 'utf-8')}}</option>
-                                                        @endif
-
-
-                                                    @endforeach
-                                                </optgroup>
-                                            @endforeach
-                                        </select>
-                                    </div>
-
-                                </td>
-                                <td>
-                                    <input type="number" class="form-control" name="contractor-quantity[]"/>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-                        <div class="form-group">
+                    <div class="row">
+                        <div class="form-group pull-right">
                             <a href="#" class="btn btn-primary btn-flat add-staff-row">
                                 Personel Ekle
                             </a>
+
+                            <button type="submit" class="btn btn-success btn-flat ">
+                                Kaydet
+                            </button>
                         </div>
-                        {!! Form::close() !!}
 
                     </div>
+                    {!! Form::close() !!}
+
+
                 </div>
             </div>
         </div>

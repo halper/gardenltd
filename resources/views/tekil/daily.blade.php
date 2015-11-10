@@ -26,9 +26,11 @@ if (session()->has("quantity_array")) {
     <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.min.js"></script>
     <script>
         $(".js-example-basic-multiple").select2({
-            placeholder: "Eklemek istediğiniz personeli seçiniz",
+            placeholder: "Çoklu seçim yapabilirsiniz",
             allowClear: true
         });
+
+
 
         $(document).ready(function () {
             $('#dateRangePicker').datepicker({
@@ -52,7 +54,56 @@ if (session()->has("quantity_array")) {
                 $('#dateRangeForm').submit();
             });
         });
+
+
     </script>
+    <?php
+    $options = '';
+    foreach (App\Department::all() as $dept) {
+        $options .= "'<optgroup label=\"$dept->department\">'+\n";
+        foreach ($dept->staff()->get() as $staff) {
+            if (isset($staff_array) && in_array($staff->id, $staff_array))
+                $options .= "'<option value=\"$staff->id\" selected>" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
+            else
+                $options .= "'<option value=\"$staff->id\">" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
+        }
+        $options .= "'</optgroup>'+\n";
+    }
+
+
+
+    echo <<<EOT
+<script>
+$(document).ready(function() {
+            $(".js-example-basic-single").select2();
+        });
+    $(document).ready(function() {
+            var wrapper         = $("#staff-insert-table"); //Fields wrapper
+            var add_button      = $(".add-staff-row"); //Add button ID
+
+            $(add_button).click(function(e){ //on add input button click
+                e.preventDefault();
+
+                    $(wrapper).append('<tr><td>' +
+                    '<div class="form-group">' +
+                    '<select name="staffs[]" class="js-example-basic-single form-control">' +
+$options
+            '</select></div></td>' +
+                '<td>' +
+                '<div class="row"><div class="col-sm-9"><input type="number" class="form-control" name="contractor-quantity[]"/></div>'+
+                '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div></div></td></tr>'); //add input box
+
+            });
+
+            $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
+                e.preventDefault(); $(this).parent().closest('tr').remove(); x--;
+            })
+        });
+</script>
+EOT;
+
+
+    ?>
 @stop
 
 @section('content')
@@ -61,7 +112,7 @@ if (session()->has("quantity_array")) {
         <div class="col-xs-12 col-md-12">
             <div class="box box-primary box-solid">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Şantiye Günlük Raporu
+                    <h3 class="box-title">{{$site->job_name}} Projesi Raporu
                         @if(isset($report_date))
                             <small style="color: #f9f9f9">{{$report_date}}</small>
                         @endif
@@ -108,21 +159,16 @@ if (session()->has("quantity_array")) {
                             <tbody>
 
                             <tr>
-                                <td class="col-xs-2"><strong>PROJE ADI:</strong></td>
-                                <td class="col-xs-4">{{$site->job_name}}</td>
-                                <td></td>
-                                <td></td>
-                                {{--<td>{{Carbon\Carbon::today('Europe/istanbul')->format('d.m.Y')}}</td>--}}
-
-
-                            </tr>
-                            <tr>
                                 <td><strong>HAVA:</strong></td>
                                 <td>{{$my_weather->getDescription()}}</td>
                                 <td><strong>SICAKLIK:</strong></td>
                                 <td>{!! $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
                                     <sup>o</sup>C
                                 </td>
+                                <td><strong>NEM:</strong></td>
+                                <td>{!! $my_weather->getHumidity() ." %" !!}</td>
+                                <td><strong>RÜZGAR:</strong></td>
+                                <td>{{$my_weather->getWind()}} m/s</td>
                             </tr>
                             <tr>
                                 <?php
@@ -145,18 +191,6 @@ if (session()->has("quantity_array")) {
                                 <td>{{$myFormatForView}}</td>
                                 <td><strong>KALAN SÜRE:</strong></td>
                                 <td>{{$left}} gün</td>
-                            </tr>
-                            <tr>
-
-                            </tr>
-                            <tr>
-                                <td><strong>NEM:</strong></td>
-                                <td>{!! $my_weather->getHumidity() ." %" !!}</td>
-                                <td><strong>RÜZGAR:</strong></td>
-                                <td>{{$my_weather->getWind()}} m/s</td>
-
-                            </tr>
-                            <tr>
                                 <td><strong>ŞANTİYE ŞEFİ:</strong></td>
                                 <td>{{$site->site_chief}}</td>
                                 <td><strong>ÇALIŞMA:</strong></td>
@@ -178,10 +212,10 @@ if (session()->has("quantity_array")) {
     ?>
 
     <div class="row">
-        <div class="col-xs-12 col-md-4">
+        <div class="col-xs-12 col-md-8">
             <div class="box box-success box-solid">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Personel</h3>
+                    <h3 class="box-title">Ana Yüklenici Personel</h3>
 
                     <div class="box-tools pull-right">
                         <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
@@ -192,47 +226,17 @@ if (session()->has("quantity_array")) {
                 </div>
                 <!-- /.box-header -->
                 <div class="box-body">
-                    @if(isset($quantity_array))
-
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-condensed">
-                                <thead>
-                                <tr>
-                                    <th>Görevi</th>
-                                    <th>Sayısı</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <?php
-                                $site_general_total = 0;
-                                ?>
-                                @for($i = 0; $i< sizeof($staff_array); $i++)
-                                    <tr>
-                                        <td>{{mb_strtoupper($staffs->get($staff_array[$i])->staff, 'utf-8')}}</td>
-                                        <td>{{$quantity_array[$i]}}</td>
-                                    </tr>
-                                    <?php
-                                    $site_general_total += $quantity_array[$i];
-                                    ?>
-                                @endfor
-
-                                <tr>
-                                    <td style="text-align: right"><strong>TOPLAM ŞANTİYE PERSONELİ:</strong></td>
-                                    <td>{{sizeof($staff_array)}}</td>
-                                </tr>
-                                <tr>
-                                    <td style="text-align: right"><strong>ŞANTİYE GENEL TOPLAMI:</strong></td>
-                                    <td>{{$site_general_total}}</td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    @else
+                    Falanca İnşaat için personel giriniz.
 
 
-                        @if(!isset($report_date))
-                            <p>Aşağıdaki kutucuğu kullanarak personel ekleyebilirsiniz</p>
-
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-condensed" id="staff-insert-table">
+                            <thead>
+                            <tr>
+                                <th>Personel</th>
+                                <th>Sayısı</th>
+                            </tr>
+                            </thead>
                             {!! Form::open([
                             'url' => "/tekil/$site->slug/add-staffs",
                             'method' => 'POST',
@@ -240,124 +244,53 @@ if (session()->has("quantity_array")) {
                             'id' => 'staffInsertForm',
                             'role' => 'form'
                             ]) !!}
+                            <tbody>
 
-                            <div class="form-group">
-                                <label for="staff">Personel seçimi: </label>
-                                <select id="staff" name="staffs[]" class="js-example-basic-multiple form-control"
-                                        multiple="multiple">
-
-                                    @foreach(App\Department::all() as $dept)
-                                        <optgroup label="{{$dept->department}}">
-                                            @foreach($dept->staff()->get() as $staff)
-                                                @if(isset($staff_array) && in_array($staff->id,$staff_array))
-                                                    <option value="{{$staff->id}}"
-                                                            selected>{{mb_strtoupper($staff->staff, 'utf-8')}}</option>
-                                                @else
-                                                    <option value="{{$staff->id}}">{{mb_strtoupper($staff->staff, 'utf-8')}}</option>
-                                                @endif
+                            <tr>
+                                <td>
 
 
-                                            @endforeach
-                                        </optgroup>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <button type="submit" class="btn btn-primary btn-flat">
-                                    Personel Ekle
-                                </button>
-                            </div>
-                            {!! Form::close() !!}
-                            @if(isset($staff_array))
-                                <br/>
-                                <div class="table-responsive">
-                                    {!! Form::open([
-                                    'url' => "/tekil/$site->slug/save-staff",
-                                    'method' => 'POST',
-                                    'class' => 'form',
-                                    'id' => 'materialDemandForm',
-                                    'role' => 'form'
-                                    ]) !!}
-                                    <table class="table table-bordered table-condensed" id="staffInsert">
-                                        <thead>
-                                        <tr>
-                                            <th>Görevi</th>
-                                            <th>Sayısı</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-
-                                        @for($i = 0; $i<sizeof($staff_array); $i++)
-                                            <tr>
-                                                <td>
-                                                    {{mb_strtoupper($staffs->find($staff_array[$i])->staff, 'utf-8')}}
-                                                    <input type="hidden" name="staffs[]"
-                                                           value="{{$staffs->find($staff_array[$i])->id}}">
-                                                </td>
-
-                                                <td>
-                                                    <br/>
-
-                                                    <div class="form-group">
-                                                        {!! Form::input('number', 'quantity[]', null, ['class' =>
-                                                        'form-control']) !!}
-                                                        <span></span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endfor
-                                        </tbody>
-                                    </table>
                                     <div class="form-group">
-                                        <button type="submit" class="btn btn-primary btn-flat">Kaydet</button>
+                                        <select name="staffs[]" class="js-example-basic-single form-control"
+                                                >
+
+                                            @foreach(App\Department::all() as $dept)
+                                                <optgroup label="{{$dept->department}}">
+                                                    @foreach($dept->staff()->get() as $staff)
+                                                        @if(isset($staff_array) && in_array($staff->id,$staff_array))
+                                                            <option value="{{$staff->id}}"
+                                                                    selected>{{mb_strtoupper($staff->staff, 'utf-8')}}</option>
+                                                        @else
+                                                            <option value="{{$staff->id}}">{{mb_strtoupper($staff->staff, 'utf-8')}}</option>
+                                                        @endif
+
+
+                                                    @endforeach
+                                                </optgroup>
+                                            @endforeach
+                                        </select>
                                     </div>
-                                    {!! Form::close() !!}
-                                </div>
 
-                            @endif
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control" name="contractor-quantity[]"/>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <div class="form-group">
+                            <a href="#" class="btn btn-primary btn-flat add-staff-row">
+                                Personel Ekle
+                            </a>
+                        </div>
+                        {!! Form::close() !!}
 
-                        @else
-
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-condensed">
-                                    <thead>
-                                    <tr>
-                                        <th>Görevi</th>
-                                        <th>Sayısı</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    @foreach(App\Department::all() as $dept)
-                                        <tr>
-                                            <td><strong>{{mb_strtoupper($dept->department, 'utf-8')}} GRUBU</strong>
-                                            </td>
-                                            <td></td>
-                                        </tr>
-                                        @foreach($dept->staff()->get() as $staff)
-                                            <tr>
-                                                <td>{{mb_strtoupper($staff->staff, 'utf-8')}}</td>
-                                                <td>{{random_int(1,8)}}</td>
-                                            </tr>
-                                        @endforeach
-                                    @endforeach
-                                    <tr>
-                                        <td>TOPLAM ŞANTİYE PERSONELİ</td>
-                                        <td></td>
-                                    </tr>
-                                    <tr>
-                                        <td>ŞANTİYE GENEL TOPLAMI</td>
-                                        <td></td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endif
-                    @endif
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xs-12 col-md-8">
+        <div class="col-xs-12 col-md-4">
             <div class="row">
                 <div class="col-xs-12 col-md-12">
                     <div class="table-responsive">

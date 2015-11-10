@@ -17,7 +17,7 @@
 </head>
 <!-- ADD THE CLASS layout-top-nav TO REMOVE THE SIDEBAR. -->
 
-<body class="skin-blue sidebar-mini">
+<body class="skin-blue">
 <!-- header logo: style can be found in header.less -->
 <header class="header">
     <a href="/" class="logo">
@@ -81,10 +81,10 @@
         </div>
     </nav>
 </header>
-<div class="wrapper">
+<div class="wrapper row-offcanvas row-offcanvas-left">
 
     <!-- Left side column. contains the logo and sidebar -->
-    <aside class="main-sidebar">
+    <aside class="left-side sidebar-offcanvas">
         <!-- sidebar: style can be found in sidebar.less -->
         <section class="sidebar">
             <!-- sidebar menu: : style can be found in sidebar.less -->
@@ -117,7 +117,8 @@
         <!-- /.sidebar -->
     </aside>
 
-    <div class="content-wrapper">
+
+        <aside class="right-side">
 
         <!-- Main content -->
         <section class="content">
@@ -133,11 +134,13 @@
             @yield('content')
         </section>
         <!-- /.content -->
-    </div>
 
-    @include('base.js')
-    @yield('page-specific-js')
+    </aside>
+
+
 </div>
+@include('base.js')
+@yield('page-specific-js')
 </body>
 
 </html>

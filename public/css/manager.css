@@ -186,7 +186,7 @@ body > .header {
 /*right side - contins main content*/
 .right-side {
     background-color: #f9f9f9;
-    margin-left: 220px;
+    margin-left: 230px;
 }
 
 /*left side - contains sidebar*/
@@ -198,7 +198,7 @@ body > .header {
 
 @media screen and (min-width: 992px) {
     .left-side {
-        top: 50px;
+        /*top: 50px;*/
     }
 
     /*Right side strech mode*/
@@ -859,19 +859,25 @@ body > .header .logo .icon {
     }
 
     .row-offcanvas-right .sidebar-offcanvas {
-        right: -220px;
+        right: -230px;
     }
 
     .row-offcanvas-left .sidebar-offcanvas {
-        left: -220px;
+        left: -230px;
+    }
+
+    @media screen and (max-width: 992px) {
+        .row-offcanvas-left .sidebar-offcanvas {
+            left: -220px;
+        }
     }
 
     .row-offcanvas-right.active {
-        right: 220px;
+        right: 230px;
     }
 
     .row-offcanvas-left.active {
-        left: 220px;
+        left: 230px;
     }
 
     .sidebar-offcanvas {
@@ -880,11 +886,11 @@ body > .header .logo .icon {
 
     body.fixed .sidebar-offcanvas {
         margin-top: 50px;
-        left: -220px;
+        left: -230px;
     }
 
     body.fixed .row-offcanvas-left.active .navbar {
-        left: 220px !important;
+        left: 230px !important;
         right: 0;
     }
 

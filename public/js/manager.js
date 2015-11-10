@@ -11,6 +11,99 @@
  * @license MIT <http://opensource.org/licenses/MIT>
  */
 
+var left_side_width = 230; //Sidebar width in pixels
+
+$(function() {
+    "use strict";
+
+    //Enable sidebar toggle
+    $("[data-toggle='offcanvas']").click(function(e) {
+        e.preventDefault();
+
+        //If window is small enough, enable sidebar push menu
+        if ($(window).width() <= 992) {
+            $('.row-offcanvas').toggleClass('active');
+            $('.left-side').removeClass("collapse-left");
+            $(".right-side").removeClass("strech");
+            $('.row-offcanvas').toggleClass("relative");
+        } else {
+            //Else, enable content streching
+            $('.left-side').toggleClass("collapse-left");
+            $(".right-side").toggleClass("strech");
+        }
+    });
+
+    //Add hover support for touch devices
+    $('.btn').bind('touchstart', function() {
+        $(this).addClass('hover');
+    }).bind('touchend', function() {
+        $(this).removeClass('hover');
+    });
+
+    //Activate tooltips
+    $("[data-toggle='tooltip']").tooltip();
+
+    /*
+     * Add collapse and remove events to boxes
+     */
+    $("[data-widget='collapse']").click(function() {
+        //Find the box parent
+        var box = $(this).parents(".box").first();
+        //Find the body and the footer
+        var bf = box.find(".box-body, .box-footer");
+        if (!box.hasClass("collapsed-box")) {
+            box.addClass("collapsed-box");
+            bf.slideUp();
+        } else {
+            box.removeClass("collapsed-box");
+            bf.slideDown();
+        }
+    });
+
+    /*
+     * ADD SLIMSCROLL TO THE TOP NAV DROPDOWNS
+     * ---------------------------------------
+     */
+    $(".navbar .menu").slimscroll({
+        height: "200px",
+        alwaysVisible: false,
+        size: "3px"
+    }).css("width", "100%");
+
+    /*
+     * INITIALIZE BUTTON TOGGLE
+     * ------------------------
+     */
+    $('.btn-group[data-toggle="btn-toggle"]').each(function() {
+        var group = $(this);
+        $(this).find(".btn").click(function(e) {
+            group.find(".btn.active").removeClass("active");
+            $(this).addClass("active");
+            e.preventDefault();
+        });
+
+    });
+
+    $("[data-widget='remove']").click(function() {
+        //Find the box parent
+        var box = $(this).parents(".box").first();
+        box.slideUp();
+    });
+
+    /* Sidebar tree view */
+    $(".sidebar .treeview").tree();
+
+    /*
+     * Make sure that the sidebar is streched full height
+     * ---------------------------------------------
+     * We are gonna assign a min-height value every time the
+     * wrapper gets resized and upon page load. We will use
+     * Ben Alman's method for detecting the resize event.
+     *
+     **/
+
+});
+
 //Make sure jQuery has been loaded before app.js
 if (typeof jQuery === "undefined") {
     throw new Error("AdminLTE requires jQuery");
@@ -242,9 +335,21 @@ function _init() {
         },
         fix: function () {
             //Get window height and the wrapper height
-            var neg = $('.header').outerHeight() + 30;
+            /*var neg = $('.header').outerHeight();
             var window_height = $(window).height();
-            $(".content-wrapper, .right-side").css('min-height', window_height - neg);
+            $(".content-wrapper").css('min-height', window_height - neg);*/
+
+            var height = $(window).height() - $("body > .header").height();
+            $(".wrapper").css("min-height", height + "px");
+            var content = $(".wrapper").height();
+            //If the wrapper height is greater than the window
+            if (content > height) {
+                //then set sidebar height to the wrapper
+                $(".left-side, html, body").css("min-height", content + "px");
+            }else {
+                //Otherwise, set the sidebar to the height of the window
+                $(".left-side, html, body").css("min-height", height + "px");
+            }
 
         },
         fixSidebar: function () {
@@ -472,7 +577,7 @@ function _init() {
             var _this = this;
             if ($("body").hasClass('layout-boxed')) {
                 sidebar.css('position', 'absolute');
-                sidebar.height($(".wrapper").height());
+                sidebar.height($(".content-wrapper").height());
                 $(window).resize(function () {
                     _this._fix(sidebar);
                 });
@@ -717,3 +822,92 @@ function _init() {
     };
 }(jQuery));
 
+/*! Copyright (c) 2011 Piotr Rochala (http://rocha.la)
+ * Dual licensed under the MIT (http://www.opensource.org/licenses/mit-license.php)
+ * and GPL (http://www.opensource.org/licenses/gpl-license.php) licenses.
+ *
+ * Version: 1.3.6
+ *
+ */
+(function(e){e.fn.extend({slimScroll:function(g){var a=e.extend({width:"auto",height:"250px",size:"7px",color:"#000",position:"right",distance:"1px",start:"top",opacity:.4,alwaysVisible:!1,disableFadeOut:!1,railVisible:!1,railColor:"#333",railOpacity:.2,railDraggable:!0,railClass:"slimScrollRail",barClass:"slimScrollBar",wrapperClass:"slimScrollDiv",allowPageScroll:!1,wheelStep:20,touchScrollStep:200,borderRadius:"7px",railBorderRadius:"7px"},g);this.each(function(){function v(d){if(r){d=d||window.event;
+    var c=0;d.wheelDelta&&(c=-d.wheelDelta/120);d.detail&&(c=d.detail/3);e(d.target||d.srcTarget||d.srcElement).closest("."+a.wrapperClass).is(b.parent())&&m(c,!0);d.preventDefault&&!k&&d.preventDefault();k||(d.returnValue=!1)}}function m(d,e,g){k=!1;var f=d,h=b.outerHeight()-c.outerHeight();e&&(f=parseInt(c.css("top"))+d*parseInt(a.wheelStep)/100*c.outerHeight(),f=Math.min(Math.max(f,0),h),f=0<d?Math.ceil(f):Math.floor(f),c.css({top:f+"px"}));l=parseInt(c.css("top"))/(b.outerHeight()-c.outerHeight());
+    f=l*(b[0].scrollHeight-b.outerHeight());g&&(f=d,d=f/b[0].scrollHeight*b.outerHeight(),d=Math.min(Math.max(d,0),h),c.css({top:d+"px"}));b.scrollTop(f);b.trigger("slimscrolling",~~f);w();p()}function x(){u=Math.max(b.outerHeight()/b[0].scrollHeight*b.outerHeight(),30);c.css({height:u+"px"});var a=u==b.outerHeight()?"none":"block";c.css({display:a})}function w(){x();clearTimeout(B);l==~~l?(k=a.allowPageScroll,C!=l&&b.trigger("slimscroll",0==~~l?"top":"bottom")):k=!1;C=l;u>=b.outerHeight()?k=!0:(c.stop(!0,
+    !0).fadeIn("fast"),a.railVisible&&h.stop(!0,!0).fadeIn("fast"))}function p(){a.alwaysVisible||(B=setTimeout(function(){a.disableFadeOut&&r||y||z||(c.fadeOut("slow"),h.fadeOut("slow"))},1E3))}var r,y,z,B,A,u,l,C,k=!1,b=e(this);if(b.parent().hasClass(a.wrapperClass)){var n=b.scrollTop(),c=b.closest("."+a.barClass),h=b.closest("."+a.railClass);x();if(e.isPlainObject(g)){if("height"in g&&"auto"==g.height){b.parent().css("height","auto");b.css("height","auto");var q=b.parent().parent().height();b.parent().css("height",
+    q);b.css("height",q)}if("scrollTo"in g)n=parseInt(a.scrollTo);else if("scrollBy"in g)n+=parseInt(a.scrollBy);else if("destroy"in g){c.remove();h.remove();b.unwrap();return}m(n,!1,!0)}}else if(!(e.isPlainObject(g)&&"destroy"in g)){a.height="auto"==a.height?b.parent().height():a.height;n=e("<div></div>").addClass(a.wrapperClass).css({position:"relative",overflow:"hidden",width:a.width,height:a.height});b.css({overflow:"hidden",width:a.width,height:a.height});var h=e("<div></div>").addClass(a.railClass).css({width:a.size,
+    height:"100%",position:"absolute",top:0,display:a.alwaysVisible&&a.railVisible?"block":"none","border-radius":a.railBorderRadius,background:a.railColor,opacity:a.railOpacity,zIndex:90}),c=e("<div></div>").addClass(a.barClass).css({background:a.color,width:a.size,position:"absolute",top:0,opacity:a.opacity,display:a.alwaysVisible?"block":"none","border-radius":a.borderRadius,BorderRadius:a.borderRadius,MozBorderRadius:a.borderRadius,WebkitBorderRadius:a.borderRadius,zIndex:99}),q="right"==a.position?
+{right:a.distance}:{left:a.distance};h.css(q);c.css(q);b.wrap(n);b.parent().append(c);b.parent().append(h);a.railDraggable&&c.bind("mousedown",function(a){var b=e(document);z=!0;t=parseFloat(c.css("top"));pageY=a.pageY;b.bind("mousemove.slimscroll",function(a){currTop=t+a.pageY-pageY;c.css("top",currTop);m(0,c.position().top,!1)});b.bind("mouseup.slimscroll",function(a){z=!1;p();b.unbind(".slimscroll")});return!1}).bind("selectstart.slimscroll",function(a){a.stopPropagation();a.preventDefault();return!1});
+    h.hover(function(){w()},function(){p()});c.hover(function(){y=!0},function(){y=!1});b.hover(function(){r=!0;w();p()},function(){r=!1;p()});b.bind("touchstart",function(a,b){a.originalEvent.touches.length&&(A=a.originalEvent.touches[0].pageY)});b.bind("touchmove",function(b){k||b.originalEvent.preventDefault();b.originalEvent.touches.length&&(m((A-b.originalEvent.touches[0].pageY)/a.touchScrollStep,!0),A=b.originalEvent.touches[0].pageY)});x();"bottom"===a.start?(c.css({top:b.outerHeight()-c.outerHeight()}),
+        m(0,!0)):"top"!==a.start&&(m(e(a.start).position().top,null,!0),a.alwaysVisible||c.hide());window.addEventListener?(this.addEventListener("DOMMouseScroll",v,!1),this.addEventListener("mousewheel",v,!1)):document.attachEvent("onmousewheel",v)}});return this}});e.fn.extend({slimscroll:e.fn.slimScroll})})(jQuery);
+
+
+
+/*
+ * SIDEBAR MENU
+ * ------------
+ * This is a custom plugin for the sidebar menu. It provides a tree view.
+ *
+ * Usage:
+ * $(".sidebar).tree();
+ *
+ * Note: This plugin does not accept any options. Instead, it only requires a class
+ *       added to the element that contains a sub-menu.
+ *
+ * When used with the sidebar, for example, it would look something like this:
+ * <ul class='sidebar-menu'>
+ *      <li class="treeview active">
+ *          <a href="#>Menu</a>
+ *          <ul class='treeview-menu'>
+ *              <li class='active'><a href=#>Level 1</a></li>
+ *          </ul>
+ *      </li>
+ * </ul>
+ *
+ * Add .active class to <li> elements if you want the menu to be open automatically
+ * on page load. See above for an example.
+ */
+(function($) {
+    "use strict";
+
+    $.fn.tree = function() {
+
+        return this.each(function() {
+            var btn = $(this).children("a").first();
+            var menu = $(this).children(".treeview-menu").first();
+            var isActive = $(this).hasClass('active');
+
+            //initialize already active menus
+            if (isActive) {
+                menu.show();
+                btn.children(".fa-angle-left").first().removeClass("fa-angle-left").addClass("fa-angle-down");
+            }
+            //Slide open or close the menu on link click
+            btn.click(function(e) {
+                e.preventDefault();
+                if (isActive) {
+                    //Slide up to close menu
+                    menu.slideUp();
+                    isActive = false;
+                    btn.children(".fa-angle-down").first().removeClass("fa-angle-down").addClass("fa-angle-left");
+                    btn.parent("li").removeClass("active");
+                } else {
+                    //Slide down to open menu
+                    menu.slideDown();
+                    isActive = true;
+                    btn.children(".fa-angle-left").first().removeClass("fa-angle-left").addClass("fa-angle-down");
+                    btn.parent("li").addClass("active");
+                }
+            });
+
+            /* Add margins to submenu elements to give it a tree look */
+            menu.find("li > a").each(function() {
+                var pad = parseInt($(this).css("margin-left")) + 10;
+
+                $(this).css({"margin-left": pad + "px"});
+            });
+
+        });
+
+    };
+
+
+}(jQuery));

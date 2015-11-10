@@ -31,7 +31,6 @@ if (session()->has("quantity_array")) {
         });
 
 
-
         $(document).ready(function () {
             $('#dateRangePicker').datepicker({
                 autoclose: true,
@@ -78,25 +77,23 @@ $(document).ready(function() {
             $(".js-example-basic-single").select2();
         });
     $(document).ready(function() {
-            var wrapper         = $("#staff-insert-table"); //Fields wrapper
+            var wrapper         = $("#staff-insert"); //Fields wrapper
             var add_button      = $(".add-staff-row"); //Add button ID
 
             $(add_button).click(function(e){ //on add input button click
                 e.preventDefault();
 
-                    $(wrapper).append('<tr><td>' +
-                    '<div class="form-group">' +
+                    $(wrapper).append('<div class="row"><div class="col-sm-6"><div class="form-group">' +
                     '<select name="staffs[]" class="js-example-basic-single form-control">' +
 $options
-            '</select></div></td>' +
-                '<td>' +
-                '<div class="row"><div class="col-sm-9"><input type="number" class="form-control" name="contractor-quantity[]"/></div>'+
-                '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div></div></td></tr>'); //add input box
+            '</select></div></div>' +
+                '<div class="col-sm-5"><input type="number" class="form-control" name="contractor-quantity[]"/></div>'+
+                '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div></div>'); //add input box
 
             });
 
             $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
-                e.preventDefault(); $(this).parent().closest('tr').remove(); x--;
+                e.preventDefault(); $(this).parent().closest('div.row').remove(); x--;
             })
         });
 </script>
@@ -227,65 +224,65 @@ EOT;
                 <!-- /.box-header -->
                 <div class="box-body">
                     Falanca İnşaat için personel giriniz.
+                    <br>
 
-
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-condensed" id="staff-insert-table">
-                            <thead>
-                            <tr>
-                                <th>Personel</th>
-                                <th>Sayısı</th>
-                            </tr>
-                            </thead>
-                            {!! Form::open([
-                            'url' => "/tekil/$site->slug/add-staffs",
-                            'method' => 'POST',
-                            'class' => 'form',
-                            'id' => 'staffInsertForm',
-                            'role' => 'form'
-                            ]) !!}
-                            <tbody>
-
-                            <tr>
-                                <td>
-
-
-                                    <div class="form-group">
-                                        <select name="staffs[]" class="js-example-basic-single form-control"
-                                                >
-
-                                            @foreach(App\Department::all() as $dept)
-                                                <optgroup label="{{$dept->department}}">
-                                                    @foreach($dept->staff()->get() as $staff)
-                                                        @if(isset($staff_array) && in_array($staff->id,$staff_array))
-                                                            <option value="{{$staff->id}}"
-                                                                    selected>{{mb_strtoupper($staff->staff, 'utf-8')}}</option>
-                                                        @else
-                                                            <option value="{{$staff->id}}">{{mb_strtoupper($staff->staff, 'utf-8')}}</option>
-                                                        @endif
-
-
-                                                    @endforeach
-                                                </optgroup>
-                                            @endforeach
-                                        </select>
-                                    </div>
-
-                                </td>
-                                <td>
-                                    <input type="number" class="form-control" name="contractor-quantity[]"/>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-                        <div class="form-group">
-                            <a href="#" class="btn btn-primary btn-flat add-staff-row">
-                                Personel Ekle
-                            </a>
+                    <div class="row">
+                        <div class="text-center">
+                            <div class="col-sm-6">
+                                <span><strong>PERSONEL</strong></span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span><strong>SAYISI</strong></span>
+                            </div>
                         </div>
-                        {!! Form::close() !!}
-
                     </div>
+                    {!! Form::open([
+                    'url' => "/tekil/$site->slug/add-staffs",
+                    'method' => 'POST',
+                    'class' => 'form',
+                    'id' => 'staffInsertForm',
+                    'role' => 'form'
+                    ]) !!}
+                    <div id="staff-insert">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <select name="staffs[]" class="js-example-basic-single form-control"
+                                            >
+
+                                        @foreach(App\Department::all() as $dept)
+                                            <optgroup label="{{$dept->department}}">
+                                                @foreach($dept->staff()->get() as $staff)
+                                                    @if(isset($staff_array) && in_array($staff->id,$staff_array))
+                                                        <option value="{{$staff->id}}"
+                                                                selected>{{mb_strtoupper($staff->staff, 'utf-8')}}</option>
+                                                    @else
+                                                        <option value="{{$staff->id}}">{{mb_strtoupper($staff->staff, 'utf-8')}}</option>
+                                                    @endif
+
+
+                                                @endforeach
+                                            </optgroup>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6">
+
+                                <input type="number" class="form-control" name="contractor-quantity[]"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <a href="#" class="btn btn-primary btn-flat add-staff-row">
+                            Personel Ekle
+                        </a>
+                    </div>
+                    {!! Form::close() !!}
+
+
                 </div>
             </div>
         </div>

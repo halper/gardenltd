@@ -134,8 +134,7 @@ else{
                                 {!! Form::label('job_name', 'İşin Adı: ', ['class' => 'control-label']) !!}
                             </div>
                             <div class="col-sm-10">
-                                {!! Form::text('job_name', null, ['class' => 'form-control', 'placeholder' => 'İşin
-                                adını giriniz']) !!}
+                                {!! Form::text('job_name', null, ['class' => 'form-control', 'placeholder' => 'İşin adını giriniz']) !!}
 
                             </div>
                         </div>
@@ -148,6 +147,30 @@ else{
                             <div class="col-sm-10">
                                 {!! Form::text('management_name', null, ['class' => 'form-control', 'placeholder' =>
                                 'İdarenin adını giriniz']) !!}
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group {{ $errors->has('employer') ? 'has-error' : '' }}">
+                        <div class="row">
+                            <div class="col-sm-2">
+                                {!! Form::label('employer', 'İşverenin Adı: ', ['class' => 'control-label']) !!}
+                            </div>
+                            <div class="col-sm-10">
+                                {!! Form::text('employer', null, ['class' => 'form-control', 'placeholder' =>
+                                'İşverenin adını giriniz']) !!}
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group {{ $errors->has('building_control') ? 'has-error' : '' }}">
+                        <div class="row">
+                            <div class="col-sm-2">
+                                {!! Form::label('building_control', 'Yapı Denetim: ', ['class' => 'control-label']) !!}
+                            </div>
+                            <div class="col-sm-10">
+                                {!! Form::text('building_control', null, ['class' => 'form-control', 'placeholder' =>
+                                'Yapı Denetim firması giriniz']) !!}
 
                             </div>
                         </div>
@@ -170,8 +193,7 @@ else{
                                 {!! Form::label('start_date', 'Başlangıç Tarihi: ', ['class' => 'control-label']) !!}
                             </div>
                             <div class="col-sm-10">
-                                {!! Form::text('start_date', null, ['class' => 'form-control', 'placeholder' => 'Tarihi
-                                01.01.2000 şeklinde giriniz']) !!}
+                                {!! Form::text('start_date', null, ['class' => 'form-control', 'placeholder' => 'Tarihi 01.01.2000 şeklinde giriniz']) !!}
 
                             </div>
                         </div>
@@ -196,8 +218,7 @@ else{
                                 {!! Form::label('end_date', 'İş Bitim Tarihi: ', ['class' => 'control-label']) !!}
                             </div>
                             <div class="col-sm-10">
-                                {!! Form::text('end_date', null, ['class' => 'form-control', 'placeholder' => 'Tarihi
-                                01.01.2000 şeklinde giriniz']) !!}
+                                {!! Form::text('end_date', null, ['class' => 'form-control', 'placeholder' => 'Tarihi 01.01.2000 şeklinde giriniz']) !!}
 
                             </div>
                         </div>
@@ -224,8 +245,7 @@ else{
                                 {!! Form::label('site_chief', 'Şantiye şefi: ', ['class' => 'control-label']) !!}
                             </div>
                             <div class="col-sm-10">
-                                {!! Form::text('site_chief', null, ['class' => 'form-control', 'placeholder' => 'Şantiye
-                                şefini giriniz']) !!}
+                                {!! Form::text('site_chief', null, ['class' => 'form-control', 'placeholder' => 'Şantiye şefini giriniz']) !!}
 
                             </div>
                         </div>

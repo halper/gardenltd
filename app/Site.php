@@ -23,11 +23,15 @@ class Site extends Eloquent implements SluggableInterface
 
     protected $fillable = ['job_name', 'management_name',
         'start_date', 'contract_date', 'main_contractor',
-        'end_date', 'address', 'site_chief'];
+        'end_date', 'address', 'site_chief', 'employer', 'building_control'];
 
      public function user()
     {
         return $this->belongsToMany('App\User')->withTimestamps();
+    }
+public function report()
+    {
+        return $this->hasMany('App\Report');
     }
 
     public static function getSites()

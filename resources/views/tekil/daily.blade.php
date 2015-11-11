@@ -106,6 +106,7 @@ EOT;
 @stop
 
 @section('content')
+    {{dd($report->id)}}
 
     <div class="row">
         <div class="col-xs-12 col-md-12">
@@ -132,37 +133,37 @@ EOT;
                                 <div class="col-sm-6">
                                     <span><strong>TANZİM EDEN: </strong></span>
                                 </div>
-                            <div class="col-sm-6">
+                                <div class="col-sm-6">
                                     <span>{{Auth::User()->employer . " / " . Auth::User()->name}} </span>
                                 </div>
                             </div>
                         </div>
                         <div class="col-sm-8">
-                        {!! Form::open([
-                        'url' => "/tekil/$site->slug/select-date",
-                        'method' => 'POST',
-                        'class' => 'form form-horizontal',
-                        'id' => 'dateRangeForm',
-                        'role' => 'form'
-                        ]) !!}
+                            {!! Form::open([
+                            'url' => "/tekil/$site->slug/select-date",
+                            'method' => 'POST',
+                            'class' => 'form form-horizontal',
+                            'id' => 'dateRangeForm',
+                            'role' => 'form'
+                            ]) !!}
 
-                        <div class="form-group">
+                            <div class="form-group">
 
-                            <label class="col-xs-3 control-label">TARİH: </label>
+                                <label class="col-xs-3 control-label">TARİH: </label>
 
-                            <div class="col-xs-3 date">
-                                <div class="input-group input-append date" id="dateRangePicker">
-                                    <input type="text" class="form-control" name="date"/>
+                                <div class="col-xs-3 date">
+                                    <div class="input-group input-append date" id="dateRangePicker">
+                                        <input type="text" class="form-control" name="date"/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
+                                    </div>
+                                    <span class="help-block"></span>
                                 </div>
-                                <span class="help-block"></span>
                             </div>
+
+
+                            {!! Form::close() !!}
                         </div>
-
-
-                        {!! Form::close() !!}
-                    </div>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-condensed">
@@ -224,77 +225,182 @@ EOT;
 
     <div class="row">
         <div class="col-xs-12 col-md-8">
-            <div class="box box-success box-solid">
-                <div class="box-header with-border">
-                    <h3 class="box-title">{{$site->main_contractor}} <small style="color: #f0f0f0;">(Ana Yüklenici)</small> Personel Tablosu</h3>
+            <div class="row">
+            <div class="col-md-12">
+                <div class="box box-success box-solid">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Personel İcmal Tablosu</h3>
 
-                    <div class="box-tools pull-right">
-                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                    class="fa fa-minus"></i>
-                        </button>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                        class="fa fa-minus"></i>
+                            </button>
+                        </div>
+                        <!-- /.box-tools -->
                     </div>
-                    <!-- /.box-tools -->
-                </div>
-                <!-- /.box-header -->
-                <div class="box-body">
-                    Falanca İnşaat için personel giriniz.
-                    <br>
+                    <!-- /.box-header -->
+                    <div class="box-body">
 
-                    <div class="row">
-                        <div class="text-center">
-                            <div class="col-sm-6">
-                                <span><strong>PERSONEL</strong></span>
-                            </div>
-                            <div class="col-sm-6">
-                                <span><strong>SAYISI</strong></span>
+
+                        <div class="row">
+                            <div class="text-center">
+                                <div class="col-sm-10">
+                                    <span><strong>PERSONEL İCMALİ</strong></span>
+                                </div>
+                                <div class="col-sm-2">
+                                    <span><strong>TOPLAM</strong></span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    {!! Form::open([
-                    'url' => "/tekil/$site->slug/add-staffs",
-                    'method' => 'POST',
-                    'class' => 'form',
-                    'id' => 'staffInsertForm',
-                    'role' => 'form'
-                    ]) !!}
-                    <div id="staff-insert">
-                        <div class="row">
-                            <div class="col-sm-6">
-                                <div class="form-group">
-                                    <select name="staffs[]" class="js-example-basic-single form-control">
 
-                                        {!! $staff_options !!}
-                                    </select>
+                        {!! Form::open([
+                        'url' => "/tekil/$site->slug/add-management-staffs",
+                        'method' => 'POST',
+                        'class' => 'form',
+                        'id' => 'managementStaffInsertForm',
+                        'role' => 'form'
+                        ]) !!}
+
+                        <div class="row">
+                            <div class="form-group">
+
+                                <div class="col-sm-10">
+                                    <label for="employer_staff" class="control-label">İşveren ({{$site->employer}})</label>
+                                </div>
+
+                                <div class="col-sm-2">
+
+                                    <input type="number" class="form-control" name="employer_staff"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="form-group">
+                                <div class="col-sm-10">
+                                    <label for="management_staff" class="control-label">Proje Yönetimi ({{$site->management_name}})</label>
+                                </div>
+
+                                <div class="col-sm-2">
+
+                                    <input type="number" class="form-control" name="management_staff"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="form-group">
+
+                                <div class="col-sm-10">
+                                    <label for="building_control_staff" class="control-label">Yapı Denetim ({{$site->building_control}}
+                                        )</label>
+                                </div>
+
+                                <div class="col-sm-2">
+
+                                    <input type="number" class="form-control" name="building_control_staff"/>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="pull-right">
+                                    <button type="submit" class="btn btn-success btn-flat">
+                                        Kaydet
+                                    </button>
                                 </div>
                             </div>
 
-                            <div class="col-sm-6">
-
-                                <input type="number" class="form-control" name="contractor-quantity[]"/>
-                            </div>
                         </div>
+                        {!! Form::close() !!}
+
+
                     </div>
+                </div>
+            </div>
+            </div>
 
-                    <div class="row">
-                        <div class="col-sm-12">
-                        <div class="form-group pull-right">
-                            <a href="#" class="btn btn-primary btn-flat add-staff-row">
-                                Personel Ekle
-                            </a>
+            <div class="row">
+            <div class="col-md-12">
+                <div class="box box-success box-solid">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">{{$site->main_contractor}}
+                            <small style="color: #f0f0f0;">(Ana Yüklenici)</small>
+                            Personel Tablosu
+                        </h3>
 
-                            <button type="submit" class="btn btn-success btn-flat ">
-                                Kaydet
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                        class="fa fa-minus"></i>
                             </button>
                         </div>
+                        <!-- /.box-tools -->
+                    </div>
+                    <!-- /.box-header -->
+                    <div class="box-body">
+                        Falanca İnşaat için personel giriniz.
+                        <br>
+
+                        <div class="row">
+                            <div class="text-center">
+                                <div class="col-sm-6">
+                                    <span><strong>PERSONEL</strong></span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span><strong>SAYISI</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                        {!! Form::open([
+                        'url' => "/tekil/$site->slug/add-staffs",
+                        'method' => 'POST',
+                        'class' => 'form',
+                        'id' => 'staffInsertForm',
+                        'role' => 'form'
+                        ]) !!}
+                        <div id="staff-insert">
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group">
+                                        <select name="staffs[]" class="js-example-basic-single form-control">
+
+                                            {!! $staff_options !!}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-6">
+
+                                    <input type="number" class="form-control" name="contractor-quantity[]"/>
+                                </div>
+                            </div>
                         </div>
 
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="form-group pull-right">
+                                    <a href="#" class="btn btn-primary btn-flat add-staff-row">
+                                        Personel Ekle
+                                    </a>
+
+                                    <button type="submit" class="btn btn-success btn-flat ">
+                                        Kaydet
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                        {!! Form::close() !!}
+
+
                     </div>
-                    {!! Form::close() !!}
-
-
                 </div>
             </div>
         </div>
+        </div>
+
 
         <div class="col-xs-12 col-md-4">
             <div class="row">
@@ -372,6 +478,7 @@ EOT;
         </div>
 
     </div>
+
 
     <div class="row">
         <div class="col-xs-12 col-md-12">

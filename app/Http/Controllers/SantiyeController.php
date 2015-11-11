@@ -25,6 +25,8 @@ class SantiyeController extends ManagementController
             'end_date' => 'required|date_format:d.m.Y',
             'address' => 'required',
             'site_chief' => 'required',
+            'employer' => 'required',
+            'building_control' => 'required',
         ]);
 
 
@@ -38,7 +40,9 @@ class SantiyeController extends ManagementController
                 'contract_date' => date("Y-m-d", strtotime($request->get('contract_date'))),
                 'end_date' => date("Y-m-d", strtotime($request->get('end_date'))),
                 'address' => $request->get('address'),
-                'site_chief' => $request->get('site_chief')
+                'site_chief' => $request->get('site_chief'),
+                'employer' => $request->get('employer'),
+                'building_control' => $request->get('building_control'),
             ]);
         Session::flash('flash_message', $request->get('job_name')." şantiyesi eklendi");
         return redirect('santiye');

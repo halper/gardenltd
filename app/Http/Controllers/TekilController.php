@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Demand;
 use App\Material;
 use App\Module;
+use App\Report;
 use App\Site;
 use App\Http\Requests;
 use Carbon\Carbon;
@@ -25,7 +26,16 @@ class TekilController extends Controller
 
     public function getGunlukRapor(Site $site, Module $modules)
     {
-        return view('tekil/daily', compact('site', 'modules'));
+        $report = new Report;
+
+        if(is_null($report->where('created_at', Carbon::now()->toDateString())->first())){
+            dd($report->create(['site_id' => $site->id()]));
+
+        }else{
+            $report = $report->where('created_at', Carbon::now()->toDateString())->where('site_id', $site->id);
+        }
+
+        return view('tekil/daily', compact('site', 'modules', 'report'));
     }
 
     public function getKasa(Site $site, Module $modules)

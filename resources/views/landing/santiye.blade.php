@@ -152,6 +152,18 @@ else{
                             </div>
                         </div>
                     </div>
+                    <div class="form-group {{ $errors->has('main_contractor') ? 'has-error' : '' }}">
+                        <div class="row">
+                            <div class="col-sm-2">
+                                {!! Form::label('main_contractor', 'Ana Yüklenici: ', ['class' => 'control-label']) !!}
+                            </div>
+                            <div class="col-sm-10">
+                                {!! Form::text('main_contractor', null, ['class' => 'form-control', 'placeholder' =>
+                                'Ana yüklenicinin adını giriniz']) !!}
+
+                            </div>
+                        </div>
+                    </div>
                     <div class="form-group {{ $errors->has('start_date') ? 'has-error' : '' }}">
                         <div class="row">
                             <div class="col-sm-2">

@@ -45,6 +45,17 @@
     </div>
 </div>
 
+<div class="form-group {{ $errors->has('employer') ? 'has-error' : '' }}">
+    <div class="row">
+        <div class="col-sm-2">
+            {!! Form::label('employer', 'Firma ', ['class' => 'control-label']) !!}
+        </div>
+        <div class="col-sm-10">
+            {!! Form::text('employer', null, ['class' => 'form-control', 'placeholder' => 'Kullanıcının firmasını giriniz']) !!}
+        </div>
+    </div>
+</div>
+
 <div class="form-group {{ $errors->has('password') ? 'has-error' : '' }}">
     <div class="row">
         <div class="col-sm-2">

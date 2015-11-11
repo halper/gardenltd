@@ -21,7 +21,9 @@ class Site extends Eloquent implements SluggableInterface
 
     protected $table = 'sites';
 
-    protected $fillable = ['job_name', 'management_name', 'start_date', 'contract_date', 'end_date', 'address', 'site_chief'];
+    protected $fillable = ['job_name', 'management_name',
+        'start_date', 'contract_date', 'main_contractor',
+        'end_date', 'address', 'site_chief'];
 
      public function user()
     {

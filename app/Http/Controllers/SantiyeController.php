@@ -19,6 +19,7 @@ class SantiyeController extends ManagementController
         $this->validate($request, [
             'job_name' => 'required',
             'management_name' => 'required',
+            'main_contractor' => 'required',
             'start_date' => 'required|date_format:d.m.Y',
             'contract_date' => 'required|date_format:d.m.Y',
             'end_date' => 'required|date_format:d.m.Y',
@@ -32,6 +33,7 @@ class SantiyeController extends ManagementController
             [
                 'job_name' => $request->get('job_name'),
                 'management_name' => $request->get('management_name'),
+                'main_contractor' => $request->get('main_contractor'),
                 'start_date' => date("Y-m-d", strtotime($request->get('start_date'))),
                 'contract_date' => date("Y-m-d", strtotime($request->get('contract_date'))),
                 'end_date' => date("Y-m-d", strtotime($request->get('end_date'))),

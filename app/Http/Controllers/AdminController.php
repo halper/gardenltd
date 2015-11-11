@@ -37,6 +37,7 @@ class AdminController extends Controller
     {
         $this->validate($request, [
             'name' => 'required',
+            'employer' => 'required',
             'email' => 'required|email|max:255|unique:users',
             'password' => 'required|confirmed|min:6',
         ]);
@@ -45,6 +46,7 @@ class AdminController extends Controller
             [
                 'name' => $request->get('name'),
                 'email' => $request->get('email'),
+                'employer' => $request->get('employer'),
                 'password' => bcrypt($request->get('password'))
             ]);
 
@@ -72,6 +74,7 @@ class AdminController extends Controller
 
         $this->validate($request, [
             'name' => 'required',
+            'employer' => 'required',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
         ]);
 
@@ -99,6 +102,7 @@ class AdminController extends Controller
             [
                 'name' => $request->get('name'),
                 'email' => $request->get('email'),
+                'employer' => $request->get('employer'),
             ])->save();
 
 

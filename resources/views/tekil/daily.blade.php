@@ -127,6 +127,17 @@ EOT;
                 <!-- /.box-header -->
                 <div class="box-body">
                     <div class="row">
+                        <div class="col-sm-4">
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <span><strong>TANZİM EDEN: </strong></span>
+                                </div>
+                            <div class="col-sm-6">
+                                    <span>{{Auth::User()->employer . " / " . Auth::User()->name}} </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-8">
                         {!! Form::open([
                         'url' => "/tekil/$site->slug/select-date",
                         'method' => 'POST',
@@ -151,6 +162,7 @@ EOT;
 
 
                         {!! Form::close() !!}
+                    </div>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-condensed">
@@ -214,7 +226,7 @@ EOT;
         <div class="col-xs-12 col-md-8">
             <div class="box box-success box-solid">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Ana Yüklenici Personel</h3>
+                    <h3 class="box-title">{{$site->main_contractor}} <small style="color: #f0f0f0;">(Ana Yüklenici)</small> Personel Tablosu</h3>
 
                     <div class="box-tools pull-right">
                         <button type="button" class="btn btn-box-tool" data-widget="collapse"><i

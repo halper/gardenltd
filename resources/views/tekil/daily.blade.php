@@ -32,6 +32,7 @@ if (session()->has("quantity_array")) {
 
 
         $(document).ready(function () {
+            $(".js-example-basic-single").select2();
             $('#dateRangePicker').datepicker({
                 autoclose: true,
                 firstDay: 1,
@@ -57,25 +58,25 @@ if (session()->has("quantity_array")) {
 
     </script>
     <?php
-    $options = '';
+    $staff_options = '';
     foreach (App\Department::all() as $dept) {
-        $options .= "'<optgroup label=\"$dept->department\">'+\n";
+        $staff_options .= "'<optgroup label=\"$dept->department\">'+\n";
         foreach ($dept->staff()->get() as $staff) {
             if (isset($staff_array) && in_array($staff->id, $staff_array))
-                $options .= "'<option value=\"$staff->id\" selected>" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
+                $staff_options .= "'<option value=\"$staff->id\" selected>" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
             else
-                $options .= "'<option value=\"$staff->id\">" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
+                $staff_options .= "'<option value=\"$staff->id\">" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
         }
-        $options .= "'</optgroup>'+\n";
+        $staff_options .= "'</optgroup>'+\n";
     }
 
 
 
     echo <<<EOT
 <script>
-$(document).ready(function() {
-            $(".js-example-basic-single").select2();
-        });
+
+
+
     $(document).ready(function() {
             var wrapper         = $("#staff-insert"); //Fields wrapper
             var add_button      = $(".add-staff-row"); //Add button ID
@@ -84,11 +85,12 @@ $(document).ready(function() {
                 e.preventDefault();
 
                     $(wrapper).append('<div class="row"><div class="col-sm-6"><div class="form-group">' +
-                    '<select name="staffs[]" class="js-example-basic-single form-control">' +
-$options
+                    '<select name="staffs[]" class="js-additional-staff form-control">' +
+$staff_options
             '</select></div></div>' +
                 '<div class="col-sm-5"><input type="number" class="form-control" name="contractor-quantity[]"/></div>'+
                 '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div></div>'); //add input box
+                $(".js-additional-staff").select2();
 
             });
 
@@ -247,23 +249,9 @@ EOT;
                         <div class="row">
                             <div class="col-sm-6">
                                 <div class="form-group">
-                                    <select name="staffs[]" class="js-example-basic-single form-control"
-                                            >
+                                    <select name="staffs[]" class="js-example-basic-single form-control">
 
-                                        @foreach(App\Department::all() as $dept)
-                                            <optgroup label="{{$dept->department}}">
-                                                @foreach($dept->staff()->get() as $staff)
-                                                    @if(isset($staff_array) && in_array($staff->id,$staff_array))
-                                                        <option value="{{$staff->id}}"
-                                                                selected>{{mb_strtoupper($staff->staff, 'utf-8')}}</option>
-                                                    @else
-                                                        <option value="{{$staff->id}}">{{mb_strtoupper($staff->staff, 'utf-8')}}</option>
-                                                    @endif
-
-
-                                                @endforeach
-                                            </optgroup>
-                                        @endforeach
+                                        {!! $staff_options !!}
                                     </select>
                                 </div>
                             </div>
@@ -275,10 +263,19 @@ EOT;
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <a href="#" class="btn btn-primary btn-flat add-staff-row">
-                            Personel Ekle
-                        </a>
+                    <div class="row">
+                        <div class="col-sm-12">
+                        <div class="form-group pull-right">
+                            <a href="#" class="btn btn-primary btn-flat add-staff-row">
+                                Personel Ekle
+                            </a>
+
+                            <button type="submit" class="btn btn-success btn-flat ">
+                                Kaydet
+                            </button>
+                        </div>
+                        </div>
+
                     </div>
                     {!! Form::close() !!}
 

@@ -76,6 +76,7 @@ class TekilController extends Controller
 
     public function postAddStaffs(Request $request)
     {
+        dd($request->all());
         $staff_array = $request->get("staffs");
         return redirect()->back()->with("staff_array", $staff_array);
     }

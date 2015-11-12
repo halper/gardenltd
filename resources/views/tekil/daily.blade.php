@@ -1,11 +1,13 @@
 <?php
 use App\Library\Weather;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Session;
 $my_weather = new Weather;
 if (session()->has("data")) {
     $report_date = session('data')["date"];
-
 }
+
+
 
 if (session()->has("staff_array")) {
     $staff_array = session('staff_array');
@@ -13,6 +15,15 @@ if (session()->has("staff_array")) {
 if (session()->has("quantity_array")) {
     $quantity_array = session('quantity_array');
 }
+$locked = true;
+if ($report->admin_lock == 0) {
+    $locked = false;
+} else if (!$report->locked()) {
+    $locked = false;
+} else if ($report->created_at < Carbon::now()->toDateString()) {
+    $locked = true;
+}
+
 
 ?>
 @extends('tekil/layout')
@@ -88,11 +99,11 @@ if (session()->has("quantity_array")) {
             $(add_button).click(function(e){ //on add input button click
                 e.preventDefault();
 
-                    $(wrapper).append('<div class="row"><div class="col-sm-6"><div class="form-group">' +
+                    $(wrapper).append('<div class="row"><div class="col-sm-8"><div class="form-group">' +
                     '<select name="staffs[]" class="js-additional-staff form-control">' +
 $staff_options
             '</select></div></div>' +
-                '<div class="col-sm-5"><input type="number" class="form-control" name="contractor-quantity[]"/></div>'+
+                '<div class="col-sm-3"><input type="number" class="form-control" name="contractor-quantity[]"/></div>'+
                 '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div></div>'); //add input box
                 $(".js-additional-staff").select2();
 
@@ -265,7 +276,7 @@ EOT;
                             'role' => 'form'
                             ]) !!}
 
-                            <div class="row {{($report->locked() && (strlen($report->employer_staff)>0 && $report->employer_staff == 0)) ? "hidden" : ""}}">
+                            <div class="row {{($locked && empty($report->employer_staff)) ? "hidden" : ""}}">
                                 <div class="form-group">
 
                                     <div class="col-sm-10">
@@ -274,7 +285,7 @@ EOT;
                                     </div>
 
                                     <div class="col-sm-2 text-center">
-                                        @if(!$report->locked())
+                                        @if(!$locked)
                                             {!! Form::number('employer_staff', null, ['class' => 'form-control'])  !!}
                                         @else
                                             <span class="input">{{$report->employer_staff}}</span>
@@ -283,7 +294,7 @@ EOT;
                                 </div>
                             </div>
 
-                            <div class="row {{($report->locked() && (strlen($report->management_staff)>0 && $report->management_staff == 0)) ? "hidden" : ""}}">
+                            <div class="row {{($locked && empty($report->management_staff)) ? "hidden" : ""}}">
                                 <div class="form-group">
                                     <div class="col-sm-10">
                                         <label for="management_staff" class="control-label">Proje Yönetimi
@@ -291,7 +302,7 @@ EOT;
                                     </div>
 
                                     <div class="col-sm-2 text-center">
-                                        @if(!$report->locked())
+                                        @if(!$locked)
                                             {!! Form::number('management_staff', null, ['class' => 'form-control'])  !!}
                                         @else
                                             <span class="input">{{$report->management_staff}}</span>
@@ -300,7 +311,7 @@ EOT;
                                 </div>
                             </div>
 
-                            <div class="row {{($report->locked() && (strlen($report->management_name)>0 && $report->building_control == 0)) ? "hidden" : ""}}">
+                            <div class="row {{($locked && empty($report->management_name)) ? "hidden" : ""}}">
                                 <div class="form-group">
 
                                     <div class="col-sm-10">
@@ -310,7 +321,7 @@ EOT;
                                     </div>
 
                                     <div class="col-sm-2 text-center">
-                                        @if(!$report->locked())
+                                        @if(!$locked)
                                             {!! Form::number('building_control_staff', null, ['class' => 'form-control'])  !!}
                                         @else
                                             <span class="input">{{$report->building_control_staff}}</span>
@@ -378,18 +389,16 @@ EOT;
                         </div>
                         <!-- /.box-header -->
                         <div class="box-body">
-                            @if(!$report->locked())
+                            @if(!$locked)
                                 Falanca İnşaat için personel giriniz.
                                 <br>
-                                @if(!empty($report->staff))
-                                    {{dd("oldu galiba: ". $report->staff->first())}}
-                                @endif
+
                                 <div class="row">
                                     <div class="text-center">
-                                        <div class="col-sm-6">
+                                        <div class="col-sm-8">
                                             <span><strong>PERSONEL</strong></span>
                                         </div>
-                                        <div class="col-sm-6">
+                                        <div class="col-sm-3">
                                             <span><strong>SAYISI</strong></span>
                                         </div>
                                     </div>
@@ -405,14 +414,14 @@ EOT;
                                 <div id="staff-insert">
                                     @foreach($report->staff()->get() as $staff)
                                         <div class="row">
-                                            <div class="col-sm-6">
+                                            <div class="col-sm-8">
                                                 <div class="form-group">
                                                     <span>{{$staff->staff}}</span>
                                                     {!! Form::hidden('staffs[]', $staff->id) !!}
                                                 </div>
                                             </div>
 
-                                            <div class="col-sm-5">
+                                            <div class="col-sm-3">
 
                                                 <input type="number" class="form-control" name="contractor-quantity[]"
                                                        value="{{$staff->pivot->quantity}}"/>
@@ -423,7 +432,7 @@ EOT;
                                     @endforeach
 
                                     <div class="row">
-                                        <div class="col-sm-6">
+                                        <div class="col-sm-8">
                                             <div class="form-group">
                                                 <select name="staffs[]" class="js-example-basic-single form-control">
 
@@ -432,7 +441,7 @@ EOT;
                                             </div>
                                         </div>
 
-                                        <div class="col-sm-6">
+                                        <div class="col-sm-4">
 
                                             <input type="number" class="form-control" name="contractor-quantity[]"/>
                                         </div>
@@ -454,6 +463,118 @@ EOT;
 
                                 </div>
                                 {!! Form::close() !!}
+                            @else
+                                <div class="row">
+                                    <div class="col-sm-11 text-center">
+
+                                        <?php
+                                        $main_contractor_total = 0;
+                                        $j = 0;
+                                            $max_explosion = 0;
+                                        foreach($report->staff()->get() as $staff){
+                                            $pos = strpos($staff->staff, " ");
+
+
+                                            if ($pos === false) {
+                                                // string needle NOT found in haystack
+
+                                            } else {
+                                                // string needle found in haystack
+                                                $staff_words = explode(" ", $staff->staff);
+                                                if(sizeof($staff_words)>$max_explosion){
+                                                    $max_explosion = sizeof($staff_words);
+                                                }
+                                            }
+                                        }
+                                        ?>
+                                        @foreach($report->staff()->get() as $staff)
+                                            <?php
+                                            $vowels = ["a", "e", "ı", "i", "o", "ö", "u", "ü"];
+                                            $pos = strpos($staff->staff, " ");
+                                            $staff_name = "";
+                                                    $br_string = "";
+
+
+
+                                            if ($pos === false) {
+                                                // string needle NOT found in haystack
+                                                $staff_name = $staff->staff;
+                                                for($k=1; $k<$max_explosion; $k++){
+                                                    $br_string .= "<br>";
+                                                }
+                                            } else {
+                                                // string needle found in haystack
+                                                $staff_words = explode(" ", $staff->staff);
+                                                $i = 1;
+                                                foreach ($staff_words as $word) {
+                                                    if (strlen($word) > 5) {
+                                                        $cut = in_array(mb_substr($word, 3, 1), $vowels) ? 3 : 4;
+                                                        $staff_name .= mb_substr($word, 0, $cut, 'utf-8') . ".";
+                                                    } else {
+                                                        $staff_name .= $word;
+                                                    }
+                                                    if ($i < sizeof($staff_words)) {
+                                                        $staff_name .= " ";
+                                                        $i++;
+                                                    }
+                                                }
+                                                for($k=0; $k<$max_explosion-sizeof($staff_words); $k++){
+                                                    $br_string .= "<br>";
+                                                }
+                                            }
+                                            $x = sizeof($report->staff()->get()) - ((int) floor($j / 12)) * 12;
+                                            if ($x >= 12) {
+                                                $class_size = 1;
+                                            } else {
+                                                $class_size = $x % 12;
+                                                switch ($class_size) {
+                                                    case(0):
+                                                    case(7):
+                                                    case(8):
+                                                    case(9):
+                                                    case(10):
+                                                    case(11):
+                                                        $class_size = 1;
+                                                        break;
+                                                    case(1):
+                                                    case(2):
+                                                    case(3):
+                                                    case(4):
+                                                    case(6):
+                                                        $class_size = 12 / $x;
+                                                        break;
+                                                    case(5):
+                                                        $class_size = 2;
+                                                        break;
+
+                                                }
+                                            }
+                                            ?>
+                                            {!! $j % 12 == 0 ? "<div class='row'>" : "" !!}
+
+                                            <div class="col-sm-{{$class_size}}">
+                                                <span><strong>{{$staff_name}}</strong></span>
+                                                <br>
+                                                {!! $br_string !!}
+                                                <span>{{$staff->pivot->quantity}}</span>
+                                            </div>
+                                            {!! ($j % 12 == 11 || $j+1==sizeof($report->staff()->get())) ? "</div>" : "" !!}
+                                            <?php
+                                            $main_contractor_total += $staff->pivot->quantity;
+                                            $j++;
+                                            ?>
+
+
+                                        @endforeach
+                                    </div>
+                                    <div class="col-sm-1">
+                                        <div class="row text-center">
+                                            <span><strong>TOPLAM</strong></span>
+                                            <br>
+                                            <span>{{$main_contractor_total}}</span>
+                                        </div>
+                                    </div>
+                                </div>
                             @endif
 
                         </div>

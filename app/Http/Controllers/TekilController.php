@@ -28,12 +28,15 @@ class TekilController extends Controller
     {
         $report = new Report;
 
-        if (is_null($report->where('created_at', Carbon::now()->toDateString())->first())) {
+        if (empty($report->where('created_at', Carbon::now()->toDateString())->where('site_id', $site->id)->first())) {
             $report->site_id = $site->id;
             $report->save();
 
         } else {
             $report = $report->where('created_at', Carbon::now()->toDateString())->where('site_id', $site->id)->first();
+        }
+        if(session()->has('report')){
+            $report = session()->get('report');
         }
 
         return view('tekil/daily', compact('site', 'modules', 'report'));
@@ -83,6 +86,7 @@ class TekilController extends Controller
         $data = ["date" => $request->get("date")];
         $report_date = $data["date"];
         $sql_date = Carbon::parse($report_date)->toDateString();
+
         if (!empty(Report::where('created_at', $sql_date)->where('site_id', $site->id)->first())) {
             $report = Report::where('created_at', $sql_date)->where('site_id', $site->id)->first();
             return redirect()->back()->with(["data" => $data, "report" => $report]);
@@ -107,6 +111,7 @@ class TekilController extends Controller
                 $report->staff()->attach($staff_arr[$i], ["quantity" => $cont_arr[$i]]);
             }
         }
+        Session::flash('flash_message', 'İlgili personel eklendi');
         return redirect()->back();
     }
 

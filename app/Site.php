@@ -7,16 +7,16 @@ use Illuminate\Database\Eloquent\Model as Eloquent;
 use App\User;
 
 /**
-* Class Operation
-* @package App
-*/
+ * Class Operation
+ * @package App
+ */
 class Site extends Eloquent implements SluggableInterface
 {
     use SluggableTrait;
 
     protected $sluggable = [
         'build_from' => 'job_name',
-        'save_to'    => 'slug',
+        'save_to' => 'slug',
     ];
 
     protected $table = 'sites';
@@ -25,13 +25,19 @@ class Site extends Eloquent implements SluggableInterface
         'start_date', 'contract_date', 'main_contractor',
         'end_date', 'address', 'site_chief', 'employer', 'building_control'];
 
-     public function user()
+    public function user()
     {
         return $this->belongsToMany('App\User')->withTimestamps();
     }
-public function report()
+
+    public function report()
     {
         return $this->hasMany('App\Report');
+    }
+
+    public function equipment()
+    {
+        return $this->belongsToMany('App\Equipment')->withTimestamps();
     }
 
     public static function getSites()
@@ -39,7 +45,8 @@ public function report()
         return Site::where('id', '>', 1)->get();
     }
 
-    public static function slugToId($slug){
+    public static function slugToId($slug)
+    {
         return Site::where('slug', $slug)->first()->id;
     }
 }

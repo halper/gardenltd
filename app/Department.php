@@ -19,4 +19,9 @@ class Department extends Model
     {
         return $this->hasMany('App\Staff');
     }
+
+    public function management()
+    {
+        return $this->where('department', '!=', 'Taşeron')->get();
+    }
 }

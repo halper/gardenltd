@@ -19,4 +19,8 @@ class Staff extends Model
     {
         return $this->belongsTo('App\Department');
     }
+public function report()
+    {
+        return $this->belongsToMany('App\Report')->withPivot('quantity')->withTimestamps();
+    }
 }

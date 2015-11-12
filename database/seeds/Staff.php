@@ -178,5 +178,51 @@ class StaffsTableSeeder extends Seeder
             'staff' => 'Şöför',
             'department_id' => '2',
         ));
+
+//Taşeron grubu
+        St::create(array(
+            'staff' => 'Koordi.',
+            'department_id' => '3',
+        ));
+    St::create(array(
+            'staff' => 'Müh.',
+            'department_id' => '3',
+        ));
+    St::create(array(
+            'staff' => 'Mim.',
+            'department_id' => '3',
+        ));
+    St::create(array(
+            'staff' => 'Tekn.',
+            'department_id' => '3',
+        ));
+    St::create(array(
+            'staff' => 'Formen',
+            'department_id' => '3',
+        ));
+    St::create(array(
+            'staff' => 'Usta',
+            'department_id' => '3',
+        ));
+    St::create(array(
+            'staff' => 'İşçi',
+            'department_id' => '3',
+        ));
+    St::create(array(
+            'staff' => 'Operat.',
+            'department_id' => '3',
+        ));
+    St::create(array(
+            'staff' => 'Kalıpçı',
+            'department_id' => '3',
+        ));
+    St::create(array(
+            'staff' => 'Demirci',
+            'department_id' => '3',
+        ));
+    St::create(array(
+            'staff' => 'Şöför',
+            'department_id' => '3',
+        ));
     }
 }

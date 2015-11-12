@@ -32,5 +32,8 @@ class DepartmentsTableSeeder extends Seeder
         Dept::create(array(
             'department' => 'Personel',
         ));
+        Dept::create(array(
+            'department' => 'Taşeron',
+        ));
     }
 }

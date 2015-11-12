@@ -1,8 +1,10 @@
 <?php
 use App\Library\Weather;
+use Illuminate\Support\Facades\Session;
 $my_weather = new Weather;
 if (session()->has("data")) {
     $report_date = session('data')["date"];
+
 }
 
 if (session()->has("staff_array")) {
@@ -59,7 +61,9 @@ if (session()->has("quantity_array")) {
     </script>
     <?php
     $staff_options = '';
-    foreach (App\Department::all() as $dept) {
+    $management_depts = new \App\Department();
+
+    foreach ($management_depts->management() as $dept) {
         $staff_options .= "'<optgroup label=\"$dept->department\">'+\n";
         foreach ($dept->staff()->get() as $staff) {
             if (isset($staff_array) && in_array($staff->id, $staff_array))
@@ -106,7 +110,7 @@ EOT;
 @stop
 
 @section('content')
-    {{dd($report->id)}}
+
 
     <div class="row">
         <div class="col-xs-12 col-md-12">
@@ -226,179 +230,236 @@ EOT;
     <div class="row">
         <div class="col-xs-12 col-md-8">
             <div class="row">
-            <div class="col-md-12">
-                <div class="box box-success box-solid">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Personel İcmal Tablosu</h3>
+                <div class="col-md-12">
+                    <div class="box box-success box-solid">
+                        <div class="box-header with-border">
+                            <h3 class="box-title">Personel İcmal Tablosu</h3>
 
-                        <div class="box-tools pull-right">
-                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                        class="fa fa-minus"></i>
-                            </button>
-                        </div>
-                        <!-- /.box-tools -->
-                    </div>
-                    <!-- /.box-header -->
-                    <div class="box-body">
-
-
-                        <div class="row">
-                            <div class="text-center">
-                                <div class="col-sm-10">
-                                    <span><strong>PERSONEL İCMALİ</strong></span>
-                                </div>
-                                <div class="col-sm-2">
-                                    <span><strong>TOPLAM</strong></span>
-                                </div>
+                            <div class="box-tools pull-right">
+                                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                            class="fa fa-minus"></i>
+                                </button>
                             </div>
+                            <!-- /.box-tools -->
                         </div>
-
-                        {!! Form::open([
-                        'url' => "/tekil/$site->slug/add-management-staffs",
-                        'method' => 'POST',
-                        'class' => 'form',
-                        'id' => 'managementStaffInsertForm',
-                        'role' => 'form'
-                        ]) !!}
-
-                        <div class="row">
-                            <div class="form-group">
-
-                                <div class="col-sm-10">
-                                    <label for="employer_staff" class="control-label">İşveren ({{$site->employer}})</label>
-                                </div>
-
-                                <div class="col-sm-2">
-
-                                    <input type="number" class="form-control" name="employer_staff"/>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="form-group">
-                                <div class="col-sm-10">
-                                    <label for="management_staff" class="control-label">Proje Yönetimi ({{$site->management_name}})</label>
-                                </div>
-
-                                <div class="col-sm-2">
-
-                                    <input type="number" class="form-control" name="management_staff"/>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="form-group">
-
-                                <div class="col-sm-10">
-                                    <label for="building_control_staff" class="control-label">Yapı Denetim ({{$site->building_control}}
-                                        )</label>
-                                </div>
-
-                                <div class="col-sm-2">
-
-                                    <input type="number" class="form-control" name="building_control_staff"/>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- /.box-header -->
+                        <div class="box-body">
 
 
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <div class="pull-right">
-                                    <button type="submit" class="btn btn-success btn-flat">
-                                        Kaydet
-                                    </button>
-                                </div>
-                            </div>
-
-                        </div>
-                        {!! Form::close() !!}
-
-
-                    </div>
-                </div>
-            </div>
-            </div>
-
-            <div class="row">
-            <div class="col-md-12">
-                <div class="box box-success box-solid">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">{{$site->main_contractor}}
-                            <small style="color: #f0f0f0;">(Ana Yüklenici)</small>
-                            Personel Tablosu
-                        </h3>
-
-                        <div class="box-tools pull-right">
-                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                        class="fa fa-minus"></i>
-                            </button>
-                        </div>
-                        <!-- /.box-tools -->
-                    </div>
-                    <!-- /.box-header -->
-                    <div class="box-body">
-                        Falanca İnşaat için personel giriniz.
-                        <br>
-
-                        <div class="row">
-                            <div class="text-center">
-                                <div class="col-sm-6">
-                                    <span><strong>PERSONEL</strong></span>
-                                </div>
-                                <div class="col-sm-6">
-                                    <span><strong>SAYISI</strong></span>
-                                </div>
-                            </div>
-                        </div>
-                        {!! Form::open([
-                        'url' => "/tekil/$site->slug/add-staffs",
-                        'method' => 'POST',
-                        'class' => 'form',
-                        'id' => 'staffInsertForm',
-                        'role' => 'form'
-                        ]) !!}
-                        <div id="staff-insert">
                             <div class="row">
-                                <div class="col-sm-6">
-                                    <div class="form-group">
-                                        <select name="staffs[]" class="js-example-basic-single form-control">
+                                <div class="text-center">
+                                    <div class="col-sm-10">
+                                        <span><strong>PERSONEL İCMALİ</strong></span>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <span><strong>TOPLAM</strong></span>
+                                    </div>
+                                </div>
+                            </div>
 
-                                            {!! $staff_options !!}
-                                        </select>
+                            {!! Form::model($report, [
+                            'url' => "/tekil/$site->slug/add-management-staffs",
+                            'method' => 'POST',
+                            'class' => 'form',
+                            'id' => 'managementStaffInsertForm',
+                            'role' => 'form'
+                            ]) !!}
+
+                            <div class="row {{($report->locked() && (strlen($report->employer_staff)>0 && $report->employer_staff == 0)) ? "hidden" : ""}}">
+                                <div class="form-group">
+
+                                    <div class="col-sm-10">
+                                        <label for="employer_staff" class="control-label">İşveren ({{$site->employer}}
+                                            )</label>
+                                    </div>
+
+                                    <div class="col-sm-2 text-center">
+                                        @if(!$report->locked())
+                                            {!! Form::number('employer_staff', null, ['class' => 'form-control'])  !!}
+                                        @else
+                                            <span class="input">{{$report->employer_staff}}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row {{($report->locked() && (strlen($report->management_staff)>0 && $report->management_staff == 0)) ? "hidden" : ""}}">
+                                <div class="form-group">
+                                    <div class="col-sm-10">
+                                        <label for="management_staff" class="control-label">Proje Yönetimi
+                                            ({{$site->management_name}})</label>
+                                    </div>
+
+                                    <div class="col-sm-2 text-center">
+                                        @if(!$report->locked())
+                                            {!! Form::number('management_staff', null, ['class' => 'form-control'])  !!}
+                                        @else
+                                            <span class="input">{{$report->management_staff}}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row {{($report->locked() && (strlen($report->management_name)>0 && $report->building_control == 0)) ? "hidden" : ""}}">
+                                <div class="form-group">
+
+                                    <div class="col-sm-10">
+                                        <label for="building_control_staff" class="control-label">Yapı Denetim
+                                            ({{$site->building_control}}
+                                            )</label>
+                                    </div>
+
+                                    <div class="col-sm-2 text-center">
+                                        @if(!$report->locked())
+                                            {!! Form::number('building_control_staff', null, ['class' => 'form-control'])  !!}
+                                        @else
+                                            <span class="input">{{$report->building_control_staff}}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <?php
+                            $total_management = 0;
+                            if (!empty($report->management_staff))
+                                $total_management += $report->management_staff;
+                            if (!empty($report->building_control_staff))
+                                $total_management += $report->building_control_staff;
+                            if (!empty($report->employer_staff))
+                                $total_management += $report->employer_staff;
+
+                            if ($total_management > 0) {
+                                echo <<<EOT
+<div class="row">
+<div class="col-sm-10" style="text-align:right">
+<span><strong>TOPLAM: </strong></span>
+</div>
+<div class="col-sm-2 text-center">
+$total_management
+</div>
+</div>
+EOT;
+                            }
+
+                            ?>
+                            <div class="row {{$report->locked() ? "hidden" : ""}}">
+                                <div class="col-sm-12">
+                                    <div class="pull-right">
+                                        <button type="submit" class="btn btn-success btn-flat">
+                                            Kaydet
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div class="col-sm-6">
-
-                                    <input type="number" class="form-control" name="contractor-quantity[]"/>
-                                </div>
                             </div>
-                        </div>
+                            {!! Form::close() !!}
 
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <div class="form-group pull-right">
-                                    <a href="#" class="btn btn-primary btn-flat add-staff-row">
-                                        Personel Ekle
-                                    </a>
-
-                                    <button type="submit" class="btn btn-success btn-flat ">
-                                        Kaydet
-                                    </button>
-                                </div>
-                            </div>
 
                         </div>
-                        {!! Form::close() !!}
-
-
                     </div>
                 </div>
             </div>
-        </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="box box-success box-solid">
+                        <div class="box-header with-border">
+                            <h3 class="box-title">{{$site->main_contractor}}
+                                <small style="color: #f0f0f0;">(Ana Yüklenici)</small>
+                                Personel Tablosu
+                            </h3>
+
+                            <div class="box-tools pull-right">
+                                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                            class="fa fa-minus"></i>
+                                </button>
+                            </div>
+                            <!-- /.box-tools -->
+                        </div>
+                        <!-- /.box-header -->
+                        <div class="box-body">
+                            @if(!$report->locked())
+                                Falanca İnşaat için personel giriniz.
+                                <br>
+                                @if(!empty($report->staff))
+                                    {{dd("oldu galiba: ". $report->staff->first())}}
+                                @endif
+                                <div class="row">
+                                    <div class="text-center">
+                                        <div class="col-sm-6">
+                                            <span><strong>PERSONEL</strong></span>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <span><strong>SAYISI</strong></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {!! Form::open([
+                                'url' => "/tekil/$site->slug/save-staff",
+                                'method' => 'POST',
+                                'class' => 'form',
+                                'id' => 'staffInsertForm',
+                                'role' => 'form'
+                                ]) !!}
+                                {!! Form::hidden('report_id', $report->id) !!}
+                                <div id="staff-insert">
+                                    @foreach($report->staff()->get() as $staff)
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                                <div class="form-group">
+                                                    <span>{{$staff->staff}}</span>
+                                                    {!! Form::hidden('staffs[]', $staff->id) !!}
+                                                </div>
+                                            </div>
+
+                                            <div class="col-sm-5">
+
+                                                <input type="number" class="form-control" name="contractor-quantity[]"
+                                                       value="{{$staff->pivot->quantity}}"/>
+                                            </div>
+                                            <div class="col-sm-1"><a href="#" class="remove_field"><i
+                                                            class="fa fa-close"></i></a></div>
+                                        </div>
+                                    @endforeach
+
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="form-group">
+                                                <select name="staffs[]" class="js-example-basic-single form-control">
+
+                                                    {!! $staff_options !!}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-6">
+
+                                            <input type="number" class="form-control" name="contractor-quantity[]"/>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="form-group pull-right">
+                                            <a href="#" class="btn btn-primary btn-flat add-staff-row">
+                                                Personel Ekle
+                                            </a>
+
+                                            <button type="submit" class="btn btn-success btn-flat ">
+                                                Kaydet
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                                {!! Form::close() !!}
+                            @endif
+
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
 

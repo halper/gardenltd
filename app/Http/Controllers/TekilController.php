@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Demand;
+use App\Library\CarbonHelper;
+use App\Manufacturing;
 use App\Material;
 use App\Module;
 use App\Report;
 use App\Site;
 use App\Http\Requests;
+use App\Subcontractor;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -85,7 +88,7 @@ class TekilController extends Controller
     {
         $data = ["date" => $request->get("date")];
         $report_date = $data["date"];
-        $sql_date = Carbon::parse($report_date)->toDateString();
+        $sql_date = CarbonHelper::getMySQLDate($report_date);
 
         if (!empty(Report::where('created_at', $sql_date)->where('site_id', $site->id)->first())) {
             $report = Report::where('created_at', $sql_date)->where('site_id', $site->id)->first();
@@ -101,6 +104,7 @@ class TekilController extends Controller
 
     public function postSaveStaff(Request $request)
     {
+//        Main contractor
         $staff_arr = $request->get("staffs");
         $cont_arr = $request->get("contractor-quantity");
 
@@ -108,7 +112,7 @@ class TekilController extends Controller
         $report->staff()->detach();
         for ($i = 0; $i < sizeof($staff_arr); $i++) {
             if (!strlen($cont_arr[$i]) == 0) {
-                $report->staff()->attach($staff_arr[$i], ["quantity" => $cont_arr[$i]]);
+                $report->staff()->attach($staff_arr[$i], ["quantity" => $cont_arr[$i], "subcontractor_id" => 1]);
             }
         }
         Session::flash('flash_message', 'İlgili personel eklendi');
@@ -137,6 +141,53 @@ class TekilController extends Controller
         }
         Session::flash('flash_message', 'Personel icmal kaydı başarılı');
         return redirect()->back();
+    }
+
+    public function postSaveSubcontractorStaff(Request $request)
+    {
+        $report = Report::find($request->get("report_id"));
+        $req_wo_token = $request->all();
+        unset($req_wo_token["_token"]);
+        unset($req_wo_token["subcontractors"]);
+        unset($req_wo_token["report_id"]);
+        $subcontractors = $request->get("subcontractors");
+        for($i = 0; $i < sizeof($subcontractors); $i++){
+            foreach($req_wo_token as $key => $value ){
+//                key staff id
+                if(!empty($req_wo_token[$key][$i]))
+                    $report->staff()->attach($key, ["quantity" => $req_wo_token[$key][$i], "subcontractor_id" => $subcontractors[$i]]);
+            }
+        }
+        Session::flash('flash_message', 'Taşeron personel kaydı başarılı');
+        return redirect()->back();
+    }
+
+
+    public function postAddSubcontractor(Request $request, Site $site)
+    {
+        $this->validate($request, [
+            'name' => 'required',
+            'contract_date' => 'required',
+            'contract_start_date' => 'required',
+            'contract_end_date' => 'required',
+
+        ]);
+        
+        $subcontractor = Subcontractor::create([
+            "name" => $request->get("name"),
+            'contract_date' => CarbonHelper::getMySQLDate($request->get("contract_date")),
+            'contract_start_date' => CarbonHelper::getMySQLDate($request->get("contract_start_date")),
+            'contract_end_date' => CarbonHelper::getMySQLDate($request->get("contract_end_date")),
+            "site_id" => $site->id
+        ]);
+
+        foreach($request->get('manufacturings') as $man_id){
+            Manufacturing::find($man_id)->subcontractor()->attach($subcontractor->id);
+        }
+
+        Session::flash('flash_message', "Taşeron ($subcontractor->name) kaydı oluşturuldu");
+        return redirect()->back();
+
     }
 
 

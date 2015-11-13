@@ -1,5 +1,5 @@
 <?php
-namespace App\library {
+namespace App\Library {
     class Weather
     {
         private $appid = '570240fc9688bc26dba535b40820e8cf';

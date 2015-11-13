@@ -15,7 +15,7 @@ class Department extends Seeder
     {
         Model::unguard();
 
-        $this->call(DepartmentsTableSeeder::class);
+        $this->call(ManufacturingsTableSeeder::class);
 
         Model::reguard();
     }

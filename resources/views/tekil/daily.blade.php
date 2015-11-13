@@ -1,13 +1,14 @@
 <?php
 use App\Library\Weather;
 use Carbon\Carbon;
+use App\Staff;
 use Illuminate\Support\Facades\Session;
 $my_weather = new Weather;
 if (session()->has("data")) {
     $report_date = session('data')["date"];
 }
 
-
+$today = Carbon::now()->toDateString();
 
 if (session()->has("staff_array")) {
     $staff_array = session('staff_array');
@@ -18,10 +19,10 @@ if (session()->has("quantity_array")) {
 $locked = true;
 if ($report->admin_lock == 0) {
     $locked = false;
+} else if ($report->created_at < $today) {
+    $locked = true;
 } else if (!$report->locked()) {
     $locked = false;
-} else if ($report->created_at < Carbon::now()->toDateString()) {
-    $locked = true;
 }
 
 
@@ -66,6 +67,11 @@ if ($report->admin_lock == 0) {
                 }
                 $('#dateRangeForm').submit();
             });
+
+            $(".remove_row").on("click", function (e) { //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('td').parent().closest('tr').remove();
+            })
         });
 
 
@@ -110,7 +116,8 @@ $staff_options
             });
 
             $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
-                e.preventDefault(); $(this).parent().closest('div.row').remove(); x--;
+                e.preventDefault();
+                $(this).parent().closest('div.row').remove();
             })
         });
 </script>
@@ -235,10 +242,11 @@ EOT;
         </div>
     </div>
     <?php
-    $staffs = \App\Staff::all()
+    $staffs = Staff::all()
     ?>
 
     <div class="row">
+        {{--Personel icmal tablosu--}}
         <div class="col-xs-12 col-md-8">
             <div class="row">
                 <div class="col-md-12">
@@ -370,7 +378,10 @@ EOT;
                     </div>
                 </div>
             </div>
+            {{--End of Personel icmal table--}}
 
+
+            {{--Main contractor table--}}
             <div class="row">
                 <div class="col-md-12">
                     <div class="box box-success box-solid">
@@ -470,8 +481,8 @@ EOT;
                                         <?php
                                         $main_contractor_total = 0;
                                         $j = 0;
-                                            $max_explosion = 0;
-                                        foreach($report->staff()->get() as $staff){
+                                        $max_explosion = 0;
+                                        foreach ($report->staff()->get() as $staff) {
                                             $pos = strpos($staff->staff, " ");
 
 
@@ -481,7 +492,7 @@ EOT;
                                             } else {
                                                 // string needle found in haystack
                                                 $staff_words = explode(" ", $staff->staff);
-                                                if(sizeof($staff_words)>$max_explosion){
+                                                if (sizeof($staff_words) > $max_explosion) {
                                                     $max_explosion = sizeof($staff_words);
                                                 }
                                             }
@@ -492,14 +503,14 @@ EOT;
                                             $vowels = ["a", "e", "ı", "i", "o", "ö", "u", "ü"];
                                             $pos = strpos($staff->staff, " ");
                                             $staff_name = "";
-                                                    $br_string = "";
+                                            $br_string = "";
 
 
 
                                             if ($pos === false) {
                                                 // string needle NOT found in haystack
                                                 $staff_name = $staff->staff;
-                                                for($k=1; $k<$max_explosion; $k++){
+                                                for ($k = 1; $k < $max_explosion; $k++) {
                                                     $br_string .= "<br>";
                                                 }
                                             } else {
@@ -518,11 +529,11 @@ EOT;
                                                         $i++;
                                                     }
                                                 }
-                                                for($k=0; $k<$max_explosion-sizeof($staff_words); $k++){
+                                                for ($k = 0; $k < $max_explosion - sizeof($staff_words); $k++) {
                                                     $br_string .= "<br>";
                                                 }
                                             }
-                                            $x = sizeof($report->staff()->get()) - ((int) floor($j / 12)) * 12;
+                                            $x = sizeof($report->staff()->get()) - ((int)floor($j / 12)) * 12;
                                             if ($x >= 12) {
                                                 $class_size = 1;
                                             } else {
@@ -581,7 +592,169 @@ EOT;
                     </div>
                 </div>
             </div>
+            {{--End of Main contractor table--}}
+
+            {{--Subcontractors table--}}
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="box box-success box-solid">
+                        <div class="box-header with-border">
+                            <h3 class="box-title">Alt Yükleniciler Personel Tablosu
+                            </h3>
+
+                            <div class="box-tools pull-right">
+                                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                            class="fa fa-minus"></i>
+                                </button>
+                            </div>
+                            <!-- /.box-tools -->
+                        </div>
+                        <!-- /.box-header -->
+                        <div class="box-body">
+                            <?php
+                            $subcontractor_staffs = \App\Staff::where('department_id', '3')->get();
+                            $subcontractors = \App\Subcontractor::where('contract_start_date', '<=', $today)->where('contract_end_date', '>', $today)->get();
+                            $subcontractor_staff_total = 0;
+                            ?>
+                            @if(!$locked)
+
+                                <table class="table table-responsive table-condensed">
+                                    {!! Form::open([
+                                'url' => "/tekil/$site->slug/save-subcontractor-staff",
+                                'method' => 'POST',
+                                'class' => 'form',
+                                'id' => 'subcontractorStaffInsertForm',
+                                'role' => 'form'
+                                ]) !!}
+                                    {!! Form::hidden('report_id', $report->id) !!}
+                                    <thead>
+                                    <tr>
+                                        <th>ALT YÜKLENİCİ</th>
+
+                                        @foreach($subcontractor_staffs as $sub_staff)
+                                            <th>{{$sub_staff->staff}}</th>
+                                        @endforeach
+                                        <th>TOPLAM</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+
+                                    @foreach($subcontractors as $subcontractor)
+                                        <tr>
+                                            <td><a href="#" class="remove_row"><i
+                                                            class="fa fa-close"></i></a>{{$subcontractor->name}}
+
+                                                @foreach($subcontractor->manufacturing()->get() as $manufacture)
+                                                    <?php
+                                                    $sub_row_total = 0;
+                                                    ?>
+                                                    <br> ({{mb_strtoupper($manufacture->name, 'utf8')}})
+                                                @endforeach
+                                            </td>
+                                            {!! Form::hidden("subcontractors[]", $subcontractor->id)!!}
+                                            @for($i = 0; $i<sizeof($subcontractor_staffs); $i++)
+
+                                                <td style="vertical-align: middle">
+
+                                                    {!! Form::text($subcontractor_staffs[$i]->id . "[]", empty($report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity) ? null : $report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity, ['class' => 'form-control']) !!}</td>
+                                                <?php
+                                                $sub_row_total += empty($report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity) ? 0 : $report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity;
+                                                $subcontractor_staff_total += $sub_row_total;
+                                                ?>
+                                            @endfor
+                                            <td class="text-center" style="vertical-align: middle">{{$sub_row_total}}</td>
+                                        </tr>
+                                    @endforeach
+
+                                    </tbody>
+                                </table>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="form-group pull-right">
+
+                                            <button type="submit" class="btn btn-success btn-flat ">
+                                                Kaydet
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                                {!! Form::close() !!}
+                            @else
+
+                                <table class="table table-responsive table-condensed">
+
+                                    <thead>
+                                    <tr>
+                                        <th>ALT YÜKLENİCİ</th>
+                                        @foreach($subcontractor_staffs as $sub_staff)
+                                            <th>{{$sub_staff->staff}}</th>
+                                        @endforeach
+                                        <th>TOPLAM</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+
+                                    @foreach($subcontractors as $subcontractor)
+                                        <?php
+                                        $sub_row_total = 0;
+                                        ?>
+                                        <tr>
+                                            <td>
+                                                {{$subcontractor->name}}
+                                                @foreach($subcontractor->manufacturing()->get() as $manufacture)
+                                                    <br> ({{mb_strtoupper($manufacture->name, 'utf8')}})
+                                                @endforeach
+                                            </td>
+                                            @for($i = 0; $i<sizeof($subcontractor_staffs); $i++)
+
+                                                <td style="vertical-align: middle">
+
+                                                    {{empty($report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity) ? "" : $report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity }}</td>
+                                                <?php
+                                                $sub_row_total += empty($report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity) ? 0 : $report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity;
+                                                $subcontractor_staff_total += $sub_row_total;
+                                                ?>
+                                            @endfor
+                                            <td class="text-center" style="vertical-align: middle">{{$sub_row_total}}</td>
+                                        </tr>
+                                    @endforeach
+
+                                    </tbody>
+                                </table>
+                                    <div class="row">
+                                        <div class="col-sm-11">
+                                            <p class="text-right"><strong>ALT YÜKLENİCİ TOPLAMI</strong></p>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <p class="text-left">{{$subcontractor_staff_total}}</p>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-11">
+                                            <p class="text-right"><strong>ANA YÜKLENİCİ & ALT YÜKLENİCİ TOPLAMI</strong></p>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <p class="text-center">{{$main_contractor_total + $subcontractor_staff_total}}</p>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-11">
+                                            <p class="text-right"><strong>GENEL TOPLAM</strong></p>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <p class="text-center">{{$main_contractor_total + $subcontractor_staff_total + $total_management}}</p>
+                                        </div>
+                                    </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{--End of subcontractors table--}}
+
         </div>
+        {{--End of left tables column--}}
 
 
         <div class="col-xs-12 col-md-4">
@@ -726,250 +899,5 @@ EOT;
             </div>
         </div>
     </div>
-
-    {{--<div class="row">
-        <div class="col-xs-12 col-md-6">
-            <div class="box box-success box-solid">
-                <div class="box-header with-border">
-                    <h3 class="box-title">Personel Raporu</h3>
-
-                    <div class="box-tools pull-right">
-                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                    class="fa fa-minus"></i>
-                        </button>
-                    </div>
-                    <!-- /.box-tools -->
-                </div>
-                <!-- /.box-header -->
-                <div class="box-body">
-                    <div class="table-responsive">
-                        <table class="table table-condensed">
-                            <thead>
-                            <tr>
-                                <th>Firma</th>
-                                <th>Puantaj</th>
-                                <th>Yapılan İş ve Mahali</th>
-                                <th>Ödemeler</th>
-                                <th>Malzeme Talep</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-
-                            <tr>
-                                <td>Garden İnşaat</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td>Elektrik</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td>Tesisat</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td>Sıva</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td>Güvenlik</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td>Toplam</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-
-                            </tbody>
-                        </table>
-                    </div>
-
-                </div>
-                <!-- /.box-body -->
-            </div>
-            <!-- /.box -->
-        </div>
-        <div class="col-xs-12 col-md-6">
-            <div class="box box-success box-solid">
-                <div class="box-header with-border">
-                    <h3 class="box-title">Gelen Malzeme</h3>
-
-                    <div class="box-tools pull-right">
-                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                    class="fa fa-minus"></i>
-                        </button>
-                    </div>
-                    <!-- /.box-tools -->
-                </div>
-                <!-- /.box-header -->
-                <div class="box-body">
-                    <div class="table-responsive">
-                        <table class="table table-condensed">
-                            <thead>
-                            <tr>
-                                <th>Kimden</th>
-                                <th>Malzeme Cinsi</th>
-
-                            </tr>
-                            </thead>
-                            <tbody>
-
-                            <tr>
-                                <td>Garden İnşaat</td>
-                                <td></td>
-
-                            </tr>
-                            <tr>
-                                <td>Elektrik</td>
-                                <td></td>
-
-                            </tr>
-
-
-                            </tbody>
-                        </table>
-                    </div>
-
-                </div>
-                <!-- /.box-body -->
-            </div>
-            <!-- /.box -->
-        </div>
-
-    </div>
-
-    <div class="row">
-        <div class="col-xs-12 col-md-6">
-            <div class="box box-warning box-solid">
-                <div class="box-header with-border">
-                    <h3 class="box-title">İş Makinesi ve Ekipman</h3>
-
-                    <div class="box-tools pull-right">
-                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                    class="fa fa-minus"></i>
-                        </button>
-                    </div>
-                    <!-- /.box-tools -->
-                </div>
-                <!-- /.box-header -->
-                <div class="box-body">
-                    <div class="table-responsive">
-                        <table class="table table-condensed">
-
-                            <tbody>
-
-                            <tr>
-                                <td>Kule Vinç</td>
-                                <td></td>
-
-                            </tr>
-                            <tr>
-                                <td>Kamyon</td>
-                                <td></td>
-
-                            </tr>
-                            <tr>
-                                <td>Eskavatör</td>
-                                <td></td>
-
-                            </tr>
-                            <tr>
-                                <td>Beko Loader</td>
-                                <td></td>
-
-                            </tr>
-                            <tr>
-                                <td>Vinç</td>
-                                <td></td>
-
-                            </tr>
-                            <tr>
-                                <td>High Up</td>
-                                <td></td>
-
-                            </tr>
-                            <tr>
-                                <td>Gırgır Vinç</td>
-                                <td></td>
-
-                            </tr>
-
-                            </tbody>
-                        </table>
-                    </div>
-
-                </div>
-                <!-- /.box-body -->
-            </div>
-            <!-- /.box -->
-        </div>
-        <div class="col-xs-12 col-md-6">
-            <div class="box box-warning box-solid">
-                <div class="box-header with-border">
-                    <h3 class="box-title">Şantiye Notları</h3>
-
-                    <div class="box-tools pull-right">
-                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                    class="fa fa-minus"></i>
-                        </button>
-                    </div>
-                    <!-- /.box-tools -->
-                </div>
-                <!-- /.box-header -->
-                <div class="box-body">
-                    <div class="table-responsive">
-                        <table class="table table-condensed">
-
-                            <tbody>
-
-                            <tr>
-                                <td></td>
-
-                            </tr>
-
-                            <tr>
-                                <td></td>
-
-                            </tr>
-
-                            <tr>
-                                <td></td>
-
-                            </tr>
-
-                            <tr>
-                                <td></td>
-
-                            </tr>
-
-
-                            </tbody>
-                        </table>
-                    </div>
-
-                </div>
-                <!-- /.box-body -->
-            </div>
-            <!-- /.box -->
-        </div>
-    </div>--}}
 
 @stop

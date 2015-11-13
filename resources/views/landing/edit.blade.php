@@ -20,7 +20,7 @@ use App\Site;
 
         });
 
-var modulesMaster = $('#modules-master');
+        var modulesMaster = $('#modules-master');
         var childOfModules = $('[name=modules\\[\\]]');
         modulesMaster.on('click', (function () {
                     modulesMaster[0].checked ? childOfModules.prop('checked', true) : childOfModules.prop('checked', false);
@@ -90,89 +90,90 @@ var modulesMaster = $('#modules-master');
                         ?>
                         {!! $i_modulus == 0 ? "
                         <div class=\"row\">" : "" !!}
-                            <div class="col-md-2 col-xs-3">
-                                <label class="checkbox-inline">
-                                    {!! Form::checkbox('sites[]', $site->id, $user->hasSite($site->id),
-                                    [
-                                    'id'=>$site->slug,
-                                    ])
-                                    !!}{{ $site->job_name}}</label>
-                            </div>
-                            {!! $i_modulus == 5 ? "
-                        </div>" : "" !!}
+                        <div class="col-md-2 col-xs-3">
+                            <label class="checkbox-inline">
+                                {!! Form::checkbox('sites[]', $site->id, $user->hasSite($site->id),
+                                [
+                                'id'=>$site->slug,
+                                ])
+                                !!}{{ $site->job_name}}</label>
+                        </div>
+                        {!! $i_modulus == 5 ? "
+                    </div>" : "" !!}
                     @endforeach
                     {!! $i_modulus != 5 ? "
                 </div>
                 " : "" !!}
-                <br/>
-                <button type="submit" class="btn btn-primary">Kaydet</button>
+                    <br/>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
 
-                {!! Form::close() !!}
+                    {!! Form::close() !!}
 
-            </div>
-            <!-- /.tab-pane -->
-            <div class="tab-pane" id="tab_3">
-                <div class="row">
-                    <div class="col-xs-12 table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                            <tr>
-                                <th>Modül adı</th>
-                                <th>İzinler</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {!! Form::model($user,
-                            ['action' => ['AdminController@editModulePermissions', $user],
-                            'method' => 'PATCH',
-                            'class' => 'form',
-                            'id' => 'moduleUserForm',
-                            'role' => 'form']) !!}
-                            <tr><label class="checkbox-inline">
-                                    <input type="checkbox" id="modules-master" name="modules-master">
-                                    Tüm izinleri seç</label></tr>
-
-                            @foreach(App\Module::getModules() as $module)
-                                <tr>
-                                    <td>
-                                        <label class="checkbox-inline">
-                                            {{ $module->name}}</label>
-                                    </td>
-                                    <td>
-                                        <div class="col-md-3">
-                                            <label class="checkbox-inline">
-                                                {!! Form::checkbox('modules[]', $module->id."1",
-                                                $user->hasPermissionOnModule(1, $module->id),
-                                                [
-                                                'id'=>$module->slug,
-                                                ])
-                                                !!}{{ App\Permission::find(1)->definition}}</label>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label class="checkbox-inline">
-                                                {!! Form::checkbox('modules[]', $module->id."2",
-                                                $user->hasPermissionOnModule(2, $module->id),
-                                                [
-                                                'id'=>$module->slug,
-                                                ])
-                                                !!}{{ App\Permission::find(2)->definition}}</label>
-                                        </div>
-                                    </td>
-                                </tr>
-
-                            @endforeach
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
-                <br/>
-                <button type="submit" class="btn btn-primary">Kaydet</button>
+                <!-- /.tab-pane -->
+                <div class="tab-pane" id="tab_3">
+                    <div class="row">
+                        <div class="col-xs-12 table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                <tr>
+                                    <th>Modül adı</th>
+                                    <th>İzinler</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {!! Form::model($user,
+                                ['action' => ['AdminController@editModulePermissions', $user],
+                                'method' => 'PATCH',
+                                'class' => 'form',
+                                'id' => 'moduleUserForm',
+                                'role' => 'form']) !!}
+                                <tr><label class="checkbox-inline">
+                                        <input type="checkbox" id="modules-master" name="modules-master">
+                                        Tüm izinleri seç</label></tr>
 
-                {!! Form::close() !!}
+                                @foreach(App\Module::getModules() as $module)
+                                    <tr>
+                                        <td>
+                                            <label class="checkbox-inline">
+                                                {{ $module->name}}</label>
+                                        </td>
+                                        <td>
+                                            <div class="col-md-3">
+                                                <label class="checkbox-inline">
+                                                    {!! Form::checkbox('modules[]', $module->id."1",
+                                                    $user->hasPermissionOnModule(1, $module->id),
+                                                    [
+                                                    'id'=>$module->slug,
+                                                    ])
+                                                    !!}{{ App\Permission::find(1)->definition}}</label>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="checkbox-inline">
+                                                    {!! Form::checkbox('modules[]', $module->id."2",
+                                                    $user->hasPermissionOnModule(2, $module->id),
+                                                    [
+                                                    'id'=>$module->slug,
+                                                    ])
+                                                    !!}{{ App\Permission::find(2)->definition}}</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <br/>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+
+                    {!! Form::close() !!}
+                </div>
+                <!-- /.tab-pane -->
+                <!-- /.tab-content -->
             </div>
-            <!-- /.tab-pane -->
-            <!-- /.tab-content -->
+            <!-- nav-tabs-custom -->
         </div>
-        <!-- nav-tabs-custom -->
     </div>
 @stop

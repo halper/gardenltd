@@ -23,7 +23,7 @@ class Report extends Model
 
     public function staff()
     {
-        return $this->belongsToMany('App\Staff')->withPivot('quantity')->withTimestamps();
+        return $this->belongsToMany('App\Staff')->withPivot('quantity', 'subcontractor_id')->join('subcontractors', 'subcontractor_id', '=', 'subcontractors.id');
     }
 
     public function equipment()

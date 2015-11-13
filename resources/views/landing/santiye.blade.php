@@ -13,6 +13,25 @@ else{
 
 @extends('landing.landing')
 
+@section('page-specific-css')
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.min.css"/>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker3.min.css"/>
+
+@stop
+
+@section('page-specific-js')
+    <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.min.js"></script>
+    <script>
+    $('.dateRangePicker').datepicker({
+    autoclose: true,
+    firstDay: 1,
+    format: 'dd.mm.yyyy',
+    startDate: '01.01.2010',
+    endDate: '30.12.2100'
+    });
+    </script>
+        @stop
+
 @section('content')
 
     @if (count($errors) > 0)
@@ -193,7 +212,11 @@ else{
                                 {!! Form::label('start_date', 'Başlangıç Tarihi: ', ['class' => 'control-label']) !!}
                             </div>
                             <div class="col-sm-10">
-                                {!! Form::text('start_date', null, ['class' => 'form-control', 'placeholder' => 'Tarihi 01.01.2000 şeklinde giriniz']) !!}
+                                <div class="input-group input-append date dateRangePicker">
+                                    <input type="text" class="form-control" name="start_date" placeholder="Başlangıç tarihini seçiniz"/>
+                                        <span class="input-group-addon add-on"><span
+                                                    class="glyphicon glyphicon-calendar"></span></span>
+                                </div>
 
                             </div>
                         </div>
@@ -205,8 +228,11 @@ else{
                                 {!! Form::label('contract_date', 'Sözleşme Tarihi: ', ['class' => 'control-label']) !!}
                             </div>
                             <div class="col-sm-10">
-                                {!! Form::text('contract_date', null, ['class' => 'form-control', 'placeholder' =>
-                                'Tarihi 01.01.2000 şeklinde giriniz']) !!}
+                                <div class="input-group input-append date dateRangePicker">
+                                    <input type="text" class="form-control" name="contract_date" placeholder="Sözleşme tarihini seçiniz"/>
+                                        <span class="input-group-addon add-on"><span
+                                                    class="glyphicon glyphicon-calendar"></span></span>
+                                </div>
 
                             </div>
                         </div>
@@ -218,8 +244,11 @@ else{
                                 {!! Form::label('end_date', 'İş Bitim Tarihi: ', ['class' => 'control-label']) !!}
                             </div>
                             <div class="col-sm-10">
-                                {!! Form::text('end_date', null, ['class' => 'form-control', 'placeholder' => 'Tarihi 01.01.2000 şeklinde giriniz']) !!}
-
+                                <div class="input-group input-append date dateRangePicker">
+                                    <input type="text" class="form-control" name="end_date" placeholder="İş bitim tarihini seçiniz"/>
+                                        <span class="input-group-addon add-on"><span
+                                                    class="glyphicon glyphicon-calendar"></span></span>
+                                </div>
                             </div>
                         </div>
                     </div>

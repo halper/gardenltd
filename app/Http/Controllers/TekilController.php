@@ -172,7 +172,7 @@ class TekilController extends Controller
             'contract_end_date' => 'required',
 
         ]);
-        
+
         $subcontractor = Subcontractor::create([
             "name" => $request->get("name"),
             'contract_date' => CarbonHelper::getMySQLDate($request->get("contract_date")),

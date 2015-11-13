@@ -662,7 +662,8 @@ EOT;
                                                 $subcontractor_staff_total += $sub_row_total;
                                                 ?>
                                             @endfor
-                                            <td class="text-center" style="vertical-align: middle">{{$sub_row_total}}</td>
+                                            <td class="text-center"
+                                                style="vertical-align: middle">{{$sub_row_total}}</td>
                                         </tr>
                                     @endforeach
 
@@ -716,36 +717,37 @@ EOT;
                                                 $subcontractor_staff_total += $sub_row_total;
                                                 ?>
                                             @endfor
-                                            <td class="text-center" style="vertical-align: middle">{{$sub_row_total}}</td>
+                                            <td class="text-center"
+                                                style="vertical-align: middle">{{$sub_row_total}}</td>
                                         </tr>
                                     @endforeach
 
                                     </tbody>
                                 </table>
-                                    <div class="row">
-                                        <div class="col-sm-11">
-                                            <p class="text-right"><strong>ALT YÜKLENİCİ TOPLAMI</strong></p>
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <p class="text-left">{{$subcontractor_staff_total}}</p>
-                                        </div>
+                                <div class="row">
+                                    <div class="col-sm-11">
+                                        <p class="text-right"><strong>ALT YÜKLENİCİ TOPLAMI</strong></p>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-sm-11">
-                                            <p class="text-right"><strong>ANA YÜKLENİCİ & ALT YÜKLENİCİ TOPLAMI</strong></p>
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <p class="text-center">{{$main_contractor_total + $subcontractor_staff_total}}</p>
-                                        </div>
+                                    <div class="col-sm-1">
+                                        <p class="text-left">{{$subcontractor_staff_total}}</p>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-sm-11">
-                                            <p class="text-right"><strong>GENEL TOPLAM</strong></p>
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <p class="text-center">{{$main_contractor_total + $subcontractor_staff_total + $total_management}}</p>
-                                        </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-11">
+                                        <p class="text-right"><strong>ANA YÜKLENİCİ & ALT YÜKLENİCİ TOPLAMI</strong></p>
                                     </div>
+                                    <div class="col-sm-1">
+                                        <p class="text-center">{{$main_contractor_total + $subcontractor_staff_total}}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-11">
+                                        <p class="text-right"><strong>GENEL TOPLAM</strong></p>
+                                    </div>
+                                    <div class="col-sm-1">
+                                        <p class="text-center">{{$main_contractor_total + $subcontractor_staff_total + $total_management}}</p>
+                                    </div>
+                                </div>
                             @endif
                         </div>
                     </div>
@@ -764,30 +766,24 @@ EOT;
                         <table class="table table-bordered table-condensed">
                             <thead>
                             <tr>
-                                <th>NO</th>
-                                <th>ŞANTİYE İŞ MAKİNELERİ</th>
-                                <th>ÇALIŞ. SAATİ</th>
-                                <th>SAYISI</th>
+                                <th>EKİPMAN ADI</th>
+                                <th>ÇALIŞAN</th>
+                                <th>MEVCUT</th>
+                                <th>ARIZALI</th>
+                                <th>TOPLAM</th>
                             </tr>
                             </thead>
                             <tbody>
-                            @for($i = 1; $i<8; $i++)
-
+                            @foreach ($site->equipment()->get() as $eq)
                                 <tr>
-                                    <td style="text-align: center">{{$i}}</td>
+                                    <td>{{$eq->name}}</td>
                                     <td></td>
                                     <td></td>
                                     <td></td>
-
+                                    <td></td>
                                 </tr>
 
-                            @endfor
-                            <tr>
-                                <td></td>
-                                <td>ÇALIŞAN TOPLAM MAKİNA</td>
-                                <td></td>
-                                <td></td>
-                            </tr>
+                            @endforeach
                             </tbody>
                         </table>
                     </div>

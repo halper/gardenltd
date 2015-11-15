@@ -4,21 +4,17 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Staff extends Model
+class Substaff extends Model
 {
-    protected $table = 'staffs';
+    //
+    protected $table = 'substaffs';
 
     /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
-    protected $fillable = ['staff'];
-
-    public function department()
-    {
-        return $this->belongsTo('App\Department');
-    }
+    protected $fillable = ['name'];
 
     public function report()
     {

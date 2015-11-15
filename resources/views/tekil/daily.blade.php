@@ -10,12 +10,6 @@ if (session()->has("data")) {
 
 $today = Carbon::now()->toDateString();
 
-if (session()->has("staff_array")) {
-    $staff_array = session('staff_array');
-}
-if (session()->has("quantity_array")) {
-    $quantity_array = session('quantity_array');
-}
 $locked = true;
 if ($report->admin_lock == 0) {
     $locked = false;
@@ -24,6 +18,20 @@ if ($report->admin_lock == 0) {
 } else if (!$report->locked()) {
     $locked = false;
 }
+
+$staffs = Staff::all();
+
+$report_staff_arr = [];
+foreach ($report->staff()->get() as $report_staff) {
+    array_push($report_staff_arr, $report_staff->id);
+}
+$report_equipment_arr = [];
+
+foreach ($report->equipment()->get() as $report_equipment) {
+    array_push($report_equipment_arr, $report_equipment->id);
+}
+
+
 
 
 ?>
@@ -77,18 +85,22 @@ if ($report->admin_lock == 0) {
 
     </script>
     <?php
+
     $staff_options = '';
     $management_depts = new \App\Department();
 
     foreach ($management_depts->management() as $dept) {
         $staff_options .= "'<optgroup label=\"$dept->department\">'+\n";
         foreach ($dept->staff()->get() as $staff) {
-            if (isset($staff_array) && in_array($staff->id, $staff_array))
-                $staff_options .= "'<option value=\"$staff->id\" selected>" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
-            else
+            if (isset($report_staff_arr)) {
+                if (!in_array($staff->id, $report_staff_arr)) {
+                    $staff_options .= "'<option value=\"$staff->id\">" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
+                }
+            } else {
                 $staff_options .= "'<option value=\"$staff->id\">" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
+            }
         }
-        $staff_options .= "'</optgroup>'+\n";
+
     }
 
 
@@ -124,6 +136,52 @@ $staff_options
 EOT;
 
 
+
+
+    $equipment_options = '';
+
+
+    foreach ($site->equipment()->get() as $equipment) {
+        if (isset($report_equipment_arr)) {
+            if (!in_array($equipment->id, $report_equipment_arr)) {
+                $equipment_options .= "'<option value=\"$equipment->id\">" . mb_strtoupper($equipment->name, 'utf-8') . "</option>'+\n";
+            }
+        } else {
+            $equipment_options .= "'<option value=\"$equipment->id\">" . mb_strtoupper($equipment->name, 'utf-8') . "</option>'+\n";
+        }
+    }
+
+    echo <<<EOT
+<script>
+
+
+
+    $(document).ready(function() {
+            var equipment_wrapper         = $("#equipment-insert"); //Fields wrapper
+            var add_equipment_button      = $(".add-equipment-row"); //Add button ID
+
+            $(add_equipment_button).click(function(e){ //on add input button click
+                e.preventDefault();
+
+                    $(equipment_wrapper).append('<div class="row"><div class="col-sm-6"><div class="form-group">' +
+                    '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                    '<div class="col-sm-10"><select name="equipments[]" class="js-additional-equipment form-control">' +
+$equipment_options
+            '</select></div></div></div></div>' +
+                '<div class="col-sm-2"><input type="number" class="form-control" name="equipment-present[]"/></div>'+
+                '<div class="col-sm-2"><input type="number" class="form-control" name="equipment-working[]"/></div>'+
+                '<div class="col-sm-2"><input type="number" class="form-control" name="equipment-broken[]"/></div></div>'); //add input box
+                $(".js-additional-equipment").select2();
+
+            });
+
+            $(equipment_wrapper).on("click",".remove_field", function(e){ //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('div.row').parent().closest('div.row').remove();
+            })
+        });
+</script>
+EOT;
     ?>
 @stop
 
@@ -241,9 +299,6 @@ EOT;
             <!-- /.box -->
         </div>
     </div>
-    <?php
-    $staffs = Staff::all()
-    ?>
 
     <div class="row">
         {{--Personel icmal tablosu--}}
@@ -288,7 +343,8 @@ EOT;
                                 <div class="form-group">
 
                                     <div class="col-sm-10">
-                                        <label for="employer_staff" class="control-label">İşveren ({{$site->employer}}
+                                        <label for="employer_staff" class="control-label">İşveren
+                                            ({{$site->employer}}
                                             )</label>
                                     </div>
 
@@ -319,7 +375,7 @@ EOT;
                                 </div>
                             </div>
 
-                            <div class="row {{($locked && empty($report->management_name)) ? "hidden" : ""}}">
+                            <div class="row {{($locked && empty($report->building_control_staff)) ? "hidden" : ""}}">
                                 <div class="form-group">
 
                                     <div class="col-sm-10">
@@ -339,6 +395,7 @@ EOT;
                             </div>
 
                             <?php
+
                             $total_management = 0;
                             if (!empty($report->management_staff))
                                 $total_management += $report->management_staff;
@@ -361,9 +418,9 @@ EOT;
                             }
 
                             ?>
-                            <div class="row {{$report->locked() ? "hidden" : ""}}">
+                            <div class="row {{$locked ? "hidden" : ""}}">
                                 <div class="col-sm-12">
-                                    <div class="pull-right">
+                                    <div class="form-group pull-right">
                                         <button type="submit" class="btn btn-success btn-flat">
                                             Kaydet
                                         </button>
@@ -401,7 +458,7 @@ EOT;
                         <!-- /.box-header -->
                         <div class="box-body">
                             @if(!$locked)
-                                Falanca İnşaat için personel giriniz.
+                                {{$site->main_contractor}} için personel giriniz.
                                 <br>
 
                                 <div class="row">
@@ -434,7 +491,8 @@ EOT;
 
                                             <div class="col-sm-3">
 
-                                                <input type="number" class="form-control" name="contractor-quantity[]"
+                                                <input type="number" class="form-control"
+                                                       name="contractor-quantity[]"
                                                        value="{{$staff->pivot->quantity}}"/>
                                             </div>
                                             <div class="col-sm-1"><a href="#" class="remove_field"><i
@@ -445,7 +503,8 @@ EOT;
                                     <div class="row">
                                         <div class="col-sm-8">
                                             <div class="form-group">
-                                                <select name="staffs[]" class="js-example-basic-single form-control">
+                                                <select name="staffs[]"
+                                                        class="js-example-basic-single form-control">
 
                                                     {!! $staff_options !!}
                                                 </select>
@@ -612,7 +671,7 @@ EOT;
                         <!-- /.box-header -->
                         <div class="box-body">
                             <?php
-                            $subcontractor_staffs = \App\Staff::where('department_id', '3')->get();
+                            $subcontractor_staffs = \App\Substaff::all();
                             $subcontractors = \App\Subcontractor::where('contract_start_date', '<=', $today)->where('contract_end_date', '>', $today)->get();
                             $subcontractor_staff_total = 0;
                             ?>
@@ -632,7 +691,7 @@ EOT;
                                         <th>ALT YÜKLENİCİ</th>
 
                                         @foreach($subcontractor_staffs as $sub_staff)
-                                            <th>{{$sub_staff->staff}}</th>
+                                            <th>{{$sub_staff->name}}</th>
                                         @endforeach
                                         <th>TOPLAM</th>
                                     </tr>
@@ -656,14 +715,18 @@ EOT;
 
                                                 <td style="vertical-align: middle">
 
-                                                    {!! Form::text($subcontractor_staffs[$i]->id . "[]", empty($report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity) ? null : $report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity, ['class' => 'form-control']) !!}</td>
+                                                    {!! Form::number($subcontractor_staffs[$i]->id . "[]", empty($report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity) ? null : $report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity, ['class' => 'form-control']) !!}</td>
                                                 <?php
-                                                $sub_row_total += empty($report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity) ? 0 : $report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity;
-                                                $subcontractor_staff_total += $sub_row_total;
+                                                if (!empty($report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity)) {
+                                                    $sub_row_total += $report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity;
+                                                    }
                                                 ?>
                                             @endfor
                                             <td class="text-center"
                                                 style="vertical-align: middle">{{$sub_row_total}}</td>
+                                            <?php
+                                            $subcontractor_staff_total += $sub_row_total;
+                                            ?>
                                         </tr>
                                     @endforeach
 
@@ -689,7 +752,7 @@ EOT;
                                     <tr>
                                         <th>ALT YÜKLENİCİ</th>
                                         @foreach($subcontractor_staffs as $sub_staff)
-                                            <th>{{$sub_staff->staff}}</th>
+                                            <th>{{$sub_staff->name}}</th>
                                         @endforeach
                                         <th>TOPLAM</th>
                                     </tr>
@@ -711,14 +774,20 @@ EOT;
 
                                                 <td style="vertical-align: middle">
 
-                                                    {{empty($report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity) ? "" : $report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity }}</td>
+                                                    {{empty($report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity) ? "" : $report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity }}</td>
                                                 <?php
-                                                $sub_row_total += empty($report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity) ? 0 : $report->staff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity;
-                                                $subcontractor_staff_total += $sub_row_total;
+                                                if (!empty($report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity)) {
+                                                    $sub_row_total += $report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity;
+                                                }
+
                                                 ?>
                                             @endfor
                                             <td class="text-center"
                                                 style="vertical-align: middle">{{$sub_row_total}}</td>
+                                            <?php
+                                            $subcontractor_staff_total += $sub_row_total;
+                                            ?>
+
                                         </tr>
                                     @endforeach
 
@@ -734,10 +803,11 @@ EOT;
                                 </div>
                                 <div class="row">
                                     <div class="col-sm-11">
-                                        <p class="text-right"><strong>ANA YÜKLENİCİ & ALT YÜKLENİCİ TOPLAMI</strong></p>
+                                        <p class="text-right"><strong>ANA YÜKLENİCİ & ALT YÜKLENİCİ TOPLAMI</strong>
+                                        </p>
                                     </div>
                                     <div class="col-sm-1">
-                                        <p class="text-center">{{$main_contractor_total + $subcontractor_staff_total}}</p>
+                                        <p class="text-left">{{$main_contractor_total + $subcontractor_staff_total}}</p>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -745,7 +815,7 @@ EOT;
                                         <p class="text-right"><strong>GENEL TOPLAM</strong></p>
                                     </div>
                                     <div class="col-sm-1">
-                                        <p class="text-center">{{$main_contractor_total + $subcontractor_staff_total + $total_management}}</p>
+                                        <p class="text-left">{{$main_contractor_total + $subcontractor_staff_total + $total_management}}</p>
                                     </div>
                                 </div>
                             @endif
@@ -761,102 +831,341 @@ EOT;
 
         <div class="col-xs-12 col-md-4">
             <div class="row">
-                <div class="col-xs-12 col-md-12">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-condensed">
-                            <thead>
-                            <tr>
-                                <th>EKİPMAN ADI</th>
-                                <th>ÇALIŞAN</th>
-                                <th>MEVCUT</th>
-                                <th>ARIZALI</th>
-                                <th>TOPLAM</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @foreach ($site->equipment()->get() as $eq)
-                                <tr>
-                                    <td>{{$eq->name}}</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
+                <div class="col-sm-12">
+                    <div class="box box-success box-solid">
+                        <div class="box-header with-border">
+                            <h3 class="box-title">Ekipman Tablosu
+                            </h3>
 
-                            @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+                            <div class="box-tools pull-right">
+                                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                            class="fa fa-minus"></i>
+                                </button>
+                            </div>
+                            <!-- /.box-tools -->
+                        </div>
+                        <!-- /.box-header -->
+                        <div class="box-body">
 
-            <div class="row">
-                <div class="col-xs-12 col-md-12">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-condensed">
-                            <thead>
-                            <tr>
-                                <th>TAŞERON GRUBU</th>
-                                <th>TAŞERON FİRMA</th>
-                                <th>SAYISI</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @for($i = 1; $i<24; $i++)
+                            @if(!$locked)
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <span class="text-center"><strong>EKİPMAN ADI</strong></span>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <span class="text-center"><strong>ÇALIŞAN</strong></span>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <span class="text-center"><strong>MEVCUT</strong></span>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <span class="text-center"><strong>ARIZALI</strong></span>
+                                    </div>
 
-                                <tr>
-                                    @if($i%4==0)
-                                        <td style="color: darkred">TOPLAM:</td>
-                                    @else
-                                        <td></td>
-                                    @endif
-                                    <td></td>
-                                    <td></td>
+                                </div>
+                                {!! Form::open([
+                                                                'url' => "/tekil/$site->slug/save-equipment",
+                                                                'method' => 'POST',
+                                                                'class' => 'form',
+                                                                'id' => 'equipmentInsertForm',
+                                                                'role' => 'form'
+                                                                ]) !!}
+                                {!! Form::hidden('report_id', $report->id) !!}
+                                <div id="equipment-insert">
+                                    @foreach($report->equipment()->get() as $equipment)
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                                <div class="form-group">
+                                                    <a href="#" class="remove_field"><i
+                                                                class="fa fa-close"></i></a>
+                                                    <span>{{$equipment->name}}</span>
+                                                    {!! Form::hidden('equipments[]', $equipment->id) !!}
+                                                </div>
+                                            </div>
 
-                                </tr>
+                                            <div class="col-sm-2">
 
-                            @endfor
-                            <tr>
-                                <td></td>
-                                <td>ÇALIŞAN TOPLAM MAKİNA</td>
-                                <td></td>
-                            </tr>
-                            </tbody>
-                        </table>
+                                                <input type="number" class="form-control"
+                                                       name="equipment-present[]"
+                                                       value="{{$equipment->pivot->present}}"/>
+                                            </div>
+                                            <div class="col-sm-2">
+
+                                                <input type="number" class="form-control"
+                                                       name="equipment-working[]"
+                                                       value="{{$equipment->pivot->working}}"/>
+                                            </div>
+                                            <div class="col-sm-2">
+
+                                                <input type="number" class="form-control"
+                                                       name="equipment-broken[]"
+                                                       value="{{$equipment->pivot->broken}}"/>
+                                            </div>
+
+                                        </div>
+                                    @endforeach
+
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="form-group">
+                                                <select name="equipments[]"
+                                                        class="js-example-basic-single form-control">
+
+                                                    {!! $equipment_options !!}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-2">
+
+                                            <input type="number" class="form-control"
+                                                   name="equipment-present[]"/>
+                                        </div>
+                                        <div class="col-sm-2">
+
+                                            <input type="number" class="form-control"
+                                                   name="equipment-working[]"/>
+                                        </div>
+                                        <div class="col-sm-2">
+
+                                            <input type="number" class="form-control"
+                                                   name="equipment-broken[]"/>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="form-group pull-right">
+                                            <a href="#" class="btn btn-primary btn-flat add-equipment-row">
+                                                Ekipman Ekle
+                                            </a>
+
+                                            <button type="submit" class="btn btn-success btn-flat ">
+                                                Kaydet
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                                {!! Form::close() !!}
+                            @else
+
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-condensed">
+                                        <thead>
+                                        <tr>
+                                            <th>EKİPMAN ADI</th>
+                                            <th>ÇALIŞAN</th>
+                                            <th>MEVCUT</th>
+                                            <th>ARIZALI</th>
+                                            <th>TOPLAM</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <?php
+                                        $equipment_total = 0;
+                                        ?>
+                                        @foreach ($report->equipment()->get() as $eq)
+                                            <tr>
+                                                <td>{{$eq->name}}</td>
+                                                <td>{{$eq->pivot->present}}</td>
+                                                <td>{{$eq->pivot->working}}</td>
+                                                <td>{{$eq->pivot->broken}}</td>
+                                                <td>{{$eq->pivot->present + $eq->pivot->working + $eq->pivot->broken}}</td>
+                                            </tr>
+                                            <?php
+                                            $equipment_total += $eq->pivot->present + $eq->pivot->working + $eq->pivot->broken;
+                                            ?>
+                                        @endforeach
+                                        <tr>
+                                            <td><strong>TOPLAM</strong></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td>{{$equipment_total}}</td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+        {{--END of right side--}}
 
     </div>
+    {{--end of row--}}
 
 
     <div class="row">
         <div class="col-xs-12 col-md-12">
-            <div class="table-responsive">
-                <table class="table table-bordered table-condensed">
-                    <thead>
-                    <tr>
-                        <th>S.N</th>
-                        <th>ÇALIŞAN BİRİM</th>
-                        <th>YAPILAN İŞLER</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @for($i = 1; $i<6; $i++)
+            <div class="box box-success box-solid">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Yapılan İşler Tablosu
+                    </h3>
 
-                        <tr>
-                            <td>{{$i}}</td>
-                            <td></td>
-                            <td></td>
-                        </tr>
+                    <div class="box-tools pull-right">
+                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                    class="fa fa-minus"></i>
+                        </button>
+                    </div>
+                    <!-- /.box-tools -->
+                </div>
+                <!-- /.box-header -->
+                <div class="box-body">
 
-                    @endfor
-                    </tbody>
-                </table>
+                    @if(!$locked)
+                        <div class="row">
+                            <div class="col-sm-2">
+                                <span><strong>ÇALIŞAN BİRİM</strong></span>
+                            </div>
+                            <div class="col-sm-1">
+                                <span><strong>KİŞİ SAYISI</strong></span>
+                            </div>
+                            <div class="col-sm-1">
+                                <span><strong>ÖLÇÜ BİRİMİ</strong></span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span><strong>YAPILAN İŞLER</strong></span>
+                            </div>
+                            <div class="col-sm-1">
+                                <span><strong>PLANLANAN</strong></span>
+                            </div>
+                            <div class="col-sm-1">
+                                <span><strong>YAPILAN</strong></span>
+                            </div>
+                        </div>
+                        {!! Form::open([
+                                                                    'url' => "/tekil/$site->slug/save-work-done",
+                                                                    'method' => 'POST',
+                                                                    'class' => 'form',
+                                                                    'id' => 'workDoneInsertForm',
+                                                                    'role' => 'form'
+                                                                    ]) !!}
+                        {!! Form::hidden('report_id', $report->id) !!}
+<?php
+                    $working_unit = false;
+                    ?>
+                        @foreach ($report->staff()->get() as $staff)
+                            <?php
+                            $working_unit = true;
+                            ?>
+                            <div class="row">
+                                <div class="col-sm-2">
+                                    {{$staff->staff}}
+                                    {!! Form::hidden("staffs[]", $staff->id)!!}
+                                </div>
+                                <div class="col-sm-1">
+                                    {!! Form::number("staff_quantity[]", $staff->pivot->quantity, ['class' => 'form-control']) !!}
+                                </div>
+                                <div class="col-sm-1">
+                                    {!! Form::text("staff_unit[]", null , ['class' => 'form-control']) !!}
+                                </div>
+                                <div class="col-sm-6">
+                                    {!! Form::textarea("staff_work_done[]", null , ['class' => 'form-control', 'rows' => '4']) !!}
+                                </div>
+                                <div class="col-sm-1">
+                                    {!! Form::number("staff_planned[]", null , ['class' => 'form-control']) !!}
+                                </div>
+                                <div class="col-sm-1">
+                                    {!! Form::number("staff_done[]", null , ['class' => 'form-control']) !!}
+                                </div>
+                            </div>
+                        @endforeach
+
+                        @foreach($subcontractors as $subcontractor)
+                            <?php
+                            $substaff_total_for_work_done = 0;
+                            foreach ($report->substaff()->where('subcontractor_id', $subcontractor->id)->get() as $substaff) {
+                                $substaff_total_for_work_done += $substaff->pivot->quantity;
+                            }
+                            ?>
+                            @if($substaff_total_for_work_done>0)
+                                    <?php
+                                    $working_unit = true;
+                                    ?>
+                                <div class="row">
+                                    <div class="col-sm-2">
+                                        {{$subcontractor->name}}
+                                        {!! Form::hidden("subcontractors[]", $subcontractor->id)!!}
+                                    </div>
+
+                                    <div class="col-sm-1">
+
+                                        {!! Form::number("subcontractor_quantity[]", $substaff_total_for_work_done , ['class' => 'form-control']) !!}
+                                    </div>
+                                    <div class="col-sm-1">
+                                        {!! Form::text("subcontractor_unit[]", null , ['class' => 'form-control']) !!}
+                                    </div>
+                                    <div class="col-sm-6">
+                                        {!! Form::textarea("subcontractor_work_done[]", null , ['class' => 'form-control', 'rows' => '4']) !!}
+                                    </div>
+                                    <div class="col-sm-1">
+                                        {!! Form::number("subcontractor_planned[]", null , ['class' => 'form-control']) !!}
+                                    </div>
+                                    <div class="col-sm-1">
+                                        {!! Form::number("subcontractor_done[]", null , ['class' => 'form-control']) !!}
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
+@if($working_unit)
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="form-group pull-right">
+
+                                    <button type="submit" class="btn btn-success btn-flat ">
+                                        Kaydet
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+@endif
+                        {!! Form::close() !!}
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-condensed">
+                                <thead>
+                                <tr>
+                                    <th>S.N</th>
+                                    <th>ÇALIŞAN BİRİM</th>
+                                    <th>KİŞİ SAYISI</th>
+                                    <th>ÖLÇÜ BİRİMİ</th>
+                                    <th>YAPILAN İŞLER</th>
+                                    <th>PLANLANAN</th>
+                                    <th>YAPILAN</th>
+                                    <th>YÜZDE</th>
+
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @for($i = 1; $i<6; $i++)
+
+                                    <tr>
+                                        <td>{{$i}}</td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+
+                                @endfor
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
             </div>
         </div>
     </div>
+
+
 
     <div class="row">
         <div class="col-xs-12 col-md-12">

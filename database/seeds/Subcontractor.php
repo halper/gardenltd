@@ -28,23 +28,16 @@ class SubcontractorTableSeeder extends Seeder
     {
 //        main contractor must be no 1
         DB::table('subcontractors')->delete();
+
+
         Sub::create(array(
-            'id' => 1,
-            'name' => 'Main contractor',
-            'contract_start_date' => '0000-00-00',
-            'contract_end_date' => '0000-00-00',
-            'contract_date' => '0000-00-00',
-            'site_id' => 1
-        ));
-
-Sub::create(array(
             'name' => 'Taşeron no 1',
-    'site_id' => 2
+            'site_id' => 2
         ));
 
-Sub::create(array(
+        Sub::create(array(
             'name' => 'Taşeron no 2',
-    'site_id' => 2
+            'site_id' => 2
         ));
 
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Demand;
+use App\Inmaterial;
 use App\Library\CarbonHelper;
 use App\Manufacturing;
 use App\Material;
@@ -252,8 +253,8 @@ class TekilController extends Controller
             $i++;
             Session::flash('flash_message', 'İlgili çalışan birim eklendi');
         }
-    
-        
+
+
         $staff_ids = $request->get("staffs");
         $i = 0;
         foreach ($staff_ids as $staff_id) {
@@ -285,7 +286,68 @@ class TekilController extends Controller
             $i++;
             Session::flash('flash_message', 'İlgili çalışan birim eklendi');
         }
-        
+
+        return redirect()->back();
+    }
+
+    public function postSaveIncomingMaterial(Request $request)
+    {
+        $in_arr = $request->get("inmaterials");
+
+        $report = Report::find($request->get("report_id"));
+        $report_id = $report->id;
+        $i = 0;
+        foreach ($report->inmaterial()->get() as $inmat) {
+            $inmat->delete();
+        }
+        foreach ($in_arr as $mat_id) {
+            $inmaterial = new Inmaterial();
+
+            if (empty($inmaterial->where("report_id", $report_id)
+                ->where('material_id', $mat_id)->first())
+            ) {
+                if (!(empty($request->get("inmaterial-quantity")[$i]) &&
+                    empty($request->get("inmaterial-unit")[$i]) &&
+                    empty($request->get("inmaterial-from")[$i]) &&
+                    empty($request->get("inmaterial-explanation")[$i]))
+                ) {
+
+                    $inmaterial = $inmaterial->create([
+                        "material_id" => $mat_id,
+                        "report_id" => $report_id,
+                        "quantity" => $request->get("inmaterial-quantity")[$i],
+                        "unit" => $request->get("inmaterial-unit")[$i],
+                        "coming_from" => $request->get("inmaterial-from")[$i],
+                        "explanation" => $request->get("inmaterial-explanation")[$i],
+                    ]);
+                }
+
+            } else {
+
+                $inmaterial = $inmaterial->where("report_id", $report_id)
+                    ->where('material_id', $mat_id)->first();
+
+                $inmaterial->quantity = $request->get("inmaterial-quantity")[$i];
+                $inmaterial->unit = $request->get("inmaterial-unit")[$i];
+                $inmaterial->coming_from = $request->get("inmaterial-from")[$i];
+                $inmaterial->explanation = $request->get("inmaterial-explanation")[$i];
+                $inmaterial->save();
+
+            }
+            $i++;
+            Session::flash('flash_message', 'Gelen materyal tablosu güncellendi');
+        }
+
+
+        return redirect()->back();
+    }
+
+    public function postSelectIsWorking(Request $request)
+    {
+        $report = Report::find($request->get("report_id"));
+        $report->is_working = $request->get("is_working");
+        $report->save();
+        Session::flash('flash_message', 'Şantiye çalışma durumu güncellendi');
         return redirect()->back();
     }
 

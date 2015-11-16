@@ -1,6 +1,6 @@
 <?php
 use App\Library\Weather;
-use Carbon\Carbon;
+use App\Material;use Carbon\Carbon;
 use App\Staff;
 use Illuminate\Support\Facades\Session;
 $my_weather = new Weather;
@@ -31,7 +31,13 @@ foreach ($report->equipment()->get() as $report_equipment) {
     array_push($report_equipment_arr, $report_equipment->id);
 }
 
+$report_inmaterial_arr = [];
 
+foreach ($report->inmaterial()->get() as $report_inmaterial) {
+    array_push($report_inmaterial_arr, $report_inmaterial->material_id);
+}
+
+$inmaterials = $report->inmaterial()->get();
 
 
 ?>
@@ -54,6 +60,9 @@ foreach ($report->equipment()->get() as $report_equipment) {
 
 
         $(document).ready(function () {
+            $(".radio-inline").on("click", function () {
+                $("#selectIsWorkingForm").submit();
+            });
             $(".js-example-basic-single").select2();
             $('#dateRangePicker').datepicker({
                 autoclose: true,
@@ -182,6 +191,52 @@ $equipment_options
         });
 </script>
 EOT;
+
+    $inmaterial_options = "";
+
+
+    foreach (Material::all() as $inmaterial) {
+        if (isset($report_inmaterial_arr)) {
+            if (!in_array($inmaterial->id, $report_inmaterial_arr)) {
+                $inmaterial_options .= "'<option value=\"$inmaterial->id\">" . mb_strtoupper($inmaterial->material, 'utf-8') . "</option>'+\n";
+            }
+        } else {
+            $inmaterial_options .= "'<option value=\"$inmaterial->id\">" . mb_strtoupper($inmaterial->material, 'utf-8') . "</option>'+\n";
+        }
+    }
+
+
+    echo <<<EOT
+            <script>
+$(document).ready(function() {
+            var inmaterial_wrapper         = $("#inmaterial-insert"); //Fields wrapper
+            var add_inmaterial_button      = $(".add-inmaterial-row"); //Add button ID
+
+            $(add_inmaterial_button).click(function(e){ //on add input button click
+                e.preventDefault();
+
+                    $(inmaterial_wrapper).append('<div class="row"><div class="col-sm-2"><div class="form-group">' +
+                    '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                    '<div class="col-sm-10"><select name="inmaterials[]" class="js-additional-inmaterial form-control">' +
+$inmaterial_options
+            '</select></div></div></div></div>' +
+                '<div class="col-sm-2"><input type="text" class="form-control" name="inmaterial-from[]"/></div>'+
+                '<div class="col-sm-1"><input type="text" class="form-control" name="inmaterial-unit[]"/></div>'+
+                '<div class="col-sm-1"><input type="number" class="form-control" name="inmaterial-quantity[]"/></div>'+
+                '<div class="col-sm-6"><input type="text" class="form-control" name="inmaterial-explanation[]"/></div></div>'); //add input box
+                $(".js-additional-inmaterial").select2();
+
+            });
+
+            $(inmaterial_wrapper).on("click",".remove_field", function(e){ //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('div.row').parent().closest('div.row').remove();
+            })
+        });
+</script>
+EOT;
+
+
     ?>
 @stop
 
@@ -286,7 +341,23 @@ EOT;
                                 <td><strong>ŞANTİYE ŞEFİ:</strong></td>
                                 <td>{{$site->site_chief}}</td>
                                 <td><strong>ÇALIŞMA:</strong></td>
-                                <td>Var</td>
+                                <td>
+                                    @if(!$locked)
+                                        {!! Form::open([
+                            'url' => "/tekil/$site->slug/select-is-working",
+                            'method' => 'POST',
+                            'class' => 'form',
+                            'id' => 'selectIsWorkingForm',
+                            'role' => 'form'
+                            ]) !!}
+                                    {!! Form::hidden('report_id', $report->id) !!}
+                                        <label class="radio-inline"><input type="radio" name="is_working" value="1" {{$report->is_working == 1 ? "checked" : ""}}>Var</label>
+                                        <label class="radio-inline"><input type="radio" name="is_working" value="0" {{$report->is_working == 0 ? "checked" : ""}}>Yok</label>
+                                        {!! Form::close() !!}
+                                        @else
+                                    {{$report->is_working==0 ? "Yok" : "Var"}}
+                                    @endif
+                                </td>
                             </tr>
 
                             </tbody>
@@ -876,10 +947,14 @@ EOT;
                                         <div class="row">
                                             <div class="col-sm-6">
                                                 <div class="form-group">
-                                                    <a href="#" class="remove_field"><i
-                                                                class="fa fa-close"></i></a>
-                                                    <span>{{$equipment->name}}</span>
-                                                    {!! Form::hidden('equipments[]', $equipment->id) !!}
+                                                    <div class="row">
+                                                        <div class="col-sm-2"><a href="#" class="remove_field"><i
+                                                                        class="fa fa-close"></i></a></div>
+                                                        <div class="col-sm-10">
+                                                            <span>{{$equipment->name}}</span>
+                                                            {!! Form::hidden('equipments[]', $equipment->id) !!}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -1234,6 +1309,116 @@ EOT;
                             <div class="col-sm-1"><strong>MİKTAR</strong></div>
                             <div class="col-sm-6"><strong>AÇIKLAMA</strong></div>
                         </div>
+
+                        {!! Form::open([
+                                                                        'url' => "/tekil/$site->slug/save-incoming-material",
+                                                                        'method' => 'POST',
+                                                                        'class' => 'form',
+                                                                        'id' => 'incomingMaterialInsertForm',
+                                                                        'role' => 'form'
+                                                                        ]) !!}
+                        {!! Form::hidden('report_id', $report->id) !!}
+
+                        <div id="inmaterial-insert">
+                            @foreach($inmaterials as $inmaterial)
+                                <div class="row">
+                                    <div class="col-sm-2">
+                                        <div class="form-group">
+                                            <div class="row">
+                                                <div class="col-sm-2"><a href="#" class="remove_field"><i
+                                                                class="fa fa-close"></i></a></div>
+                                                <div class="col-sm-10">
+                                                    <span>{{\App\Material::find($inmaterial->material_id)->material}}</span>
+                                                    {!! Form::hidden('inmaterials[]', $inmaterial->material_id) !!}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-sm-2">
+
+                                        <input type="text" class="form-control"
+                                               name="inmaterial-from[]"
+                                               value="{{$inmaterial->coming_from}}"/>
+                                    </div>
+                                    <div class="col-sm-1">
+
+                                        <input type="text" class="form-control"
+                                               name="inmaterial-unit[]"
+                                               value="{{$inmaterial->unit}}"/>
+                                    </div>
+                                    <div class="col-sm-1">
+
+                                        <input type="number" class="form-control"
+                                               name="inmaterial-quantity[]"
+                                               value="{{$inmaterial->quantity}}"/>
+                                    </div>
+
+                                    <div class="col-sm-6">
+
+                                        <input type="text" class="form-control"
+                                               name="inmaterial-explanation[]"
+                                               value="{{$inmaterial->explanation}}"/>
+                                    </div>
+
+                                </div>
+                            @endforeach
+
+                            <div class="row">
+                                <div class="col-sm-2">
+                                    <div class="form-group">
+                                        <select name="inmaterials[]"
+                                                class="js-example-basic-single form-control">
+
+                                            {!! $inmaterial_options !!}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-2">
+
+                                    <input type="text" class="form-control"
+                                           name="inmaterial-from[]"
+                                           value=""/>
+                                </div>
+                                <div class="col-sm-1">
+
+                                    <input type="text" class="form-control"
+                                           name="inmaterial-unit[]"
+                                           value=""/>
+                                </div>
+                                <div class="col-sm-1">
+
+                                    <input type="number" class="form-control"
+                                           name="inmaterial-quantity[]"
+                                           value=""/>
+                                </div>
+
+                                <div class="col-sm-6">
+
+                                    <input type="text" class="form-control"
+                                           name="inmaterial-explanation[]"
+                                           value=""/>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="form-group pull-right">
+                                    <a href="#" class="btn btn-primary btn-flat add-inmaterial-row">
+                                        Satır Ekle
+                                    </a>
+
+                                    <button type="submit" class="btn btn-success btn-flat ">
+                                        Kaydet
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                        {!! Form::close() !!}
                     @else
                         <div class="table-responsive">
                             <table class="table table-bordered table-condensed">
@@ -1247,24 +1432,19 @@ EOT;
                                 </tr>
                                 </thead>
                                 <tbody>
-                                @for($i = 1; $i<6; $i++)
+
+                                @for($i = 1; $i<=sizeof($inmaterials); $i++)
 
                                     <tr>
                                         <td>{{$i}}</td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
+                                        <td>{{mb_strtoupper(\App\Material::find($inmaterials[$i-1]->material_id)->material, "utf-8")}}</td>
+                                        <td>{{mb_strtoupper($inmaterials[$i-1]->unit, "utf-8")}}</td>
+                                        <td>{{$inmaterials[$i-1]->quantity}}</td>
+                                        <td>{{$inmaterials[$i-1]->explanation}}</td>
                                     </tr>
 
                                 @endfor
-                                <tr>
-                                    <td></td>
-                                    <td>TOPLAM:</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
+
                                 </tbody>
                             </table>
                         </div>

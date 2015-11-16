@@ -19,7 +19,7 @@ class AddWeatherTempWindHumidityIsWorkingToReports extends Migration
             $table->double('temp_max')->nullable();
             $table->integer('humidity')->nullable();
             $table->double('wind')->nullable();
-            $table->tinyInteger('is_working')->unsigned()->nullable();
+            $table->tinyInteger('is_working')->unsigned()->default("1");
         });
     }
 

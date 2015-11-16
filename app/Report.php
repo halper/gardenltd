@@ -46,6 +46,11 @@ class Report extends Model
         return $this->hasMany('App\Swunit');
     }
 
+    public function inmaterial()
+    {
+        return $this->hasMany('App\Inmaterial');
+    }
+
     public function locked()
     {
         return $this->is_locked == 1;

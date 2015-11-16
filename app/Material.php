@@ -17,7 +17,7 @@ class Material extends Model
 
     public function demands()
     {
-        return $this->belongsToMany('App\Demand')->withPivot("quantity", "unit");;
+        return $this->belongsToMany('App\Demand')->withPivot("quantity", "unit");
     }
 
     public function request()

@@ -719,7 +719,7 @@ EOT;
                                                 <?php
                                                 if (!empty($report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity)) {
                                                     $sub_row_total += $report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity;
-                                                    }
+                                                }
                                                 ?>
                                             @endfor
                                             <td class="text-center"
@@ -1018,6 +1018,8 @@ EOT;
                 <div class="box-body">
 
                     @if(!$locked)
+                        <p>Yapılan işler tablosu, içeriğini otomatik olarak Ana Yüklenici ve Alt Yükleniciler Personel
+                            tablolarından alır.</p>
                         <div class="row">
                             <div class="col-sm-2">
                                 <span><strong>ÇALIŞAN BİRİM</strong></span>
@@ -1046,12 +1048,17 @@ EOT;
                                                                     'role' => 'form'
                                                                     ]) !!}
                         {!! Form::hidden('report_id', $report->id) !!}
-<?php
-                    $working_unit = false;
-                    ?>
+                        <?php
+                        $working_unit = false;
+                        ?>
                         @foreach ($report->staff()->get() as $staff)
                             <?php
                             $working_unit = true;
+                            $staff_unit_for_work_done = empty($report->pwunit()->where("staff_id", $staff->id)->first()->unit) ? null : $report->pwunit()->where("staff_id", $staff->id)->first()->unit;
+                            $staff_work_done_for_work_done = empty($report->pwunit()->where("staff_id", $staff->id)->first()->works_done) ? null : $report->pwunit()->where("staff_id", $staff->id)->first()->works_done;
+                            $staff_planned_for_work_done = empty($report->pwunit()->where("staff_id", $staff->id)->first()->planned) ? null : $report->pwunit()->where("staff_id", $staff->id)->first()->planned;
+                            $staff_done_for_work_done = empty($report->pwunit()->where("staff_id", $staff->id)->first()->done) ? null : $report->pwunit()->where("staff_id", $staff->id)->first()->done;
+
                             ?>
                             <div class="row">
                                 <div class="col-sm-2">
@@ -1082,11 +1089,15 @@ EOT;
                             foreach ($report->substaff()->where('subcontractor_id', $subcontractor->id)->get() as $substaff) {
                                 $substaff_total_for_work_done += $substaff->pivot->quantity;
                             }
+                            $subcontractor_unit_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->unit) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->unit;
+                            $subcontractor_work_done_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->works_done) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->works_done;
+                            $subcontractor_planned_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->planned) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->planned;
+                            $subcontractor_done_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->done) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->done;
                             ?>
                             @if($substaff_total_for_work_done>0)
-                                    <?php
-                                    $working_unit = true;
-                                    ?>
+                                <?php
+                                $working_unit = true;
+                                ?>
                                 <div class="row">
                                     <div class="col-sm-2">
                                         {{$subcontractor->name}}
@@ -1098,34 +1109,35 @@ EOT;
                                         {!! Form::number("subcontractor_quantity[]", $substaff_total_for_work_done , ['class' => 'form-control']) !!}
                                     </div>
                                     <div class="col-sm-1">
-                                        {!! Form::text("subcontractor_unit[]", null , ['class' => 'form-control']) !!}
+                                        {!! Form::text("subcontractor_unit[]", $subcontractor_unit_for_work_done , ['class' => 'form-control']) !!}
                                     </div>
                                     <div class="col-sm-6">
-                                        {!! Form::textarea("subcontractor_work_done[]", null , ['class' => 'form-control', 'rows' => '4']) !!}
+                                        {!! Form::textarea("subcontractor_work_done[]", $subcontractor_work_done_for_work_done , ['class' => 'form-control', 'rows' => '4']) !!}
                                     </div>
                                     <div class="col-sm-1">
-                                        {!! Form::number("subcontractor_planned[]", null , ['class' => 'form-control']) !!}
+                                        {!! Form::number("subcontractor_planned[]", $subcontractor_planned_for_work_done , ['class' => 'form-control']) !!}
                                     </div>
                                     <div class="col-sm-1">
-                                        {!! Form::number("subcontractor_done[]", null , ['class' => 'form-control']) !!}
+                                        {!! Form::number("subcontractor_done[]", $subcontractor_done_for_work_done , ['class' => 'form-control']) !!}
                                     </div>
                                 </div>
                             @endif
                         @endforeach
-@if($working_unit)
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <div class="form-group pull-right">
+                        @if($working_unit)
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="form-group pull-right">
 
-                                    <button type="submit" class="btn btn-success btn-flat ">
-                                        Kaydet
-                                    </button>
+                                        <button type="submit" class="btn btn-success btn-flat ">
+                                            Kaydet
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
 
-                        </div>
-@endif
+                            </div>
+                        @endif
                         {!! Form::close() !!}
+                        {{--Locked if--}}
                     @else
                         <div class="table-responsive">
                             <table class="table table-bordered table-condensed">
@@ -1143,19 +1155,50 @@ EOT;
                                 </tr>
                                 </thead>
                                 <tbody>
-                                @for($i = 1; $i<6; $i++)
+                                <?php
+                                $i = 0;
+                                ?>
+                                @foreach($report->pwunit()->get() as $pw)
 
-                                    <tr>
-                                        <td>{{$i}}</td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                    </tr>
+                                    @if(100*(int)$pw->done/(int)$pw->planned>100)
+                                        <tr class="bg-success">
+                                    @elseif(100*(int)$pw->done/(int)$pw->planned<100)
+                                        <tr class="bg-danger">
+                                    @elseif(100*(int)$pw->done/(int)$pw->planned == 100)
+                                        <tr class="bg-warning">
+                                            @endif
+                                            <td>{{$i++}}</td>
+                                            <td>{{$staffs->find($pw->staff_id)->staff}}</td>
+                                            <td>{{$pw->quantity}}</td>
+                                            <td>{{$pw->unit}}</td>
+                                            <td>{{$pw->works_done}}</td>
+                                            <td>{{$pw->planned}}</td>
+                                            <td>{{$pw->done}}</td>
+                                            <td>%{{100*(int)$pw->done/(int)$pw->planned}}</td>
+                                        </tr>
 
-                                @endfor
+                                        @endforeach
+
+                                        @foreach($report->swunit()->get() as $sw)
+
+                                            @if(100*(int)$sw->done/(int)$sw->planned>100)
+                                                <tr class="bg-success">
+                                            @elseif(100*(int)$sw->done/(int)$sw->planned<100)
+                                                <tr class="bg-danger">
+                                            @elseif(100*(int)$sw->done/(int)$sw->planned == 100)
+                                                <tr class="bg-warning">
+                                                    @endif
+                                                    <td>{{$i++}}</td>
+                                                    <td>{{$subcontractors->find($sw->subcontractor_id)->name}}</td>
+                                                    <td>{{$sw->quantity}}</td>
+                                                    <td>{{$sw->unit}}</td>
+                                                    <td>{{$sw->works_done}}</td>
+                                                    <td>{{$sw->planned}}</td>
+                                                    <td>{{$sw->done}}</td>
+                                                    <td>%{{100*(int)$sw->done/(int)$sw->planned}}</td>
+                                                </tr>
+
+                                                @endforeach
                                 </tbody>
                             </table>
                         </div>
@@ -1169,38 +1212,64 @@ EOT;
 
     <div class="row">
         <div class="col-xs-12 col-md-12">
-            <div class="table-responsive">
-                <table class="table table-bordered table-condensed">
-                    <thead>
-                    <tr>
-                        <th>S.N</th>
-                        <th>GELEN MALZEME</th>
-                        <th>BİRİM</th>
-                        <th>MİK.</th>
-                        <th>AÇIKLAMASI</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @for($i = 1; $i<6; $i++)
+            <div class="box box-success box-solid">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Gelen Malzemeler Tablosu
+                    </h3>
 
-                        <tr>
-                            <td>{{$i}}</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
+                    <div class="box-tools pull-right">
+                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                    class="fa fa-minus"></i>
+                        </button>
+                    </div>
+                    <!-- /.box-tools -->
+                </div>
+                <!-- /.box-header -->
+                <div class="box-body">
+                    @if(!$locked)
+                        <div class="row">
+                            <div class="col-sm-2"><strong>GELEN MALZEME</strong></div>
+                            <div class="col-sm-2"><strong>GELDİĞİ YER</strong></div>
+                            <div class="col-sm-1"><strong>BİRİM</strong></div>
+                            <div class="col-sm-1"><strong>MİKTAR</strong></div>
+                            <div class="col-sm-6"><strong>AÇIKLAMA</strong></div>
+                        </div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-condensed">
+                                <thead>
+                                <tr>
+                                    <th>S.N</th>
+                                    <th>GELEN MALZEME</th>
+                                    <th>BİRİM</th>
+                                    <th>MİK.</th>
+                                    <th>AÇIKLAMASI</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @for($i = 1; $i<6; $i++)
 
-                    @endfor
-                    <tr>
-                        <td></td>
-                        <td>TOPLAM:</td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                    </tbody>
-                </table>
+                                    <tr>
+                                        <td>{{$i}}</td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+
+                                @endfor
+                                <tr>
+                                    <td></td>
+                                    <td>TOPLAM:</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
             </div>
         </div>
     </div>

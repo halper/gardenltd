@@ -39,6 +39,15 @@ class Site extends Eloquent implements SluggableInterface
     {
         return $this->belongsToMany('App\Equipment')->withTimestamps();
     }
+    public function rfile()
+    {
+        return $this->hasMany('App\Rfile');
+    }
+
+    public function sfile()
+    {
+        return $this->hasMany('App\Sfile');
+    }
 
     public static function getSites()
     {

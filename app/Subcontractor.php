@@ -31,4 +31,9 @@ class Subcontractor extends Model implements SluggableInterface
         return $this->belongsToMany('App\Manufacturing')->withTimestamps();
     }
 
+    public function sfile()
+    {
+        return $this->hasMany('App\Sfile');
+    }
+
 }

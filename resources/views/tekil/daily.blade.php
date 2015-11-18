@@ -47,12 +47,35 @@ $inmaterials = $report->inmaterial()->get();
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.min.css"/>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker3.min.css"/>
     <link href="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/css/select2.min.css" rel="stylesheet"/>
+    <link href="<?= URL::to('/'); ?>/css/dropzone.css" rel="stylesheet" type="text/css"/>
 @stop
 
 @section('page-specific-js')
     <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/select2.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.min.js"></script>
+    <script src="<?= URL::to('/'); ?>/js/dropzone.js" type="text/javascript"></script>
     <script>
+        Dropzone.options.fileInsertForm = {
+            addRemoveLinks: true,
+            init: function () {
+                this.on("success", function (file, response) {
+                    file.serverId = response.id;
+                    file.reportId = response.rid;
+
+                });
+                this.on("removedfile", function(file) {
+                    var name = file.name;
+
+                    $.ajax({
+                        type: 'POST',
+                        url: '{{"/tekil/$site->slug/delete-files"}}',
+                        data: {"fileid" : file.serverId,
+                            "reportid" : file.reportId}
+                    });
+                    });
+            }
+        };
+
         $(".js-example-basic-multiple").select2({
             placeholder: "Çoklu seçim yapabilirsiniz",
             allowClear: true
@@ -350,12 +373,14 @@ EOT;
                             'id' => 'selectIsWorkingForm',
                             'role' => 'form'
                             ]) !!}
-                                    {!! Form::hidden('report_id', $report->id) !!}
-                                        <label class="radio-inline"><input type="radio" name="is_working" value="1" {{$report->is_working == 1 ? "checked" : ""}}>Var</label>
-                                        <label class="radio-inline"><input type="radio" name="is_working" value="0" {{$report->is_working == 0 ? "checked" : ""}}>Yok</label>
+                                        {!! Form::hidden('report_id', $report->id) !!}
+                                        <label class="radio-inline"><input type="radio" name="is_working"
+                                                                           value="1" {{$report->is_working == 1 ? "checked" : ""}}>Var</label>
+                                        <label class="radio-inline"><input type="radio" name="is_working"
+                                                                           value="0" {{$report->is_working == 0 ? "checked" : ""}}>Yok</label>
                                         {!! Form::close() !!}
-                                        @else
-                                    {{$report->is_working==0 ? "Yok" : "Var"}}
+                                    @else
+                                        {{$report->is_working==0 ? "Yok" : "Var"}}
                                     @endif
                                 </td>
                             </tr>
@@ -1452,6 +1477,48 @@ EOT;
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xs-12 col-md-12">
+            <div class="box box-success box-solid">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Rapor Ekleri
+                    </h3>
+
+                    <div class="box-tools pull-right">
+                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                    class="fa fa-minus"></i>
+                        </button>
+                    </div>
+                    <!-- /.box-tools -->
+                </div>
+                <!-- /.box-header -->
+                <div class="box-body">
+                    {!! Form::open([
+                                                                                'url' => "/tekil/$site->slug/save-files",
+                                                                                'method' => 'POST',
+                                                                                'class' => 'dropzone',
+                                                                                'id' => 'file-insert-form',
+                                                                                'role' => 'form',
+                                                                                'files'=>true
+                                                                                ]) !!}
+                    {!! Form::hidden('report_id', $report->id) !!}
+                    {!! Form::hidden('type', "0") !!}
+
+                    <div class="fallback">
+                        <input name="file" type="file" multiple/>
+                    </div>
+                    <div class="dropzone-previews"></div>
+                    <h4 style="text-align: center;color:#428bca;">Dosyalarınızı buraya sürükleyin <span
+                                class="glyphicon glyphicon-hand-down"></span></h4>
+
+
+                </div>
+                {!! Form::close() !!}
+            </div>
+        </div>
+    </div>
     </div>
 
 @stop

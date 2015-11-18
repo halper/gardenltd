@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Demand;
+use App\File;
 use App\Inmaterial;
 use App\Library\CarbonHelper;
 use App\Manufacturing;
@@ -10,6 +11,7 @@ use App\Material;
 use App\Module;
 use App\Pwunit;
 use App\Report;
+use App\Rfile;
 use App\Site;
 use App\Http\Requests;
 use App\Subcontractor;
@@ -18,6 +20,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\HttpFoundation\Response;
 
 
 class TekilController extends Controller
@@ -351,5 +354,53 @@ class TekilController extends Controller
         return redirect()->back();
     }
 
+    public function postSaveFiles(Request $request, Site $site)
+    {
+        $my_file_type = $request->get("type");
+        $report = Report::find($request->get("report_id"));
+        $files = $request->files;
+
+        foreach ($files as $file) {
+            $extension = $file->getClientOriginalExtension();
+            $directory = public_path() . '/uploads/' . sha1(time());
+            $filename = sha1(time() . time()) . ".$extension";
+
+            $upload_success = $file->move($directory, $filename);
+
+
+            $db_file = File::create([
+                "name" => $filename,
+                "path" => $directory,
+                "type" => $my_file_type,
+            ]);
+
+            $rfile = Rfile::create([
+                "site_id" => $site->id,
+                "file_id" => $db_file->id,
+                "report_id" => $report->id
+            ]);
+
+            if ($upload_success && $db_file && $rfile) {
+                return response()->json(['success' => 200,
+                    'id' => $db_file->id,
+                    'rid' => $report->id]);
+            } else {
+                return response()->json('error', 400);
+            }
+        }
+    }
+
+    public function postDeleteFiles(Request $request)
+    {
+        $db_file = File::find($request->get("fileid"));
+
+        $op_success = unlink($db_file->path . DIRECTORY_SEPARATOR . $db_file->name) && Report::find($request->get("reportid"))->rfile()->get()->where("file_id", $db_file->id)->first()->delete();
+        if ($op_success) {
+            return response()->json('success', 200);
+
+        } else {
+            return response()->json('error', 400);
+        }
+    }
 
 }

@@ -51,6 +51,11 @@ class Report extends Model
         return $this->hasMany('App\Inmaterial');
     }
 
+    public function rfile()
+    {
+        return $this->hasMany('App\Rfile');
+    }
+
     public function locked()
     {
         return $this->is_locked == 1;

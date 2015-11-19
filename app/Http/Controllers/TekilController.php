@@ -12,6 +12,7 @@ use App\Module;
 use App\Pwunit;
 use App\Report;
 use App\Rfile;
+use App\Sfile;
 use App\Site;
 use App\Http\Requests;
 use App\Subcontractor;
@@ -56,10 +57,7 @@ class TekilController extends Controller
         return view('tekil/account', compact('site', 'modules'));
     }
 
-    public function getTaseronCariHesap(Site $site, Module $modules)
-    {
-        return view('tekil/subcontractor-account', compact('site', 'modules'));
-    }
+
 
     public function getMalzemeTalep(Site $site, Module $modules)
     {
@@ -172,32 +170,7 @@ class TekilController extends Controller
     }
 
 
-    public function postAddSubcontractor(Request $request, Site $site)
-    {
-        $this->validate($request, [
-            'name' => 'required',
-            'contract_date' => 'required',
-            'contract_start_date' => 'required',
-            'contract_end_date' => 'required',
 
-        ]);
-
-        $subcontractor = Subcontractor::create([
-            "name" => $request->get("name"),
-            'contract_date' => CarbonHelper::getMySQLDate($request->get("contract_date")),
-            'contract_start_date' => CarbonHelper::getMySQLDate($request->get("contract_start_date")),
-            'contract_end_date' => CarbonHelper::getMySQLDate($request->get("contract_end_date")),
-            "site_id" => $site->id
-        ]);
-
-        foreach ($request->get('manufacturings') as $man_id) {
-            Manufacturing::find($man_id)->subcontractor()->attach($subcontractor->id);
-        }
-
-        Session::flash('flash_message', "Taşeron ($subcontractor->name) kaydı oluşturuldu");
-        return redirect()->back();
-
-    }
 
     public function postSaveEquipment(Request $request)
     {
@@ -358,36 +331,34 @@ class TekilController extends Controller
     {
         $my_file_type = $request->get("type");
         $report = Report::find($request->get("report_id"));
-        $files = $request->files;
+        $file = $request->file("file");
 
-        foreach ($files as $file) {
-            $extension = $file->getClientOriginalExtension();
-            $directory = public_path() . '/uploads/' . sha1(time());
-            $filename = sha1(time() . time()) . ".$extension";
+        $directory = public_path() . '/uploads/' . uniqid(rand(), true);
+        $filename = $file->getClientOriginalName();
 
-            $upload_success = $file->move($directory, $filename);
+        $upload_success = $file->move($directory, $filename);
 
 
-            $db_file = File::create([
-                "name" => $filename,
-                "path" => $directory,
-                "type" => $my_file_type,
-            ]);
+        $db_file = File::create([
+            "name" => $filename,
+            "path" => $directory,
+            "type" => $my_file_type,
+        ]);
 
-            $rfile = Rfile::create([
-                "site_id" => $site->id,
-                "file_id" => $db_file->id,
-                "report_id" => $report->id
-            ]);
+        $rfile = Rfile::create([
+            "site_id" => $site->id,
+            "file_id" => $db_file->id,
+            "report_id" => $report->id
+        ]);
 
-            if ($upload_success && $db_file && $rfile) {
-                return response()->json(['success' => 200,
-                    'id' => $db_file->id,
-                    'rid' => $report->id]);
-            } else {
-                return response()->json('error', 400);
-            }
+        if ($upload_success && $db_file && $rfile) {
+            return response()->json(['success' => 200,
+                'id' => $db_file->id,
+                'rid' => $report->id]);
+        } else {
+            return response()->json('error', 400);
         }
+
     }
 
     public function postDeleteFiles(Request $request)
@@ -401,6 +372,81 @@ class TekilController extends Controller
         } else {
             return response()->json('error', 400);
         }
+    }
+
+
+    //  TAŞERON CARİ HESAP PAGE AND RELATED OPERATIONS
+    public function getTaseronCariHesap(Site $site, Module $modules)
+    {
+        return view('tekil/subcontractor-account', compact('site', 'modules'));
+    }
+
+    public function postAddSubcontractor(Request $request, Site $site)
+    {
+
+
+        $this->validate($request, [
+            'name' => 'required',
+            'contract_date' => 'required',
+            'contract_start_date' => 'required',
+            'contract_end_date' => 'required',
+
+        ]);
+
+        $subcontractor = Subcontractor::create([
+            "name" => $request->get("name"),
+            'contract_date' => CarbonHelper::getMySQLDate($request->get("contract_date")),
+            'contract_start_date' => CarbonHelper::getMySQLDate($request->get("contract_start_date")),
+            'contract_end_date' => CarbonHelper::getMySQLDate($request->get("contract_end_date")),
+            "site_id" => $site->id
+        ]);
+
+        foreach ($request->get('manufacturings') as $man_id) {
+            Manufacturing::find($man_id)->subcontractor()->attach($subcontractor->id);
+        }
+        if($request->file("contractToUpload")){
+            $file = $request->file("contractToUpload");
+            $directory = public_path() . '/uploads/' . uniqid(rand(), true);
+            $filename = $file->getClientOriginalName();
+
+            $upload_success = $file->move($directory, $filename);
+
+
+            $db_file = File::create([
+                "name" => $filename,
+                "path" => $directory,
+                "type" => 2,
+            ]);
+
+            $sfile = Sfile::create([
+                "site_id" => $site->id,
+                "file_id" => $db_file->id,
+                "subcontractor_id" => $subcontractor->id
+
+            ]);
+        }
+
+        Session::flash('flash_message', "Taşeron ($subcontractor->name) kaydı oluşturuldu");
+        return redirect()->back();
+
+    }
+//  END OF TAŞERON CARİ HESAP PAGE
+
+    public function getIsMakineleri(Site $site, Module $modules)
+    {
+        return view('tekil/equipments', compact('site', 'modules'));
+    }
+
+    public function postEditEquipments(Site $site, Request $request)
+    {
+        $site->equipment()->detach();
+
+        foreach($request->get("equipments") as $equipment){
+            $site->equipment()->attach($equipment);
+        }
+
+        Session::flash('flash_message', "Şantiye iş makineleri güncellendi");
+        return redirect()->back();
     }
 
 }

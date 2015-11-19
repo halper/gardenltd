@@ -20,69 +20,82 @@
 
 <body class="skin-blue">
 <!-- header logo: style can be found in header.less -->
-<header class="header">
-    <a href="/" class="logo">
-        <!-- Add the class icon to your logo image or logo icon to add the margining -->
-        Garden Ltd.
-    </a>
-    <!-- Header Navbar: style can be found in header.less -->
-    <nav class="navbar navbar-static-top" role="navigation">
-        <!-- Sidebar toggle button-->
-        <a href="#" class="navbar-btn sidebar-toggle" data-toggle="offcanvas" role="button">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-        </a>
-
-        <!-- Navbar Right Menu -->
-        <div class="navbar-custom-menu pull-right">
-            <ul class="nav navbar-nav">
-                <!-- User Account Menu -->
-                <li class="dropdown user user-menu">
-                    <!-- Menu Toggle Button -->
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                        <!-- The user image in the navbar-->
-                        <i class="fa {{ Auth::User()->isAdmin() ? "fa-user-plus" : "fa-user"}} "></i>
-                        <!-- hidden-xs hides the username on small devices so only the image appears. -->
-                        <span class="hidden-xs"><?=Auth::user()->getAttribute("name")?></span>
-                    </a>
-                    <ul class="dropdown-menu">
-                        <!-- The user image in the menu -->
-                        <li class="user-header">
-                            <i class="fa {{ Auth::User()->isAdmin() ? "fa-user-plus" : "fa-user"}} fa-4x"></i>
-
-                            <p>
-                                <?=Auth::user()->getAttribute("name")?>
-
-                                <small>{{ Auth::User()->isAdmin() ?
-                                    "Admin" : "Kullanıcı" }}
-                                </small>
-                                {{-- TODO
-                                Buraya kullanıcı grupları gelecek--}}
-                            </p>
-                        </li>
-                        <!-- Menu Footer-->
-                        <li class="user-footer">
-                            <div class="pull-left">
-                                <a href="#" class="btn btn-default btn-flat">Bilgilerim</a>
-                            </div>
-                            @if(Auth::User()->isAdmin())
-                                <div class="col-md-4">
-                                    <a href="/admin/ayarlar" class="btn btn-default btn-flat">Ayarlar</a>
-                                </div>
-                            @endif
-                            <div class="pull-right">
-                                <a href="/auth/logout" class="btn btn-default btn-flat">Çıkış</a>
-                            </div>
-                        </li>
-                    </ul>
-                </li>
-            </ul>
-        </div>
-    </nav>
-</header>
 <div class="wrapper row-offcanvas row-offcanvas-left">
+    <header class="main-header">
+        <a href="/" class="logo">
+            <!-- Add the class icon to your logo image or logo icon to add the margining -->
+
+            <span class="logo-lg"><b>Garden</b>Ltd.</span>
+        </a>
+        <!-- Header Navbar: style can be found in header.less -->
+        <nav class="navbar navbar-static-top" role="navigation">
+            <!-- Sidebar toggle button-->
+            <a href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button">
+                <span class="sr-only">Toggle navigation</span>
+
+            </a>
+
+            <!-- Navbar Right Menu -->
+            <div class="navbar-custom-menu pull-right">
+                <ul class="nav navbar-nav">
+                    <!-- User Account Menu -->
+                    <li class="dropdown user user-menu">
+                        <!-- Menu Toggle Button -->
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                            <!-- The user image in the navbar-->
+                            <i class="fa {{ Auth::User()->isAdmin() ? "fa-user-plus" : "fa-user"}} "></i>
+                            <!-- hidden-xs hides the username on small devices so only the image appears. -->
+                            <span class="hidden-xs"><?=Auth::user()->getAttribute("name")?></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <!-- The user image in the menu -->
+                            <li class="user-header">
+                                <i class="fa {{ Auth::User()->isAdmin() ? "fa-user-plus" : "fa-user"}} fa-4x"></i>
+
+                                <p>
+                                    <?=Auth::user()->getAttribute("name")?>
+
+                                    <small>{{ Auth::User()->isAdmin() ?
+                                    "Admin" : "Kullanıcı" }}
+                                    </small>
+                                    {{-- TODO
+                                    Buraya kullanıcı grupları gelecek--}}
+                                </p>
+                            </li>
+                            @if(Auth::User()->isAdmin())
+
+                                <li class="user-body">
+                                    <div class="row">
+                                        <div class="col-xs-4 text-center">
+                                            <a href="<?=URL::to("/");?>/admin/ayarlar">Ayarlar</a>
+                                        </div>
+                                        <div class="col-xs-4 text-center">
+                                            <a href="#">Sales</a>
+                                        </div>
+                                        <div class="col-xs-4 text-center">
+                                            <a href="#">Friends</a>
+                                        </div>
+                                    </div>
+                                    <!-- /.row -->
+                                </li>
+                                @endif
+                                        <!-- Menu Footer-->
+                                <li class="user-footer">
+                                    <div class="pull-left">
+                                        <a href="#" class="btn btn-default btn-flat">Bilgilerim</a>
+                                    </div>
+
+                                    <div class="pull-right">
+                                        <a href="/auth/logout" class="btn btn-default btn-flat">Çıkış</a>
+                                    </div>
+                                </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
 
     <!-- Left side column. contains the logo and sidebar -->
     <aside class="left-side sidebar-offcanvas">

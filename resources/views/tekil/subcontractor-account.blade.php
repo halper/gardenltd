@@ -57,7 +57,8 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                                                     'method' => 'POST',
                                                     'class' => 'form .form-horizontal',
                                                     'id' => 'subcontractorInsertForm',
-                                                    'role' => 'form'
+                                                    'role' => 'form',
+                                                    'files' => true
                                                     ])!!}
                                 <div class="form-group {{ $errors->has('name') ? 'has-error' : '' }}">
                                     <div class="row">
@@ -131,6 +132,17 @@ foreach (\App\Manufacturing::all() as $manufacture) {
 
                                                 {!! $manufacturing_options !!}
                                             </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+<div class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('contract', 'Sözleşme Dosyası: ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-10">
+                                            <input type="file" name="contractToUpload" id="contractToUpload">
                                         </div>
                                     </div>
                                 </div>

@@ -9,7 +9,7 @@ class File extends Model
     //
     protected $table = 'files';
 
-    protected $fillable = ['name', 'path'];
+    protected $fillable = ['name', 'path', 'type'];
 
     public function rfile()
     {

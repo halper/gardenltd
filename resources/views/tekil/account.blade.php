@@ -1,5 +1,46 @@
 @extends('tekil/layout')
 
+@section('page-specific-css')
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.min.css"/>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker3.min.css"/>
+
+@stop
+
+@section('page-specific-js')
+    <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.min.js"></script>
+    <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
+    <script src="<?=URL::to('/');?>/js/angular-route.min.js"></script>
+
+    <script>
+        var sampleApp = angular.module('accApp', [], function($interpolateProvider) {
+            $interpolateProvider.startSymbol('<%');
+            $interpolateProvider.endSymbol('%>');
+        }).controller('AccountController', function($scope, $http) {
+            $scope.expenses = [];
+            $scope.sortType     = 'date'; // set the default sort type
+            $scope.sortReverse  = false;  // set the default sort order
+            $scope.total = 0;
+            $scope.getTotal = function($rowTotal){
+                $scope.total = $scope.total + $rowTotal;
+                return $scope.total;
+            };
+
+            $http.get("<?=URL::to('/');?>/tekil/{{$site->slug}}/expenses").
+            success(function(data, status, headers, config) {
+                $scope.expenses = data;
+            });
+        });
+
+        $('#dateRangePicker').datepicker({
+            autoclose: true,
+            firstDay: 1,
+            format: 'dd.mm.yyyy',
+            startDate: '01.01.2015',
+            endDate: '30.12.2100'
+        });
+    </script>
+@stop
+
 @section('content')
 
     <div class="row">
@@ -48,91 +89,83 @@
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-xs-12 col-md-12">
-        <div class="table-responsive">
-            <table class="table table-condensed">
-                <thead>
-                <tr>
-                    <th>S.N</th>
-                    <th>TARİH</th>
-                    <th>AÇIKLAMA</th>
-                    <th>HARCAMAYI YAPAN</th>
-                    <th>ÖDEME ŞEKLİ</th>
-                    <th>GELİR</th>
-                    <th>GİDER</th>
-                    <th>KASA</th>
-                </tr>
-                </thead>
-                <tbody>
+    <div class="row" ng-app="accApp" ng-controller="AccountController">
+        <div class="col-xs-12 col-md-12" >
+            <div class="table-responsive">
+                <table class="table table-condensed">
+                    <thead>
+                    <tr>
+                        <th>S.N</th>
+                        <th>
+                            <a href="#" ng-click="sortType = 'expenses.date'; sortReverse = !sortReverse">
+                                <span ng-show="sortType == 'expenses.date' && !sortReverse" class="fa fa-caret-down"></span>
+                                <span ng-show="sortType == 'expenses.date' && sortReverse" class="fa fa-caret-up"></span>
+                                TARİH
+                        </a>
+                        </th>
+                        <th>
+                            <a href="#" ng-click="sortType = 'expenses.definition'; sortReverse = !sortReverse">
+                                <span ng-show="sortType == 'expenses.definition' && !sortReverse" class="fa fa-caret-down"></span>
+                                <span ng-show="sortType == 'expenses.definition' && sortReverse" class="fa fa-caret-up"></span>
+                                AÇIKLAMA
+                        </a></th>
+                        <th>
+                            <a href="#" ng-click="sortType = 'expenses.buyer'; sortReverse = !sortReverse">
+                                <span ng-show="sortType == 'expenses.buyer' && !sortReverse" class="fa fa-caret-down"></span>
+                                <span ng-show="sortType == 'expenses.buyer' && sortReverse" class="fa fa-caret-up"></span>
+                                HARCAMAYI YAPAN
+                            </a></th>
+                        <th>
+                            <a href="#" ng-click="sortType = 'expenses.type'; sortReverse = !sortReverse">
+                                <span ng-show="sortType == 'expenses.type' && !sortReverse" class="fa fa-caret-down"></span>
+                                <span ng-show="sortType == 'expenses.type' && sortReverse" class="fa fa-caret-up"></span>
+                                ÖDEME ŞEKLİ
+                            </a>
+                            </th>
+                        <th>
+                            <a href="#" ng-click="sortType = 'expenses.income'; sortReverse = !sortReverse">
+                                <span ng-show="sortType == 'expenses.income' && !sortReverse" class="fa fa-caret-down"></span>
+                                <span ng-show="sortType == 'expenses.income' && sortReverse" class="fa fa-caret-up"></span>
+                                GELİR
+                            </a></th>
+                        <th>
+                            <a href="#" ng-click="sortType = 'expenses.expense'; sortReverse = !sortReverse">
+                                <span ng-show="sortType == 'expenses.expense' && !sortReverse" class="fa fa-caret-down"></span>
+                                <span ng-show="sortType == 'expenses.expense' && sortReverse" class="fa fa-caret-up"></span>
+                                GİDER
+                            </a></th>
+                        <th>KASA</th>
+                    </tr>
+                    </thead>
+                    <tbody>
 
-                <tr class="bg-warning">
-                    <td></td>
-                    <td></td>
-                    <td><strong>GENEL TOPLAM:</strong></td>
-                    <td></td>
-                    <td></td>
-                    <td>392.020,25TL</td>
-                    <td>391.553,76TL</td>
-                    <td>466,49TL</td>
+                    <tr class="bg-warning">
+                        <td></td>
+                        <td></td>
+                        <td><strong>GENEL TOPLAM:</strong></td>
+                        <td></td>
+                        <td></td>
+                        <td>392.020,25TL</td>
+                        <td>391.553,76TL</td>
+                        <td>466,49TL</td>
 
-                </tr>
-                <tr>
-                    <td><strong>1</strong></td>
-                    <td><strong>27.06.2014</strong></td>
-                    <td>TOPOĞRAF EKİBİNE ÖDEME YAPILDI</td>
-                    <td>SADIK HERGÜL</td>
-                    <td>NAKİT</td>
-                    <td><strong>1.000,00TL</strong></td>
-                    <td><strong>1.000,00TL</strong></td>
-                    <td>0,00TL</td>
-                </tr>
-                <tr>
-                    <td><strong>2</strong></td>
-                    <td><strong>03.07.2014</strong></td>
-                    <td>KONTEYNER ELEKTRİK İŞÇİLİK ÜCRETİ</td>
-                    <td>SADIK HERGÜL</td>
-                    <td>NAKİT</td>
-                    <td><strong></strong></td>
-                    <td><strong>50,00TL</strong></td>
-                    <td>-50,00TL</td>
-                </tr>
-                <tr>
-                    <td><strong>3</strong></td>
-                    <td><strong>07.07.2014</strong></td>
-                    <td>PROJE FOTOKOPİSİ ÇEKİLDİ</td>
-                    <td>SADIK HERGÜL</td>
-                    <td>KREDİ KARTI</td>
-                    <td><strong></strong></td>
-                    <td><strong>20,00TL</strong></td>
-                    <td>-70,00TL</td>
-                </tr>
-                <tr>
-                    <td><strong>4</strong></td>
-                    <td><strong>11.07.2014</strong></td>
-                    <td>ASKİ EKİBİNE ÖDEME YAPILDI</td>
-                    <td>SADIK HERGÜL</td>
-                    <td>NAKİT</td>
-                    <td><strong></strong></td>
-                    <td><strong>20,00TL</strong></td>
-                    <td>-90,00TL</td>
-                </tr>
-                <tr>
-                    <td><strong>5</strong></td>
-                    <td><strong>17.07.2014</strong></td>
-                    <td>ELEKTRİK KABLOSU PRİZ APARATI ALINDI</td>
-                    <td>SADIK HERGÜL</td>
-                    <td>NAKİT</td>
-                    <td><strong></strong></td>
-                    <td><strong>4,50TL</strong></td>
-                    <td>-94,50TL</td>
-                </tr>
+                    </tr>
+                    <tr ng-repeat='expense in expenses | orderBy:sortType:sortReverse'>
+                        <td><strong>1</strong></td>
+                        <td><strong><% expense.date %></strong></td>
+                        <td><% expense.definition %></td>
+                        <td><% expense.buyer %></td>
+                        <td><% expense.type == 0 ? 'Nakit' : 'Kredi Kartı' %></td>
+                        <td><% expense.income %>TL</td>
+                        <td><% expense.expense %>TL</td>
+                        <td><% getTotal(expense.income - expense.expense) %>TL</td>
+                    </tr>
 
 
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
     </div>
 
 @stop

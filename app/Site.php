@@ -40,6 +40,10 @@ class Site extends Eloquent implements SluggableInterface
         return $this->belongsToMany('App\Equipment')->withTimestamps();
     }
 
+    public function account(){
+        return $this->hasMany('App\Account');
+    }
+
     public function hasEquipment($eq_id){
         return ! is_null($this->equipment()->where('equipment_id', $eq_id)->first());
     }

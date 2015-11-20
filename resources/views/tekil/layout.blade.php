@@ -70,10 +70,10 @@
                                             <a href="<?=URL::to("/");?>/admin/ayarlar">Ayarlar</a>
                                         </div>
                                         <div class="col-xs-4 text-center">
-                                            <a href="#">Sales</a>
+                                            <a href="#"></a>
                                         </div>
                                         <div class="col-xs-4 text-center">
-                                            <a href="#">Friends</a>
+                                            <a href="#"></a>
                                         </div>
                                     </div>
                                     <!-- /.row -->

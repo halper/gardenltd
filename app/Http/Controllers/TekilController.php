@@ -52,12 +52,6 @@ class TekilController extends Controller
         return view('tekil/daily', compact('site', 'modules', 'report'));
     }
 
-    public function getKasa(Site $site, Module $modules)
-    {
-        return view('tekil/account', compact('site', 'modules'));
-    }
-
-
 
     public function getMalzemeTalep(Site $site, Module $modules)
     {
@@ -168,8 +162,6 @@ class TekilController extends Controller
         Session::flash('flash_message', 'Taşeron personel kaydı başarılı');
         return redirect()->back();
     }
-
-
 
 
     public function postSaveEquipment(Request $request)
@@ -354,7 +346,7 @@ class TekilController extends Controller
         if ($upload_success && $db_file && $rfile) {
             return response()->json(['success' => 200,
                 'id' => $db_file->id,
-                'rid' => $report->id]);
+                'rid' => $report->id], 200);
         } else {
             return response()->json('error', 400);
         }
@@ -404,7 +396,7 @@ class TekilController extends Controller
         foreach ($request->get('manufacturings') as $man_id) {
             Manufacturing::find($man_id)->subcontractor()->attach($subcontractor->id);
         }
-        if($request->file("contractToUpload")){
+        if ($request->file("contractToUpload")) {
             $file = $request->file("contractToUpload");
             $directory = public_path() . '/uploads/' . uniqid(rand(), true);
             $filename = $file->getClientOriginalName();
@@ -430,6 +422,7 @@ class TekilController extends Controller
         return redirect()->back();
 
     }
+
 //  END OF TAŞERON CARİ HESAP PAGE
 
     public function getIsMakineleri(Site $site, Module $modules)
@@ -441,12 +434,49 @@ class TekilController extends Controller
     {
         $site->equipment()->detach();
 
-        foreach($request->get("equipments") as $equipment){
+        foreach ($request->get("equipments") as $equipment) {
             $site->equipment()->attach($equipment);
         }
 
         Session::flash('flash_message', "Şantiye iş makineleri güncellendi");
         return redirect()->back();
     }
+
+// START OF KASA PAGE
+    public function getKasa(Site $site, Module $modules)
+    {
+        return view('tekil/account', compact('site', 'modules'));
+    }
+
+    public function getExpenses()
+    {
+        $expense_arr = [[
+            'date' => '27.06.2014',
+            'definition' => 'TOPOĞRAF EKİBİNE ÖDEME YAPILDI',
+            'buyer' => 'SADIK HERGÜL',
+            'type' => '0',
+            'income' => '1000',
+            'expense' => '1000']];
+
+        array_push($expense_arr, [
+            'date' => '03.07.2014',
+            'definition' => 'KONTEYNER ELEKTRİK İŞÇİLİK ÜCRETİ',
+            'buyer' => 'SADIK HERGÜL',
+            'type' => '0',
+            'income' => '0',
+            'expense' => '50']);
+        array_push($expense_arr, [
+            'date' => '07.07.2014',
+            'definition' => 'PROJE FOTOKOPİSİ ÇEKİLDİ',
+            'buyer' => 'SADIK HERGÜL',
+            'type' => '1',
+            'income' => '0',
+            'expense' => '20']);
+
+
+        return response()->json($expense_arr, 200);
+    }
+
+//    END OF KASA PAGE
 
 }

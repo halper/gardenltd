@@ -87,6 +87,10 @@ body > .header {
     color: #FFF;
 }
 
+.navbar-nav > .user-menu > .dropdown-menu > .user-body a {
+    color: #444 !important;
+}
+
 .main-header .sidebar-toggle {
     float: left;
     background-color: transparent;

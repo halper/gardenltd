@@ -148,6 +148,7 @@ return [
         Collective\Html\HtmlServiceProvider::class,
 
         Cviebrock\EloquentSluggable\SluggableServiceProvider::class,
+        Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class,
 
     ],
 

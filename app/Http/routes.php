@@ -25,6 +25,7 @@ Route::post('auth/register', 'Auth\AuthController@postRegister');
 Route::bind('site', function($slug){
    return \App\Site::whereSlug($slug)->first();
 });
+
 Route::bind('module', function($slug){
    return \App\Module::whereSlug($slug)->first();
 });

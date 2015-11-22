@@ -18,8 +18,8 @@ class CreateExpensesTable extends Migration
             $table->text('definition');
             $table->string('buyer');
             $table->tinyInteger('type')->unsigned()->comment = "0 cash, 1 card";
-            $table->double('income')->unsigned()->nullable();
-            $table->double('expense')->unsigned()->nullable();;
+            $table->double('income')->unsigned()->default('0');
+            $table->double('expense')->unsigned()->default('0');
             $table->integer('account_id')->unsigned()->index();
             $table->foreign('account_id')->references('id')->on('accounts')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();

@@ -1,8 +1,10 @@
 <?php
+use App\Library\TurkishChar;
+
 $manufacturing_options = '';
 
 foreach (\App\Manufacturing::all() as $manufacture) {
-    $manufacturing_options .= "'<option value=\"$manufacture->id\">" . mb_strtoupper($manufacture->name, 'utf-8') . "</option>'+\n";
+    $manufacturing_options .= "'<option value=\"$manufacture->id\">" . TurkishChar::tr_up($manufacture->name) . "</option>'+\n";
 }
 
 ?>

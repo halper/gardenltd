@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Account;
 use App\Demand;
+use App\Expense;
 use App\File;
 use App\Inmaterial;
 use App\Library\CarbonHelper;
@@ -20,8 +22,6 @@ use App\Swunit;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Validator;
-use Symfony\Component\HttpFoundation\Response;
 
 
 class TekilController extends Controller
@@ -366,6 +366,17 @@ class TekilController extends Controller
         }
     }
 
+    public function patchLockReport(Request $request)
+    {
+
+        $report = Report::find($request->get("report_id"));
+        $report->is_locked = $request->get("lock");
+        $report->save();
+        return redirect()->back();
+    }
+
+//    END OF GUNLUK RAPOR PAGE
+
 
     //  TAŞERON CARİ HESAP PAGE AND RELATED OPERATIONS
     public function getTaseronCariHesap(Site $site, Module $modules)
@@ -448,33 +459,46 @@ class TekilController extends Controller
         return view('tekil/account', compact('site', 'modules'));
     }
 
-    public function getExpenses()
+    public function postAddExpense(Request $request)
     {
-        $expense_arr = [[
-            'date' => '27.06.2014',
-            'definition' => 'TOPOĞRAF EKİBİNE ÖDEME YAPILDI',
-            'buyer' => 'SADIK HERGÜL',
-            'type' => '0',
-            'income' => '1000',
-            'expense' => '1000']];
+        $this->validate($request, [
+           'exp_date' => 'required',
+            'account_id' => 'required',
+            'buyer' => 'required',
+            'definition' => 'required',
+            'type' => 'required',
+        ]);
 
-        array_push($expense_arr, [
-            'date' => '03.07.2014',
-            'definition' => 'KONTEYNER ELEKTRİK İŞÇİLİK ÜCRETİ',
-            'buyer' => 'SADIK HERGÜL',
-            'type' => '0',
-            'income' => '0',
-            'expense' => '50']);
-        array_push($expense_arr, [
-            'date' => '07.07.2014',
-            'definition' => 'PROJE FOTOKOPİSİ ÇEKİLDİ',
-            'buyer' => 'SADIK HERGÜL',
-            'type' => '1',
-            'income' => '0',
-            'expense' => '20']);
+        Expense::create([
+            'exp_date' => CarbonHelper::getMySQLDate($request->get("exp_date")),
+            'account_id' => $request->get("account_id"),
+            'buyer' => $request->get("buyer"),
+            'definition' => $request->get("definition"),
+            'expense' => $request->get("expense"),
+            'income' => $request->get("income"),
+            'type' => $request->get("type"),
+        ]);
+        return response('success', 200);
+    }
+
+    public function getExpenses(Site $site)
+    {
+
+        $account = $site->account;
+        $expense_arr = [];
+        foreach ($account->expense()->get() as $expense) {
+            array_push($expense_arr, [
+                'date' => CarbonHelper::getTurkishDate($expense->exp_date),
+                'definition' => $expense->definition,
+                'buyer' => $expense->buyer,
+                'type' => $expense->type,
+                'income' => $expense->income,
+                'expense' => $expense->expense]);
+
+        }
 
 
-        return response()->json($expense_arr, 200);
+        return isset($expense_arr) ? response()->json($expense_arr, 200) : response()->json('error', 400);
     }
 
 //    END OF KASA PAGE

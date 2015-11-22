@@ -7,8 +7,9 @@
     <!-- Tell the browser to be responsive to screen width -->
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
     @include('base.css')
+    @yield('page-specific-css')
 
-    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+            <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
     <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
@@ -24,47 +25,7 @@
             <div class="container">
 
                 <!-- Navbar Right Menu -->
-                <div class="navbar-custom-menu pull-right">
-                    <ul class="nav navbar-nav">
-                        <!-- User Account Menu -->
-                        <li class="dropdown user user-menu">
-                            <!-- Menu Toggle Button -->
-                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                                <!-- The user image in the navbar-->
-                                <i class="fa {{ Auth::User()->isAdmin() ? "fa-user-plus" : "fa-user"}}"></i>
-                                <!-- hidden-xs hides the username on small devices so only the image appears. -->
-                                <span class="hidden-xs"><?=Auth::user()->getAttribute("name")?></span>
-                            </a>
-                            <ul class="dropdown-menu">
-                                <!-- The user image in the menu -->
-                                <li class="user-header">
-                                    <i class="fa {{ Auth::User()->isAdmin() ? "fa-user-plus" : "fa-user"}} fa-4x"></i>
-
-                                    <p>
-                                        <?=Auth::user()->getAttribute("name")?>
-                                        <small>{{Auth::user()->isAdmin() == true ? 'Admin' : 'Kullanıcı'}}</small>
-                                        {{-- TODO
-                                        Buraya kullanıcı grupları gelecek--}}
-                                    </p>
-                                </li>
-                                <!-- Menu Footer-->
-                                <li class="user-footer">
-                                    <div class="pull-left">
-                                        <a href="#" class="btn btn-default btn-flat">Bilgilerim</a>
-                                    </div>
-                                    @if(Auth::user()->isAdmin())
-                                        <div class="col-md-4">
-                                            <a href="/admin/ayarlar" class="btn btn-default btn-flat">Ayarlar</a>
-                                        </div>
-                                    @endif
-                                    <div class="pull-right">
-                                        <a href="/auth/logout" class="btn btn-default btn-flat">Çıkış</a>
-                                    </div>
-                                </li>
-                            </ul>
-                        </li>
-                    </ul>
-                </div>
+                @include('_user-menu')
                 <!-- /.navbar-custom-menu -->
             </div>
             <!-- /.container-fluid -->
@@ -77,7 +38,7 @@
 
 
     ?>
-    <!-- Full Width Column -->
+            <!-- Full Width Column -->
     <div class="content-wrapper" style="margin-left: 0">
 
         <div class="container">
@@ -142,9 +103,8 @@
 <!-- ./wrapper -->
 
 
-
 @include('base.js')
-<!-- SlimScroll -->
+        <!-- SlimScroll -->
 <script src="<?= URL::to('/');?>/js/slimScroll/jquery.slimscroll.min.js"></script>
 <!-- FastClick -->
 <script src="<?= URL::to('/');?>/js/fastclick/fastclick.min.js"></script>

@@ -1,4 +1,7 @@
-<!DOCTYPE html>
+<?php
+use App\Library\TurkishChar;
+?>
+        <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -36,63 +39,7 @@
             </a>
 
             <!-- Navbar Right Menu -->
-            <div class="navbar-custom-menu pull-right">
-                <ul class="nav navbar-nav">
-                    <!-- User Account Menu -->
-                    <li class="dropdown user user-menu">
-                        <!-- Menu Toggle Button -->
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                            <!-- The user image in the navbar-->
-                            <i class="fa {{ Auth::User()->isAdmin() ? "fa-user-plus" : "fa-user"}} "></i>
-                            <!-- hidden-xs hides the username on small devices so only the image appears. -->
-                            <span class="hidden-xs"><?=Auth::user()->getAttribute("name")?></span>
-                        </a>
-                        <ul class="dropdown-menu">
-                            <!-- The user image in the menu -->
-                            <li class="user-header">
-                                <i class="fa {{ Auth::User()->isAdmin() ? "fa-user-plus" : "fa-user"}} fa-4x"></i>
-
-                                <p>
-                                    <?=Auth::user()->getAttribute("name")?>
-
-                                    <small>{{ Auth::User()->isAdmin() ?
-                                    "Admin" : "Kullanıcı" }}
-                                    </small>
-                                    {{-- TODO
-                                    Buraya kullanıcı grupları gelecek--}}
-                                </p>
-                            </li>
-                            @if(Auth::User()->isAdmin())
-
-                                <li class="user-body">
-                                    <div class="row">
-                                        <div class="col-xs-4 text-center">
-                                            <a href="<?=URL::to("/");?>/admin/ayarlar">Ayarlar</a>
-                                        </div>
-                                        <div class="col-xs-4 text-center">
-                                            <a href="#"></a>
-                                        </div>
-                                        <div class="col-xs-4 text-center">
-                                            <a href="#"></a>
-                                        </div>
-                                    </div>
-                                    <!-- /.row -->
-                                </li>
-                                @endif
-                                        <!-- Menu Footer-->
-                                <li class="user-footer">
-                                    <div class="pull-left">
-                                        <a href="#" class="btn btn-default btn-flat">Bilgilerim</a>
-                                    </div>
-
-                                    <div class="pull-right">
-                                        <a href="/auth/logout" class="btn btn-default btn-flat">Çıkış</a>
-                                    </div>
-                                </li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
+            @include('_user-menu')
         </nav>
     </header>
 
@@ -103,7 +50,7 @@
         <section class="sidebar">
             <!-- sidebar menu: : style can be found in sidebar.less -->
             <ul class="sidebar-menu">
-                <li class="header"><a href="/tekil/{{$site->slug}}">{{mb_strtoupper($site->job_name, 'utf-8')}}</a></li>
+                <li class="header"><a href="/tekil/{{$site->slug}}">{{TurkishChar::tr_up($site->job_name)}}</a></li>
 
                 @foreach($modules->getModules() as $module)
                     @if(Auth::User()->hasAnyPermissionOnModule($module->id) || Auth::User()->isAdmin())

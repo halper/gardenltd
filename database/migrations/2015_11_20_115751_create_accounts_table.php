@@ -14,7 +14,7 @@ class CreateAccountsTable extends Migration
     {
         Schema::create('accounts', function (Blueprint $table) {
             $table->increments('id');
-            $table->double('init')->unsigned();
+//            $table->double('init')->unsigned();
             $table->string('owner');
             $table->string('period');
             $table->integer('site_id')->unsigned()->index();

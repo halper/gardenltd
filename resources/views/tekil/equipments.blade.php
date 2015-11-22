@@ -7,7 +7,7 @@
 
             <div class="row">
                 <div class="col-md-12">
-                    <p>Kutulardan şantiyeye ait iş makinelerini seçebilir ya da çıkarabilirsiniz.</p>
+                    <p>Aşağıdan şantiyeye ait iş makinelerini seçebilir ya da çıkarabilirsiniz.</p>
                 </div>
             </div>
             <div class="row">
@@ -35,9 +35,11 @@
             </div>
 
             <div class="row">
-                <div class="col-sm-12">
-                    <div class="form-group pull-right">
-                        <button type="submit" class="btn btn-success btn-flat">
+                <div class="col-xs-12 col-md-4 col-md-offset-3">
+                    <div class="form-group">
+                        <br>
+                        <br>
+                        <button type="submit" class="btn btn-primary btn-flat btn-block">
                             Kaydet
                         </button>
                     </div>

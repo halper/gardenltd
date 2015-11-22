@@ -41,7 +41,7 @@ class Site extends Eloquent implements SluggableInterface
     }
 
     public function account(){
-        return $this->hasMany('App\Account');
+        return $this->hasOne('App\Account');
     }
 
     public function hasEquipment($eq_id){

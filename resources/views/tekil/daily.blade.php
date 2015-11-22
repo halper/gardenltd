@@ -1,5 +1,5 @@
 <?php
-use App\Library\Weather;
+use App\Library\TurkishChar;use App\Library\Weather;
 use App\Material;use Carbon\Carbon;
 use App\Staff;
 use Illuminate\Support\Facades\Session;
@@ -39,6 +39,21 @@ foreach ($report->inmaterial()->get() as $report_inmaterial) {
 
 $inmaterials = $report->inmaterial()->get();
 
+$time = strtotime($site->end_date);
+$myFormatForView = date("d.m.Y", $time);
+
+$start_date = date_create($site->start_date);
+$now = date_create();
+if (isset($report_date)) {
+    $now = date_create($report_date);
+}
+$end_date = date_create($site->end_date);
+$left = str_replace("+", "", date_diff($now, $end_date)->format("%R%a"));
+
+$subcontractor_staffs = \App\Substaff::all();
+$subcontractors = \App\Subcontractor::where('contract_start_date', '<=', $today)->where('contract_end_date', '>', $today)->get();
+$all_subcontractors = \App\Subcontractor::all();
+$subcontractor_staff_total = 0;
 
 ?>
 @extends('tekil/layout')
@@ -132,6 +147,7 @@ $inmaterials = $report->inmaterial()->get();
 
 
         $(document).ready(function () {
+
             $(".radio-inline").on("click", function () {
                 $("#selectIsWorkingForm").submit();
             });
@@ -144,6 +160,11 @@ $inmaterials = $report->inmaterial()->get();
                 endDate: '30.12.2100'
             });
 
+            var leftDays = '{{$left}}';
+            leftDays = parseInt(leftDays);
+            if (leftDays < 10) {
+                $('#leftDaysModal').modal("show");
+            }
 
             $("#dateRangePicker").datepicker().on('changeDate', function (ev) {
 
@@ -175,10 +196,10 @@ $inmaterials = $report->inmaterial()->get();
         foreach ($dept->staff()->get() as $staff) {
             if (isset($report_staff_arr)) {
                 if (!in_array($staff->id, $report_staff_arr)) {
-                    $staff_options .= "'<option value=\"$staff->id\">" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
+                    $staff_options .= "'<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>'+\n";
                 }
             } else {
-                $staff_options .= "'<option value=\"$staff->id\">" . mb_strtoupper($staff->staff, 'utf-8') . "</option>'+\n";
+                $staff_options .= "'<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>'+\n";
             }
         }
 
@@ -225,10 +246,10 @@ EOT;
     foreach ($site->equipment()->get() as $equipment) {
         if (isset($report_equipment_arr)) {
             if (!in_array($equipment->id, $report_equipment_arr)) {
-                $equipment_options .= "'<option value=\"$equipment->id\">" . mb_strtoupper($equipment->name, 'utf-8') . "</option>'+\n";
+                $equipment_options .= "'<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>'+\n";
             }
         } else {
-            $equipment_options .= "'<option value=\"$equipment->id\">" . mb_strtoupper($equipment->name, 'utf-8') . "</option>'+\n";
+            $equipment_options .= "'<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>'+\n";
         }
     }
 
@@ -270,10 +291,10 @@ EOT;
     foreach (Material::all() as $inmaterial) {
         if (isset($report_inmaterial_arr)) {
             if (!in_array($inmaterial->id, $report_inmaterial_arr)) {
-                $inmaterial_options .= "'<option value=\"$inmaterial->id\">" . mb_strtoupper($inmaterial->material, 'utf-8') . "</option>'+\n";
+                $inmaterial_options .= "'<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>'+\n";
             }
         } else {
-            $inmaterial_options .= "'<option value=\"$inmaterial->id\">" . mb_strtoupper($inmaterial->material, 'utf-8') . "</option>'+\n";
+            $inmaterial_options .= "'<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>'+\n";
         }
     }
 
@@ -316,7 +337,7 @@ EOT;
 
     <div class="row">
         <div class="col-xs-12 col-md-12">
-            <div class="box box-primary box-solid">
+            <div class="box box-{{$left < 10 ? "danger" : "primary"}} box-solid">
                 <div class="box-header with-border">
                     <h3 class="box-title">{{$site->job_name}} Projesi Raporu
                         @if(isset($report_date))
@@ -389,22 +410,6 @@ EOT;
                                 <td>{{$my_weather->getWind()}} m/s</td>
                             </tr>
                             <tr>
-                                <?php
-
-
-                                $time = strtotime($site->end_date);
-                                $myFormatForView = date("d.m.Y", $time);
-
-                                $start_date = date_create($site->start_date);
-                                $now = date_create();
-                                if (isset($report_date)) {
-                                    $now = date_create($report_date);
-                                }
-                                $end_date = date_create($site->end_date);
-                                $left = str_replace("+", "", date_diff($now, $end_date)->format("%R%a"));
-
-
-                                ?>
                                 <td><strong>İŞ BİTİM TARİHİ:</strong></td>
                                 <td>{{$myFormatForView}}</td>
                                 <td><strong>KALAN SÜRE:</strong></td>
@@ -678,119 +683,123 @@ EOT;
                                 </div>
                                 {!! Form::close() !!}
                             @else
-                                <div class="row">
-                                    <div class="col-sm-11 text-center">
-
-                                        <?php
-                                        $main_contractor_total = 0;
-                                        $j = 0;
-                                        $max_explosion = 0;
-                                        foreach ($report->staff()->get() as $staff) {
-                                            $pos = strpos($staff->staff, " ");
+                                <?php
+                                $main_contractor_total = 0;
+                                $j = 0;
+                                $max_explosion = 0;
+                                foreach ($report->staff()->get() as $staff) {
+                                    $pos = strpos($staff->staff, " ");
 
 
-                                            if ($pos === false) {
-                                                // string needle NOT found in haystack
+                                    if ($pos === false) {
+                                        // string needle NOT found in haystack
 
-                                            } else {
-                                                // string needle found in haystack
-                                                $staff_words = explode(" ", $staff->staff);
-                                                if (sizeof($staff_words) > $max_explosion) {
-                                                    $max_explosion = sizeof($staff_words);
-                                                }
-                                            }
+                                    } else {
+                                        // string needle found in haystack
+                                        $staff_words = explode(" ", $staff->staff);
+                                        if (sizeof($staff_words) > $max_explosion) {
+                                            $max_explosion = sizeof($staff_words);
                                         }
-                                        ?>
-                                        @foreach($report->staff()->get() as $staff)
-                                            <?php
-                                            $vowels = ["a", "e", "ı", "i", "o", "ö", "u", "ü"];
-                                            $pos = strpos($staff->staff, " ");
-                                            $staff_name = "";
-                                            $br_string = "";
+                                    }
+
+                                    $main_contractor_total += $staff->pivot->quantity;
+
+                                }
+                                ?>
+                                @if($main_contractor_total>0)
+                                    <div class="row">
+                                        <div class="col-sm-11 text-center">
+
+
+                                            @foreach($report->staff()->get() as $staff)
+                                                <?php
+                                                $vowels = ["a", "e", "ı", "i", "o", "ö", "u", "ü"];
+                                                $pos = strpos($staff->staff, " ");
+                                                $staff_name = "";
+                                                $br_string = "";
 
 
 
-                                            if ($pos === false) {
-                                                // string needle NOT found in haystack
-                                                $staff_name = $staff->staff;
-                                                for ($k = 1; $k < $max_explosion; $k++) {
-                                                    $br_string .= "<br>";
-                                                }
-                                            } else {
-                                                // string needle found in haystack
-                                                $staff_words = explode(" ", $staff->staff);
-                                                $i = 1;
-                                                foreach ($staff_words as $word) {
-                                                    if (strlen($word) > 5) {
-                                                        $cut = in_array(mb_substr($word, 3, 1), $vowels) ? 3 : 4;
-                                                        $staff_name .= mb_substr($word, 0, $cut, 'utf-8') . ".";
-                                                    } else {
-                                                        $staff_name .= $word;
+                                                if ($pos === false) {
+                                                    // string needle NOT found in haystack
+                                                    $staff_name = $staff->staff;
+                                                    for ($k = 1; $k < $max_explosion; $k++) {
+                                                        $br_string .= "<br>";
                                                     }
-                                                    if ($i < sizeof($staff_words)) {
-                                                        $staff_name .= " ";
-                                                        $i++;
+                                                } else {
+                                                    // string needle found in haystack
+                                                    $staff_words = explode(" ", $staff->staff);
+                                                    $i = 1;
+                                                    foreach ($staff_words as $word) {
+                                                        if (strlen($word) > 5) {
+                                                            $cut = in_array(mb_substr($word, 3, 1), $vowels) ? 3 : 4;
+                                                            $staff_name .= mb_substr($word, 0, $cut, 'utf-8') . ".";
+                                                        } else {
+                                                            $staff_name .= $word;
+                                                        }
+                                                        if ($i < sizeof($staff_words)) {
+                                                            $staff_name .= " ";
+                                                            $i++;
+                                                        }
+                                                    }
+                                                    for ($k = 0; $k < $max_explosion - sizeof($staff_words); $k++) {
+                                                        $br_string .= "<br>";
                                                     }
                                                 }
-                                                for ($k = 0; $k < $max_explosion - sizeof($staff_words); $k++) {
-                                                    $br_string .= "<br>";
-                                                }
-                                            }
-                                            $x = sizeof($report->staff()->get()) - ((int)floor($j / 12)) * 12;
-                                            if ($x >= 12) {
-                                                $class_size = 1;
-                                            } else {
-                                                $class_size = $x % 12;
-                                                switch ($class_size) {
-                                                    case(0):
-                                                    case(7):
-                                                    case(8):
-                                                    case(9):
-                                                    case(10):
-                                                    case(11):
-                                                        $class_size = 1;
-                                                        break;
-                                                    case(1):
-                                                    case(2):
-                                                    case(3):
-                                                    case(4):
-                                                    case(6):
-                                                        $class_size = 12 / $x;
-                                                        break;
-                                                    case(5):
-                                                        $class_size = 2;
-                                                        break;
+                                                $x = sizeof($report->staff()->get()) - ((int)floor($j / 12)) * 12;
+                                                if ($x >= 12) {
+                                                    $class_size = 1;
+                                                } else {
+                                                    $class_size = $x % 12;
+                                                    switch ($class_size) {
+                                                        case(0):
+                                                        case(7):
+                                                        case(8):
+                                                        case(9):
+                                                        case(10):
+                                                        case(11):
+                                                            $class_size = 1;
+                                                            break;
+                                                        case(1):
+                                                        case(2):
+                                                        case(3):
+                                                        case(4):
+                                                        case(6):
+                                                            $class_size = 12 / $x;
+                                                            break;
+                                                        case(5):
+                                                            $class_size = 2;
+                                                            break;
 
+                                                    }
                                                 }
-                                            }
-                                            ?>
-                                            {!! $j % 12 == 0 ? "<div class='row'>" : "" !!}
+                                                ?>
+                                                {!! $j % 12 == 0 ? "<div class='row'>" : "" !!}
 
-                                            <div class="col-sm-{{$class_size}}">
-                                                <span><strong>{{$staff_name}}</strong></span>
+                                                <div class="col-sm-{{$class_size}}">
+                                                    <span><strong>{{$staff_name}}</strong></span>
+                                                    <br>
+                                                    {!! $br_string !!}
+                                                    <span>{{$staff->pivot->quantity}}</span>
+                                                </div>
+                                                {!! ($j % 12 == 11 || $j+1==sizeof($report->staff()->get())) ? "</div>" : "" !!}
+                                                <?php
+                                                $j++;
+                                                ?>
+
+
+                                            @endforeach
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <div class="row text-center">
+                                                <span><strong>TOPLAM</strong></span>
                                                 <br>
-                                                {!! $br_string !!}
-                                                <span>{{$staff->pivot->quantity}}</span>
+                                                <span>{{$main_contractor_total}}</span>
                                             </div>
-                                            {!! ($j % 12 == 11 || $j+1==sizeof($report->staff()->get())) ? "</div>" : "" !!}
-                                            <?php
-                                            $main_contractor_total += $staff->pivot->quantity;
-                                            $j++;
-                                            ?>
-
-
-                                        @endforeach
-                                    </div>
-                                    <div class="col-sm-1">
-                                        <div class="row text-center">
-                                            <span><strong>TOPLAM</strong></span>
-                                            <br>
-                                            <span>{{$main_contractor_total}}</span>
                                         </div>
                                     </div>
-                                </div>
+                                @endif
                             @endif
-
                         </div>
                     </div>
                 </div>
@@ -814,11 +823,6 @@ EOT;
                         </div>
                         <!-- /.box-header -->
                         <div class="box-body">
-                            <?php
-                            $subcontractor_staffs = \App\Substaff::all();
-                            $subcontractors = \App\Subcontractor::where('contract_start_date', '<=', $today)->where('contract_end_date', '>', $today)->get();
-                            $subcontractor_staff_total = 0;
-                            ?>
                             @if(!$locked)
 
                                 <table class="table table-responsive table-condensed">
@@ -851,7 +855,7 @@ EOT;
                                                     <?php
                                                     $sub_row_total = 0;
                                                     ?>
-                                                    <br> ({{mb_strtoupper($manufacture->name, 'utf8')}})
+                                                    <br> ({{TurkishChar::tr_up($manufacture->name)}})
                                                 @endforeach
                                             </td>
                                             {!! Form::hidden("subcontractors[]", $subcontractor->id)!!}
@@ -890,78 +894,97 @@ EOT;
                                 {!! Form::close() !!}
                             @else
 
-                                <table class="table table-responsive table-condensed">
+                                <?php
+                                foreach ($subcontractors as $subcontractor) {
+                                    $sub_row_total = 0;
+                                    for ($i = 0; $i < sizeof($subcontractor_staffs); $i++) {
+                                        if (!empty($report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity)) {
+                                            $sub_row_total += $report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity;
+                                        }
+                                    }
+                                    $subcontractor_staff_total += $sub_row_total;
+                                }
+                                ?>
 
-                                    <thead>
-                                    <tr>
-                                        <th>ALT YÜKLENİCİ</th>
-                                        @foreach($subcontractor_staffs as $sub_staff)
-                                            <th>{{$sub_staff->name}}</th>
-                                        @endforeach
-                                        <th>TOPLAM</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
+                                @if($subcontractor_staff_total>0)
+                                    <table class="table table-responsive table-condensed">
 
-                                    @foreach($subcontractors as $subcontractor)
-                                        <?php
-                                        $sub_row_total = 0;
-                                        ?>
+                                        <thead>
                                         <tr>
-                                            <td>
-                                                {{$subcontractor->name}}
-                                                @foreach($subcontractor->manufacturing()->get() as $manufacture)
-                                                    <br> ({{mb_strtoupper($manufacture->name, 'utf8')}})
-                                                @endforeach
-                                            </td>
-                                            @for($i = 0; $i<sizeof($subcontractor_staffs); $i++)
+                                            <th>ALT YÜKLENİCİ</th>
+                                            @foreach($subcontractor_staffs as $sub_staff)
+                                                <th>{{$sub_staff->name}}</th>
+                                            @endforeach
+                                            <th>TOPLAM</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
 
-                                                <td style="vertical-align: middle">
-
-                                                    {{empty($report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity) ? "" : $report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity }}</td>
-                                                <?php
+                                        @foreach($subcontractors as $subcontractor)
+                                            <?php
+                                            $sub_row_total = 0;
+                                            for ($i = 0; $i < sizeof($subcontractor_staffs); $i++) {
                                                 if (!empty($report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity)) {
                                                     $sub_row_total += $report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity;
                                                 }
-
-                                                ?>
-                                            @endfor
-                                            <td class="text-center"
-                                                style="vertical-align: middle">{{$sub_row_total}}</td>
-                                            <?php
-                                            $subcontractor_staff_total += $sub_row_total;
+                                            }
                                             ?>
+                                            @if($sub_row_total>0)
+                                                <tr>
+                                                    <td>
+                                                        {{$subcontractor->name}}
+                                                        @foreach($subcontractor->manufacturing()->get() as $manufacture)
+                                                            <br> ({{TurkishChar::tr_up($manufacture->name)}})
+                                                        @endforeach
+                                                    </td>
+                                                    @for($i = 0; $i<sizeof($subcontractor_staffs); $i++)
 
-                                        </tr>
-                                    @endforeach
+                                                        <td style="vertical-align: middle">
 
-                                    </tbody>
-                                </table>
-                                <div class="row">
-                                    <div class="col-sm-11">
-                                        <p class="text-right"><strong>ALT YÜKLENİCİ TOPLAMI</strong></p>
+                                                            {{empty($report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity) ? "" : $report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity }}</td>
+
+                                                    @endfor
+                                                    <td class="text-center"
+                                                        style="vertical-align: middle">{{$sub_row_total}}</td>
+
+                                                </tr>
+                                            @endif
+                                        @endforeach
+                                        </tbody>
+                                    </table>
+                                @endif
+                                @if($main_contractor_total + $subcontractor_staff_total + $total_management>0)
+                                    @if($subcontractor_staff_total>0)
+                                        <div class="row">
+                                            <div class="col-sm-11">
+                                                <p class="text-right"><strong>ALT YÜKLENİCİ TOPLAMI</strong></p>
+                                            </div>
+                                            <div class="col-sm-1">
+                                                <p class="text-left">{{$subcontractor_staff_total}}</p>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    @if($main_contractor_total + $subcontractor_staff_total > 0)
+                                        <div class="row">
+                                            <div class="col-sm-11">
+                                                <p class="text-right"><strong>ANA YÜKLENİCİ & ALT YÜKLENİCİ
+                                                        TOPLAMI</strong>
+                                                </p>
+                                            </div>
+                                            <div class="col-sm-1">
+                                                <p class="text-left">{{$main_contractor_total + $subcontractor_staff_total}}</p>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    <div class="row">
+                                        <div class="col-sm-11">
+                                            <p class="text-right"><strong>GENEL TOPLAM</strong></p>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <p class="text-left">{{$main_contractor_total + $subcontractor_staff_total + $total_management}}</p>
+                                        </div>
                                     </div>
-                                    <div class="col-sm-1">
-                                        <p class="text-left">{{$subcontractor_staff_total}}</p>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-sm-11">
-                                        <p class="text-right"><strong>ANA YÜKLENİCİ & ALT YÜKLENİCİ TOPLAMI</strong>
-                                        </p>
-                                    </div>
-                                    <div class="col-sm-1">
-                                        <p class="text-left">{{$main_contractor_total + $subcontractor_staff_total}}</p>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-sm-11">
-                                        <p class="text-right"><strong>GENEL TOPLAM</strong></p>
-                                    </div>
-                                    <div class="col-sm-1">
-                                        <p class="text-left">{{$main_contractor_total + $subcontractor_staff_total + $total_management}}</p>
-                                    </div>
-                                </div>
+                                @endif
                             @endif
                         </div>
                     </div>
@@ -1098,44 +1121,49 @@ EOT;
                                 </div>
                                 {!! Form::close() !!}
                             @else
+                                <?php
+                                $equipment_total = 0;
 
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-condensed">
-                                        <thead>
-                                        <tr>
-                                            <th>EKİPMAN ADI</th>
-                                            <th>ÇALIŞAN</th>
-                                            <th>MEVCUT</th>
-                                            <th>ARIZALI</th>
-                                            <th>TOPLAM</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        <?php
-                                        $equipment_total = 0;
-                                        ?>
-                                        @foreach ($report->equipment()->get() as $eq)
+                                foreach ($report->equipment()->get() as $eq) {
+                                    $equipment_total += $eq->pivot->present + $eq->pivot->working + $eq->pivot->broken;
+                                }
+                                ?>
+                                @if($equipment_total>0)
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-condensed">
+                                            <thead>
                                             <tr>
-                                                <td>{{$eq->name}}</td>
-                                                <td>{{$eq->pivot->present}}</td>
-                                                <td>{{$eq->pivot->working}}</td>
-                                                <td>{{$eq->pivot->broken}}</td>
-                                                <td>{{$eq->pivot->present + $eq->pivot->working + $eq->pivot->broken}}</td>
+                                                <th>EKİPMAN ADI</th>
+                                                <th>ÇALIŞAN</th>
+                                                <th>MEVCUT</th>
+                                                <th>ARIZALI</th>
+                                                <th>TOPLAM</th>
                                             </tr>
+                                            </thead>
+                                            <tbody>
                                             <?php
-                                            $equipment_total += $eq->pivot->present + $eq->pivot->working + $eq->pivot->broken;
+                                            $equipment_total = 0;
                                             ?>
-                                        @endforeach
-                                        <tr>
-                                            <td><strong>TOPLAM</strong></td>
-                                            <td></td>
-                                            <td></td>
-                                            <td></td>
-                                            <td>{{$equipment_total}}</td>
-                                        </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                                            @foreach ($report->equipment()->get() as $eq)
+                                                <tr>
+                                                    <td>{{$eq->name}}</td>
+                                                    <td>{{$eq->pivot->present}}</td>
+                                                    <td>{{$eq->pivot->working}}</td>
+                                                    <td>{{$eq->pivot->broken}}</td>
+                                                    <td>{{$eq->pivot->present + $eq->pivot->working + $eq->pivot->broken}}</td>
+                                                </tr>
+                                            @endforeach
+                                            <tr>
+                                                <td><strong>TOPLAM</strong></td>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                                <td>{{$equipment_total}}</td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @endif
                             @endif
                         </div>
                     </div>
@@ -1287,69 +1315,71 @@ EOT;
                         {!! Form::close() !!}
                         {{--Locked if--}}
                     @else
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-condensed">
-                                <thead>
-                                <tr>
-                                    <th>S.N</th>
-                                    <th>ÇALIŞAN BİRİM</th>
-                                    <th>KİŞİ SAYISI</th>
-                                    <th>ÖLÇÜ BİRİMİ</th>
-                                    <th>YAPILAN İŞLER</th>
-                                    <th>PLANLANAN</th>
-                                    <th>YAPILAN</th>
-                                    <th>YÜZDE</th>
+                        @if(sizeof($report->pwunit()->get()) + sizeof($report->swunit()->get()) > 0)
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-condensed">
+                                    <thead>
+                                    <tr>
+                                        <th>S.N</th>
+                                        <th>ÇALIŞAN BİRİM</th>
+                                        <th>KİŞİ SAYISI</th>
+                                        <th>ÖLÇÜ BİRİMİ</th>
+                                        <th>YAPILAN İŞLER</th>
+                                        <th>PLANLANAN</th>
+                                        <th>YAPILAN</th>
+                                        <th>YÜZDE</th>
 
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <?php
-                                $i = 0;
-                                ?>
-                                @foreach($report->pwunit()->get() as $pw)
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <?php
+                                    $i = 1;
+                                    ?>
+                                    @foreach($report->pwunit()->get() as $pw)
 
-                                    @if(100*(int)$pw->done/(int)$pw->planned>100)
-                                        <tr class="bg-success">
-                                    @elseif(100*(int)$pw->done/(int)$pw->planned<100)
-                                        <tr class="bg-danger">
-                                    @elseif(100*(int)$pw->done/(int)$pw->planned == 100)
-                                        <tr class="bg-warning">
-                                            @endif
-                                            <td>{{$i++}}</td>
-                                            <td>{{$staffs->find($pw->staff_id)->staff}}</td>
-                                            <td>{{$pw->quantity}}</td>
-                                            <td>{{$pw->unit}}</td>
-                                            <td>{{$pw->works_done}}</td>
-                                            <td>{{$pw->planned}}</td>
-                                            <td>{{$pw->done}}</td>
-                                            <td>%{{100*(int)$pw->done/(int)$pw->planned}}</td>
-                                        </tr>
+                                        @if(100*(int)$pw->done/(int)$pw->planned>100)
+                                            <tr class="bg-success">
+                                        @elseif(100*(int)$pw->done/(int)$pw->planned<100)
+                                            <tr class="bg-danger">
+                                        @elseif(100*(int)$pw->done/(int)$pw->planned == 100)
+                                            <tr class="bg-warning">
+                                                @endif
+                                                <td>{{$i++}}</td>
+                                                <td>{{$staffs->find($pw->staff_id)->staff}}</td>
+                                                <td>{{$pw->quantity}}</td>
+                                                <td>{{$pw->unit}}</td>
+                                                <td>{{$pw->works_done}}</td>
+                                                <td>{{$pw->planned}}</td>
+                                                <td>{{$pw->done}}</td>
+                                                <td>%{{100*(int)$pw->done/(int)$pw->planned}}</td>
+                                            </tr>
 
-                                        @endforeach
+                                            @endforeach
 
-                                        @foreach($report->swunit()->get() as $sw)
+                                            @foreach($report->swunit()->get() as $sw)
 
-                                            @if(100*(int)$sw->done/(int)$sw->planned>100)
-                                                <tr class="bg-success">
-                                            @elseif(100*(int)$sw->done/(int)$sw->planned<100)
-                                                <tr class="bg-danger">
-                                            @elseif(100*(int)$sw->done/(int)$sw->planned == 100)
-                                                <tr class="bg-warning">
-                                                    @endif
-                                                    <td>{{$i++}}</td>
-                                                    <td>{{$subcontractors->find($sw->subcontractor_id)->name}}</td>
-                                                    <td>{{$sw->quantity}}</td>
-                                                    <td>{{$sw->unit}}</td>
-                                                    <td>{{$sw->works_done}}</td>
-                                                    <td>{{$sw->planned}}</td>
-                                                    <td>{{$sw->done}}</td>
-                                                    <td>%{{100*(int)$sw->done/(int)$sw->planned}}</td>
-                                                </tr>
+                                                @if(100*(int)$sw->done/(int)$sw->planned>100)
+                                                    <tr class="bg-success">
+                                                @elseif(100*(int)$sw->done/(int)$sw->planned<100)
+                                                    <tr class="bg-danger">
+                                                @elseif(100*(int)$sw->done/(int)$sw->planned == 100)
+                                                    <tr class="bg-warning">
+                                                        @endif
+                                                        <td>{{$i++}}</td>
+                                                        <td>{{$all_subcontractors->find($sw->subcontractor_id)->name}}</td>
+                                                        <td>{{$sw->quantity}}</td>
+                                                        <td>{{$sw->unit}}</td>
+                                                        <td>{{$sw->works_done}}</td>
+                                                        <td>{{$sw->planned}}</td>
+                                                        <td>{{$sw->done}}</td>
+                                                        <td>%{{100*(int)$sw->done/(int)$sw->planned}}</td>
+                                                    </tr>
 
-                                                @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                                                    @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
                     @endif
                 </div>
             </div>
@@ -1493,34 +1523,36 @@ EOT;
                         </div>
                         {!! Form::close() !!}
                     @else
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-condensed">
-                                <thead>
-                                <tr>
-                                    <th>S.N</th>
-                                    <th>GELEN MALZEME</th>
-                                    <th>BİRİM</th>
-                                    <th>MİK.</th>
-                                    <th>AÇIKLAMASI</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-
-                                @for($i = 1; $i<=sizeof($inmaterials); $i++)
-
+                        @if(sizeof($inmaterials)>0)
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-condensed">
+                                    <thead>
                                     <tr>
-                                        <td>{{$i}}</td>
-                                        <td>{{mb_strtoupper(\App\Material::find($inmaterials[$i-1]->material_id)->material, "utf-8")}}</td>
-                                        <td>{{mb_strtoupper($inmaterials[$i-1]->unit, "utf-8")}}</td>
-                                        <td>{{$inmaterials[$i-1]->quantity}}</td>
-                                        <td>{{$inmaterials[$i-1]->explanation}}</td>
+                                        <th>S.N</th>
+                                        <th>GELEN MALZEME</th>
+                                        <th>BİRİM</th>
+                                        <th>MİK.</th>
+                                        <th>AÇIKLAMASI</th>
                                     </tr>
+                                    </thead>
+                                    <tbody>
 
-                                @endfor
+                                    @for($i = 1; $i<=sizeof($inmaterials); $i++)
 
-                                </tbody>
-                            </table>
-                        </div>
+                                        <tr>
+                                            <td>{{$i}}</td>
+                                            <td>{{TurkishChar::tr_up(\App\Material::find($inmaterials[$i-1]->material_id)->material)}}</td>
+                                            <td>{{TurkishChar::tr_up($inmaterials[$i-1]->unit)}}</td>
+                                            <td>{{$inmaterials[$i-1]->quantity}}</td>
+                                            <td>{{$inmaterials[$i-1]->explanation}}</td>
+                                        </tr>
+
+                                    @endfor
+
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
                     @endif
                 </div>
             </div>
@@ -1592,15 +1624,13 @@ EOT;
                                         <?php
                                         $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_photo->path);
                                         $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-                                        if (strpos($report_site_photo->name,'pdf') !== false) {
+                                        if (strpos($report_site_photo->name, 'pdf') !== false) {
                                             $image = URL::to('/') . "/img/pdf.jpg";
-                                            }
-                                            elseif (strpos($report_site_photo->name,'doc') !== false) {
-                                                $image = URL::to('/') . "/img/word.png";
-                                                }
-                                            else{
-                                        $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_photo->name;
-                                            }
+                                        } elseif (strpos($report_site_photo->name, 'doc') !== false) {
+                                            $image = URL::to('/') . "/img/word.png";
+                                        } else {
+                                            $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_photo->name;
+                                        }
                                         ?>
 
                                         <a id="lb-link-{{$report_site_photo->id}}" href="{{$image}}"
@@ -1617,13 +1647,12 @@ EOT;
 
                             <div class="col-sm-6">
                                 {!! Form::open([
-                                                                                            'url' => "/tekil/$site->slug/save-files",
-                                                                                            'method' => 'POST',
-                                                                                            'class' => 'dropzone',
-                                                                                            'id' => 'receipt-insert-form',
-                                                                                            'role' => 'form',
-                                                                                            'files'=>true
-                                                                                            ]) !!}
+                                'url' => "/tekil/$site->slug/save-files",
+                                'method' => 'POST',
+                                'class' => 'dropzone',
+                                'id' => 'receipt-insert-form',
+                                'role' => 'form',
+                                'files'=>true]) !!}
                                 {!! Form::hidden('report_id', $report->id) !!}
                                 {!! Form::hidden('type', "1") !!}
 
@@ -1643,10 +1672,9 @@ EOT;
                                         $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_receipt->path);
                                         $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
                                         $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->name;
-                                        if (strpos($report_site_receipt->name,'pdf') !== false) {
+                                        if (strpos($report_site_receipt->name, 'pdf') !== false) {
                                             $image = URL::to('/') . "/img/pdf.jpg";
-                                        }
-                                        elseif (strpos($report_site_receipt->name,'doc') !== false) {
+                                        } elseif (strpos($report_site_receipt->name, 'doc') !== false) {
                                             $image = URL::to('/') . "/img/word.png";
                                         }
                                         ?>
@@ -1672,10 +1700,9 @@ EOT;
                                     $my_path_arr = explode(DIRECTORY_SEPARATOR, $site_photo->path);
                                     $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
                                     $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $site_photo->name;
-                                    if (strpos($site_photo->name,'pdf') !== false) {
+                                    if (strpos($site_photo->name, 'pdf') !== false) {
                                         $image = URL::to('/') . "/img/pdf.jpg";
-                                    }
-                                    elseif (strpos($site_photo->name,'doc') !== false) {
+                                    } elseif (strpos($site_photo->name, 'doc') !== false) {
                                         $image = URL::to('/') . "/img/word.png";
                                     }
                                     ?>
@@ -1689,28 +1716,27 @@ EOT;
 
                                 @endforeach
                             </div>
-                        <div class="col-sm-6">
-                            @foreach($site_receipt_files as $site_receipt)
-                                <?php
-                                $my_path_arr = explode(DIRECTORY_SEPARATOR, $site_receipt->path);
-                                $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-                                $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $site_receipt->name;
-                                if (strpos($site_receipt->name,'pdf') !== false) {
-                                    $image = URL::to('/') . "/img/pdf.jpg";
-                                }
-                                elseif (strpos($site_receipt->name,'doc') !== false) {
-                                    $image = URL::to('/') . "/img/word.png";
-                                }
-                                ?>
+                            <div class="col-sm-6">
+                                @foreach($site_receipt_files as $site_receipt)
+                                    <?php
+                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $site_receipt->path);
+                                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
+                                    $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $site_receipt->name;
+                                    if (strpos($site_receipt->name, 'pdf') !== false) {
+                                        $image = URL::to('/') . "/img/pdf.jpg";
+                                    } elseif (strpos($site_receipt->name, 'doc') !== false) {
+                                        $image = URL::to('/') . "/img/word.png";
+                                    }
+                                    ?>
 
-                                <a href="{{$image}}"
-                                   data-toggle="lightbox" data-gallery="reportsitereceipts"
-                                   class="col-sm-4">
-                                    <img src="{{$image}}" class="img-responsive">
-                                    {{$site_receipt->name}}
-                                </a>
+                                    <a href="{{$image}}"
+                                       data-toggle="lightbox" data-gallery="reportsitereceipts"
+                                       class="col-sm-4">
+                                        <img src="{{$image}}" class="img-responsive">
+                                        {{$site_receipt->name}}
+                                    </a>
 
-                            @endforeach
+                                @endforeach
                             </div>
                         </div>
 
@@ -1720,5 +1746,47 @@ EOT;
         </div>
     </div>
 
+    @if (!isset($report_date))
+        <div class="row">
+            <div class="col-xs-12 col-md-6 col-md-offset-3">
+                {!! Form::open([
+                                    'url' => "/tekil/$site->slug/lock-report",
+                                    'method' => 'PATCH',
+                                    'class' => 'form',
+                                    'id' => 'lock-report-form',
+                                    'role' => 'form']) !!}
+                {!! Form::hidden('report_id', $report->id) !!}
+                {!! Form::hidden('lock', !$locked) !!}
+
+
+                <button type="submit"
+                        class="btn btn-flat btn-lg btn-block btn-{{ $locked == 1 ? "primary" : "warning" }}">
+                    {{ $locked == 1 ? "Form" : "Rapor" }} Görünümü
+                </button>
+
+                {!! Form::close() !!}
+            </div>
+        </div>
+    @endif
+
+    <div class="modal modal-danger" role="dialog" id="leftDaysModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span></button>
+                    <h4 class="modal-title">Kalan Gün Uyarısı</h4>
+                </div>
+                <div class="modal-body">
+                    <p>Şantiyenin tamamlanması için {{$left}} gün kalmıştır.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline pull-right" data-dismiss="modal">Kapat</button>
+                </div>
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
 
 @stop

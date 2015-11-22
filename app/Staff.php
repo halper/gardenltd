@@ -13,7 +13,7 @@ class Staff extends Model
      *
      * @var array
      */
-    protected $fillable = ['staff'];
+    protected $fillable = ['staff', 'department_id'];
 
     public function department()
     {

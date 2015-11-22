@@ -301,7 +301,7 @@ $account = $site->account;
                             <td  ng-show="showMe(expense.type)"><strong><% expense.date %></strong></td>
                             <td  ng-show="showMe(expense.type)"><% expense.definition %></td>
                             <td  ng-show="showMe(expense.type)"><% expense.buyer %></td>
-                            <td  ng-show="showMe(expense.type)"><% expense.type == 0 ? 'Nakit' : 'Kredi Kartı' %></td>
+                            <td  ng-show="showMe(expense.type)"><% expense.type == 0 ? 'Nakit' : 'Kredi Kartı (' + expense.card_owner + ')' %></td>
                             <td  ng-show="showMe(expense.type)"><% expense.income %>TL</td>
                             <td  ng-show="showMe(expense.type)"><% expense.expense%>TL</td>
                             <td  ng-show="showMe(expense.type)"><% show=='both' ? (sorted | subTotal:$index+1) : '' %>TL</td>

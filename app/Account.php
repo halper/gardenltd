@@ -9,7 +9,7 @@ class Account extends Model
     //
     protected $table = 'accounts';
 
-    protected $fillable = ['owner', 'period', 'init', 'site_id'];
+    protected $fillable = ['owner', 'period', 'site_id', 'card_owner'];
 
     public function expense()
     {

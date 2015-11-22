@@ -462,7 +462,7 @@ class TekilController extends Controller
     public function postAddExpense(Request $request)
     {
         $this->validate($request, [
-           'exp_date' => 'required',
+            'exp_date' => 'required',
             'account_id' => 'required',
             'buyer' => 'required',
             'definition' => 'required',
@@ -485,6 +485,7 @@ class TekilController extends Controller
     {
 
         $account = $site->account;
+        $co = $account->card_owner;
         $expense_arr = [];
         foreach ($account->expense()->get() as $expense) {
             array_push($expense_arr, [
@@ -493,7 +494,8 @@ class TekilController extends Controller
                 'buyer' => $expense->buyer,
                 'type' => $expense->type,
                 'income' => $expense->income,
-                'expense' => $expense->expense]);
+                'expense' => $expense->expense,
+                'card_owner' => $co]);
 
         }
 

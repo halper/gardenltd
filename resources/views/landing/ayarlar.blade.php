@@ -55,11 +55,11 @@
                         <td>
                             <div class="row">
                                 <div class="col-sm-3">
-                                    <a href="{{"duzenle/$user->id"}}" class="btn btn-warning btn-sm">Düzenle</a>
+                                    <a href="{{"duzenle/$user->id"}}" class="btn btn-flat btn-warning btn-sm">Düzenle</a>
                                 </div>
                                 <div class="col-sm-2">
                                     <?php
-                                    echo '<button type="button" class="btn btn-danger btn-sm userDelBut" data-id="' . $user->id . '" data-name="' . $user->name . '" data-toggle="modal" data-target="#deleteUserConfirm">Sil</button>';
+                                    echo '<button type="button" class="btn btn-flat btn-danger btn-sm userDelBut" data-id="' . $user->id . '" data-name="' . $user->name . '" data-toggle="modal" data-target="#deleteUserConfirm">Sil</button>';
                                     ?>
                                 </div>
                             </div>
@@ -73,7 +73,7 @@
         </div>
     </div>
     <div class="row">
-        <button type="button" class="btn btn-primary pull-right" style="margin: 15px" data-toggle="modal"
+        <button type="button" class="btn btn-flat btn-primary pull-right" style="margin: 15px" data-toggle="modal"
                 data-target="#insertUser">Yeni Kullanıcı Ekle
         </button>
     </div>
@@ -85,7 +85,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">Delete</h4>
+                    <h4 class="modal-title">Kullanıcı Sil</h4>
                 </div>
                 <div class="modal-body">
                     <p class="userDel"></p>
@@ -98,8 +98,8 @@
                     'id' => 'userDeleteForm',
                     'role' => 'form'
                     ]) !!}
-                    <button type="submit" class="btn btn-warning">Sil</button>
-                    <button type="button" class="btn btn-default" data-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-flat btn-warning">Sil</button>
+                    <button type="button" class="btn btn-flat btn-default" data-dismiss="modal">İptal</button>
                     {!! Form::close() !!}
                 </div>
             </div>
@@ -130,8 +130,8 @@
                 </div>
                 <div class="modal-footer">
 
-                    <button type="submit" class="btn btn-primary">Kullanıcı ekle</button>
-                    <button type="button" class="btn btn-default" data-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-flat btn-primary">Kullanıcı ekle</button>
+                    <button type="button" class="btn btn-flat btn-default" data-dismiss="modal">İptal</button>
                     {!! Form::close() !!}
                 </div>
             </div>

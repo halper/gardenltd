@@ -23,9 +23,32 @@ foreach (\App\Manufacturing::all() as $manufacture) {
     <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/select2.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.min.js"></script>
     <script>
-        $(".js-example-basic-multiple").select2({
-            placeholder: "Çoklu seçim yapabilirsiniz",
-            allowClear: true
+        $(document).ready(function () {
+            $(".js-example-basic-multiple").select2({
+                placeholder: "Çoklu seçim yapabilirsiniz",
+                allowClear: true
+            });
+
+            $(".select2-container").width('100%');
+            $(".select2-search--inline").width('99%');
+        });
+
+        $(document).on("click", ".subcontractorDelBut", function (e) {
+
+            e.preventDefault();
+            var mySubcontractorId = $(this).data('id');
+            var mySubcontractorName = $(this).data('name');
+            var myForm = $('.modal-footer #userDeleteForm');
+            var myP = $('.modal-body .userDel');
+            myP.html("<em>" + mySubcontractorName + "</em> adlı taşeronu silmek istediğinize emin misiniz?");
+            $('<input>').attr({
+                type: 'hidden',
+                name: 'subcontractorDeleteIn',
+                value: mySubcontractorId
+            }).appendTo(myForm);
+            $('#deleteSubcontractorConfirm').modal('show');
+
+
         });
 
         $('.dateRangePicker').datepicker({
@@ -35,6 +58,8 @@ foreach (\App\Manufacturing::all() as $manufacture) {
             startDate: '01.01.2010',
             endDate: '30.12.2100'
         });
+
+
     </script>
 
 @stop
@@ -45,122 +70,76 @@ foreach (\App\Manufacturing::all() as $manufacture) {
             <!-- Custom Tabs -->
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs">
-                    <li class="active"><a href="#tab_1" data-toggle="tab">Taşeron Ekle</a></li>
+                    <li class="active"><a href="#tab_1" data-toggle="tab">Taşeron Bilgileri Düzenle</a></li>
                     <li><a href="#tab_2" data-toggle="tab">Taşeron Cari Hesap</a></li>
-                    <li><a href="#tab_3" data-toggle="tab">Taşeron Bilgileri Düzenle</a></li>
+                    <li><a href="#tab_3" data-toggle="tab">Taşeron Ekle</a></li>
 
                 </ul>
                 <div class="tab-content">
+
+                    <!-- /.tab-pane -->
                     <div class="tab-pane active" id="tab_1">
                         <div class="row">
-                            <div class="col-sm-12">
-                                {!! Form::open([
-                                                    'url' => "/tekil/$site->slug/add-subcontractor",
-                                                    'method' => 'POST',
-                                                    'class' => 'form .form-horizontal',
-                                                    'id' => 'subcontractorInsertForm',
-                                                    'role' => 'form',
-                                                    'files' => true
-                                                    ])!!}
-                                <div class="form-group {{ $errors->has('name') ? 'has-error' : '' }}">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('name', 'Taşeronun Adı: ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-10">
-                                            {!! Form::text('name', null, ['class' => 'form-control', 'placeholder' => 'Taşeronun adını giriniz']) !!}
+                            <div class="col-xs-12 table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                    <tr>
+                                        <th>Taşeron</th>
+                                        <th>Sözleşme Tarihi</th>
+                                        <th>Sözleşme Başlangıç</th>
+                                        <th>Sözleşme Bitiş</th>
+                                        <th>Sözleşme Dosyası</th>
+                                        <th>İşlemler</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
 
-                                        </div>
-                                    </div>
-                                </div>
+                                    @foreach($site->subcontractor()->get() as $sub)
+                                        <tr>
+                                            <td>{{ $sub->name}}</td>
+                                            <td>{{ \App\Library\CarbonHelper::getTurkishDate($sub->contract_date) }}</td>
 
-                                <div class="form-group {{ $errors->has('contract_date') ? 'has-error' : '' }}">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('contract_date', 'Sözleşme Tarihi: ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-10">
-                                            <div class="input-group input-append date dateRangePicker">
-                                                <input type="text" class="form-control" name="contract_date"
-                                                       placeholder="Sözleşme tarihini seçiniz"/>
-                                        <span class="input-group-addon add-on"><span
-                                                    class="glyphicon glyphicon-calendar"></span></span>
-                                            </div>
-
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group {{ $errors->has('contract_start_date') ? 'has-error' : '' }}">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('contract_start_date', 'Sözleşme Başlangıç Tarihi: ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-10">
-                                            <div class="input-group input-append date dateRangePicker">
-                                                <input type="text" class="form-control" name="contract_start_date"
-                                                       placeholder="Sözleşme başlangıç tarihini seçiniz"/>
-                                        <span class="input-group-addon add-on"><span
-                                                    class="glyphicon glyphicon-calendar"></span></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group {{ $errors->has('contract_end_date') ? 'has-error' : '' }}">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('contract_end_date', 'Sözleşme Bitim Tarihi: ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-10">
-                                            <div class="input-group input-append date dateRangePicker">
-                                                <input type="text" class="form-control" name="contract_end_date"
-                                                       placeholder="Sözleşme bitim tarihini seçiniz"/>
-                                        <span class="input-group-addon add-on"><span
-                                                    class="glyphicon glyphicon-calendar"></span></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('manufacturings', 'İmalat Grubu: ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-10">
-                                            <select name="manufacturings[]"
-                                                    class="js-example-basic-multiple form-control"
-                                                    multiple>
-
-                                                {!! $manufacturing_options !!}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-<div class="form-group">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('contract', 'Sözleşme Dosyası: ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-10">
-                                            <input type="file" name="contractToUpload" id="contractToUpload">
-                                        </div>
-                                    </div>
-                                </div>
+                                            <td>
+                                                {{\App\Library\CarbonHelper::getTurkishDate($sub->contract_start_date)}}
+                                            </td>
+                                            <td>{{\App\Library\CarbonHelper::getTurkishDate($sub->contract_end_date)}}</td>
+                                            <td>
+                                                <?php
+                                                $my_path = '';
+                                                $file_name = '';
 
 
-                                <div class="form-group pull-right">
-                                    <button type="submit" class="btn btn-flat btn-primary">Şantiye Ekle</button>
+                                                if (!is_null($sub->sfile)) {
+                                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $sub->sfile->file->path);
+                                                    $file_name = $sub->sfile->file->name;
+                                                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
+                                                }
+                                                ?>
+                                                <a href="{{!empty($my_path) ? $my_path : ""}}">
+                                                {{!empty($file_name) ? $file_name : ""}}
+                                            </a></td>
+                                            <td>
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <a href="{{"taseron-duzenle/$sub->id"}}"
+                                                           class="btn btn-flat btn-warning btn-sm">Düzenle</a>
+                                                    </div>
+                                                    <div class="col-sm-2 col-sm-offset-1">
+                                                        <?php
+                                                        echo '<button type="button" class="btn btn-flat btn-danger btn-sm subcontractorDelBut" data-id="' . $sub->id . '" data-name="' . $sub->name . '" data-toggle="modal" data-target="#deleteSubcontractorConfirm">Sil</button>';
+                                                        ?>
+                                                    </div>
+                                                </div>
 
-                                    {!! Form::close() !!}
-                                </div>
+                                            </td>
+
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-
-
                     </div>
-
 
                     <!-- /.tab-pane -->
                     <div class="tab-pane" id="tab_2">
@@ -292,11 +271,33 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                             </div>
                         </div>
                     </div>
+
+
                     <!-- /.tab-pane -->
                     <div class="tab-pane" id="tab_3">
+                        <div class="row">
+                            <div class="col-sm-12">
+                                {!! Form::open([
+                                                    'url' => "/tekil/$site->slug/add-subcontractor",
+                                                    'method' => 'POST',
+                                                    'class' => 'form .form-horizontal',
+                                                    'id' => 'subcontractorInsertForm',
+                                                    'role' => 'form',
+                                                    'files' => true
+                                                    ])!!}
+                                @include('tekil._subcontractor-form')
+
+
+                                <div class="form-group pull-right">
+                                    <button type="submit" class="btn btn-flat btn-primary">Şantiye Ekle</button>
+
+                                    {!! Form::close() !!}
+                                </div>
+                            </div>
+                        </div>
+
 
                     </div>
-                    <!-- /.tab-pane -->
                     <!-- /.tab-content -->
                 </div>
                 <!-- nav-tabs-custom -->
@@ -306,7 +307,34 @@ foreach (\App\Manufacturing::all() as $manufacture) {
 
 
 
+    <div id="deleteUserConfirm" class="modal fade" role="dialog">
+        <div class="modal-dialog">
 
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Taşeron Sil</h4>
+                </div>
+                <div class="modal-body">
+                    <p class="userDel"></p>
+                </div>
+                <div class="modal-footer">
+                    {!! Form::open([
+                    'url' => "/tekil/$site->slug/del-subcontractor",
+                    'method' => 'PATCH',
+                    'class' => 'form',
+                    'id' => 'subcontractorDeleteForm',
+                    'role' => 'form'
+                    ]) !!}
+                    <button type="submit" class="btn btn-warning">Sil</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">İptal</button>
+                    {!! Form::close() !!}
+                </div>
+            </div>
+
+        </div>
+    </div>
 
 
 

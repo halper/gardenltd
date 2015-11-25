@@ -31,9 +31,15 @@ class Subcontractor extends Model implements SluggableInterface
         return $this->belongsToMany('App\Manufacturing')->withTimestamps();
     }
 
+    public function hasManufacture($manufacture_id)
+    {
+        return !is_null($this->manufacturing()->find($manufacture_id));
+    }
+
     public function sfile()
     {
-        return $this->hasMany('App\Sfile');
+        return $this->hasOne('App\Sfile');
     }
+
 
 }

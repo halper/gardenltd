@@ -326,6 +326,7 @@ $account = $site->account;
 
         <div class="row">
             <div class="col-md-12">
+                <h4>Yeni Harcama Kaydı Oluştur</h4>
                 <div class="row">
                     <div class="col-md-2">
                         <div class="input-group input-append date " id="dateRangePicker">
@@ -338,12 +339,14 @@ $account = $site->account;
                     <div class="col-md-4">
                         <input type="text" class="form-control"
                                name="definition" ng-model="definition"
-                               value=""/>
+                               value=""
+                        placeholder="Harcama açıklaması"/>
                     </div>
                     <div class="col-md-2">
                         <input type="text" class="form-control"
                                name="buyer" ng-model="buyer"
-                               value=""/>
+                               value=""
+                        placeholder="Harcamayı Yapan"/>
                     </div>
                     <div class="col-md-2">
                         <select name="type" ng-model="type" class="form-control">
@@ -356,12 +359,14 @@ $account = $site->account;
                     <div class="col-md-1">
                         <input type="number" class="form-control"
                                name="income" ng-model="income"
-                               value="0"/>
+                               value="0"
+                        placeholder="Gelir"/>
                     </div>
                     <div class="col-md-1">
                         <input type="number" class="form-control"
                                name="expense" ng-model="expense"
-                               value="0"/>
+                               value="0"
+                        placeholder="Gider"/>
                     </div>
 
                 </div>

@@ -51,8 +51,8 @@ $end_date = date_create($site->end_date);
 $left = str_replace("+", "", date_diff($now, $end_date)->format("%R%a"));
 
 $subcontractor_staffs = \App\Substaff::all();
-$subcontractors = \App\Subcontractor::where('contract_start_date', '<=', $today)->where('contract_end_date', '>', $today)->get();
-$all_subcontractors = \App\Subcontractor::all();
+$subcontractors = $site->subcontractor()->where('contract_start_date', '<=', $today)->where('contract_end_date', '>', $today)->get();
+$all_subcontractors = $site->subcontractor()->get();
 $subcontractor_staff_total = 0;
 
 ?>
@@ -723,7 +723,7 @@ EOT;
                                                 if ($pos === false) {
                                                     // string needle NOT found in haystack
                                                     $staff_name = $staff->staff;
-                                                    for ($k = 1; $k < $max_explosion; $k++) {
+                                                    for ($k = 2; $k < $max_explosion; $k++) {
                                                         $br_string .= "<br>";
                                                     }
                                                 } else {
@@ -742,7 +742,7 @@ EOT;
                                                             $i++;
                                                         }
                                                     }
-                                                    for ($k = 0; $k < $max_explosion - sizeof($staff_words); $k++) {
+                                                    for ($k = 1; $k < $max_explosion - sizeof($staff_words); $k++) {
                                                         $br_string .= "<br>";
                                                     }
                                                 }
@@ -1336,12 +1336,15 @@ EOT;
                                     $i = 1;
                                     ?>
                                     @foreach($report->pwunit()->get() as $pw)
+                                        <?php
+                                        $pw_work_done_in_percent = ((int)$pw->planned == 0 || is_null($pw->planned)) ? 0 : 100 * (int)$pw->done / (int)$pw->planned;
+                                        ?>
 
-                                        @if(100*(int)$pw->done/(int)$pw->planned>100)
+                                        @if($pw_work_done_in_percent>100)
                                             <tr class="bg-success">
-                                        @elseif(100*(int)$pw->done/(int)$pw->planned<100)
+                                        @elseif($pw_work_done_in_percent<100)
                                             <tr class="bg-danger">
-                                        @elseif(100*(int)$pw->done/(int)$pw->planned == 100)
+                                        @elseif($pw_work_done_in_percent == 100)
                                             <tr class="bg-warning">
                                                 @endif
                                                 <td>{{$i++}}</td>
@@ -1351,18 +1354,23 @@ EOT;
                                                 <td>{{$pw->works_done}}</td>
                                                 <td>{{$pw->planned}}</td>
                                                 <td>{{$pw->done}}</td>
-                                                <td>%{{100*(int)$pw->done/(int)$pw->planned}}</td>
+                                                <td>%{{$pw_work_done_in_percent}}</td>
                                             </tr>
 
                                             @endforeach
 
                                             @foreach($report->swunit()->get() as $sw)
+                                                <?php
 
-                                                @if(100*(int)$sw->done/(int)$sw->planned>100)
+                                                $sw_work_done_in_percent = ((int)$sw->planned == 0 || is_null($sw->planned)) ? 0 : 100 * (int)$sw->done / (int)$sw->planned;
+
+                                                ?>
+
+                                                @if($sw_work_done_in_percent>100)
                                                     <tr class="bg-success">
-                                                @elseif(100*(int)$sw->done/(int)$sw->planned<100)
+                                                @elseif($sw_work_done_in_percent<100)
                                                     <tr class="bg-danger">
-                                                @elseif(100*(int)$sw->done/(int)$sw->planned == 100)
+                                                @elseif($sw_work_done_in_percent == 100)
                                                     <tr class="bg-warning">
                                                         @endif
                                                         <td>{{$i++}}</td>
@@ -1372,7 +1380,7 @@ EOT;
                                                         <td>{{$sw->works_done}}</td>
                                                         <td>{{$sw->planned}}</td>
                                                         <td>{{$sw->done}}</td>
-                                                        <td>%{{100*(int)$sw->done/(int)$sw->planned}}</td>
+                                                        <td>%{{$sw_work_done_in_percent}}</td>
                                                     </tr>
 
                                                     @endforeach

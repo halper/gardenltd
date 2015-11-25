@@ -384,6 +384,12 @@ class TekilController extends Controller
         return view('tekil/subcontractor-account', compact('site', 'modules'));
     }
 
+    public function getTaseronDuzenle(Site $site, Module $modules, $id)
+    {
+        $subcontractor = Subcontractor::find($id);
+        return view('tekil/subcontractor-edit', compact('subcontractor', 'site', 'modules'));
+    }
+
     public function postAddSubcontractor(Request $request, Site $site)
     {
 
@@ -422,7 +428,6 @@ class TekilController extends Controller
             ]);
 
             $sfile = Sfile::create([
-                "site_id" => $site->id,
                 "file_id" => $db_file->id,
                 "subcontractor_id" => $subcontractor->id
 
@@ -432,6 +437,75 @@ class TekilController extends Controller
         Session::flash('flash_message', "Taşeron ($subcontractor->name) kaydı oluşturuldu");
         return redirect()->back();
 
+    }
+
+    public function postUpdateSubcontractor(Site $site, Request $request)
+    {
+        $has_error = false;
+        $subcontractor = Subcontractor::find($request->get('sub-id'));
+        $subcontractor->manufacturing()->detach();
+        foreach ($request->get('manufacturings') as $man_id) {
+            $subcontractor->manufacturing()->attach($man_id);
+        }
+        $subcontractor->name = $request->get('name');
+        $subcontractor->contract_date = CarbonHelper::getMySQLDate($request->get('contract_date'));
+        $subcontractor->contract_start_date = CarbonHelper::getMySQLDate($request->get('contract_start_date'));
+        $subcontractor->contract_end_date = CarbonHelper::getMySQLDate($request->get('contract_end_date'));
+
+        if ($request->file("contractToUpload")) {
+            $file = $request->file("contractToUpload");
+
+            if (!empty($subcontractor->sfile)) {
+                $db_file = $subcontractor->sfile->file;
+
+                if (unlink($db_file->path . DIRECTORY_SEPARATOR . $db_file->name)) {
+
+                    $directory = $db_file->path;
+                    $filename = $file->getClientOriginalName();
+
+                    if ($file->move($directory, $filename)) {
+
+                        $db_file->name = $filename;
+                        $db_file->save();
+                    }
+                    else{
+                        $has_error = true;
+                    }
+                }
+                else{
+                    $has_error = true;
+                }
+            } else {
+                $directory = public_path() . '/uploads/' . uniqid(rand(), true);
+                $filename = $file->getClientOriginalName();
+
+                $upload_success = $file->move($directory, $filename);
+
+                if ($upload_success) {
+                    $db_file = File::create([
+                        "name" => $filename,
+                        "path" => $directory,
+                        "type" => 2,
+                    ]);
+
+                    $sfile = Sfile::create([
+                        "file_id" => $db_file->id,
+                        "subcontractor_id" => $subcontractor->id
+
+                    ]);
+                }
+                else{
+                    $has_error = true;
+                }
+            }
+        }
+        if($has_error){
+            Session::flash('flash_message_error', "Dosya yüklenirken hata oluştu");
+        }
+        else {
+            Session::flash('flash_message', "Taşeron ($subcontractor->name) kaydı güncellendi");
+        }
+            return redirect()->back();
     }
 
 //  END OF TAŞERON CARİ HESAP PAGE

@@ -58,6 +58,11 @@ class Site extends Eloquent implements SluggableInterface
         return $this->hasMany('App\Sfile');
     }
 
+    public function subcontractor()
+    {
+        return $this->hasMany('App\Subcontractor');
+    }
+
     public static function getSites()
     {
         return Site::where('id', '>', 1)->get();

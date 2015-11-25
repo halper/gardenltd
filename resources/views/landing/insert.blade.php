@@ -1,6 +1,9 @@
 <?php
 $sites = \App\Site::getSites();
 $manufacturing_options = '';
+$city_options = '';
+$phone_options = '';
+$mobile_options = '';
 $site_options = '';
 $eq_json = json_encode(\App\Equipment::all());
 $staffs = \App\Staff::all();
@@ -8,6 +11,18 @@ $staff_json = [];
 
 foreach (\App\Manufacturing::all() as $manufacture) {
     $manufacturing_options .= "'<option value=\"$manufacture->id\">" . \App\Library\TurkishChar::tr_up($manufacture->name) . "</option>'+\n";
+}
+
+foreach (\App\City::all() as $city) {
+    $city_options .= "'<option value=\"$city->id\">" . \App\Library\TurkishChar::tr_up($city->name) . "</option>'+\n";
+}
+
+foreach (\App\AreaCode::all() as $area) {
+    $phone_options .= "'<option value=\"$area->id\">$area->code</option>'+\n";
+}
+
+foreach (\App\MobileCode::all() as $mobile) {
+    $mobile_options .= "'<option value=\"$mobile->id\">$mobile->code</option>'+\n";
 }
 
 foreach ($sites as $site) {
@@ -188,6 +203,14 @@ $dept_json = json_encode(\App\Department::all());
             placeholder: "Çoklu seçim yapabilirsiniz",
             allowClear: true
         });
+        $(".city-select").select2({
+            placeholder: "Şehir seçiniz",
+            allowClear: true
+        });
+$(".mobile-select").select2({
+            placeholder: "Alan kodu",
+            allowClear: true
+        });
 
         $(".js-example-basic-single").select2({
             placeholder: "Taşeronun bağlı olduğu şantiyeyi seçiniz",
@@ -236,7 +259,7 @@ $dept_json = json_encode(\App\Department::all());
                                 <div class="form-group {{ $errors->has('name') ? 'has-error' : '' }}">
                                     <div class="row">
                                         <div class="col-sm-2">
-                                            {!! Form::label('name', 'Taşeronun Adı: ', ['class' => 'control-label']) !!}
+                                            {!! Form::label('name', 'Taşeronun Adı:* ', ['class' => 'control-label']) !!}
                                         </div>
                                         <div class="col-sm-10">
                                             {!! Form::text('name', null, ['class' => 'form-control', 'placeholder' => 'Taşeronun adını giriniz']) !!}
@@ -245,54 +268,36 @@ $dept_json = json_encode(\App\Department::all());
                                     </div>
                                 </div>
 
-                                <div class="form-group {{ $errors->has('contract_date') ? 'has-error' : '' }}">
+                                <div class="form-group {{ $errors->has('address') ? 'has-error' : '' }}">
                                     <div class="row">
                                         <div class="col-sm-2">
-                                            {!! Form::label('contract_date', 'Sözleşme Tarihi: ', ['class' => 'control-label']) !!}
+                                            {!! Form::label('address', 'Açık Adresi:* ', ['class' => 'control-label']) !!}
                                         </div>
                                         <div class="col-sm-10">
-                                            <div class="input-group input-append date dateRangePicker">
-                                                <input type="text" class="form-control" name="contract_date"
-                                                       placeholder="Sözleşme tarihini seçiniz"/>
-                                        <span class="input-group-addon add-on"><span
-                                                    class="glyphicon glyphicon-calendar"></span></span>
-                                            </div>
+                                            {!! Form::textarea('address', null, ['class' => 'form-control',
+                                                                                'placeholder' => 'Taşeronun adresini giriniz',
+                                                                                 'rows' => '2']) !!}
 
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="form-group {{ $errors->has('contract_start_date') ? 'has-error' : '' }}">
+                                <div class="form-group {{ $errors->has('city_id') ? 'has-error' : '' }}">
                                     <div class="row">
                                         <div class="col-sm-2">
-                                            {!! Form::label('contract_start_date', 'Sözleşme Başlangıç Tarihi: ', ['class' => 'control-label']) !!}
+                                            {!! Form::label('city_id', 'Şehir:* ', ['class' => 'control-label']) !!}
                                         </div>
                                         <div class="col-sm-10">
-                                            <div class="input-group input-append date dateRangePicker">
-                                                <input type="text" class="form-control" name="contract_start_date"
-                                                       placeholder="Sözleşme başlangıç tarihini seçiniz"/>
-                                        <span class="input-group-addon add-on"><span
-                                                    class="glyphicon glyphicon-calendar"></span></span>
-                                            </div>
+                                            <select name="city_id"
+                                                    class="city-select form-control">
+
+                                                {!! $city_options !!}
+                                            </select>
+
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="form-group {{ $errors->has('contract_end_date') ? 'has-error' : '' }}">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('contract_end_date', 'Sözleşme Bitim Tarihi: ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-10">
-                                            <div class="input-group input-append date dateRangePicker">
-                                                <input type="text" class="form-control" name="contract_end_date"
-                                                       placeholder="Sözleşme bitim tarihini seçiniz"/>
-                                        <span class="input-group-addon add-on"><span
-                                                    class="glyphicon glyphicon-calendar"></span></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
 
                                 <div class="form-group">
                                     <div class="row">
@@ -310,35 +315,138 @@ $dept_json = json_encode(\App\Department::all());
                                     </div>
                                 </div>
 
-                                <div class="form-group">
+                                <div class="form-group {{ $errors->has('official') ? 'has-error' : '' }}">
                                     <div class="row">
                                         <div class="col-sm-2">
-                                            {!! Form::label('sites', 'Şantiye: ', ['class' => 'control-label']) !!}
+                                            {!! Form::label('official', 'Firma Yetkilisinin Adı:* ', ['class' => 'control-label']) !!}
                                         </div>
                                         <div class="col-sm-10">
-                                            <select name="sites"
-                                                    class="js-example-basic-single form-control">
+                                            {!! Form::text('official', null, ['class' => 'form-control', 'placeholder' => 'Firma yetkilisinin adını giriniz']) !!}
 
-                                                {!! $site_options !!}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group {{ $errors->has('title') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('title', 'Firma Yetkilisinin Unvanı:* ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-10">
+                                            {!! Form::text('title', null, ['class' => 'form-control', 'placeholder' => 'Firma yetkilisinin unvanını giriniz']) !!}
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group {{ $errors->has('phone') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('phone', 'Telefon numarası:* ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <select name="area_code_id"
+                                                    class="mobile-select form-control">
+
+                                                {!! $phone_options !!}
                                             </select>
+
+                                        </div>
+                                        <div class="col-sm-3">
+                                            {!! Form::number('phone', null, ['class' => 'form-control', 'placeholder' => 'Telefon numarası giriniz']) !!}
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group {{ $errors->has('fax') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('fax', 'Fax numarası:* ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <select name="fax_code_id"
+                                                    class="mobile-select form-control">
+
+                                                {!! $phone_options !!}
+                                            </select>
+
+                                        </div>
+                                        <div class="col-sm-3">
+                                            {!! Form::number('fax', null, ['class' => 'form-control', 'placeholder' => 'Fax numarası giriniz']) !!}
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group {{ $errors->has('mobile') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('mobile', 'Cep numarası:* ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <select name="mobile_code_id"
+                                                    class="mobile-select form-control">
+
+                                                {!! $mobile_options !!}
+                                            </select>
+
+                                        </div>
+                                        <div class="col-sm-3">
+                                            {!! Form::number('mobile', null, ['class' => 'form-control', 'placeholder' => 'Cep numarası giriniz']) !!}
+
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="form-group">
+
+                                <div class="form-group {{ $errors->has('email') ? 'has-error' : '' }}">
                                     <div class="row">
                                         <div class="col-sm-2">
-                                            {!! Form::label('contract', 'Sözleşme Dosyası: ', ['class' => 'control-label']) !!}
+                                            {!! Form::label('email', 'E-posta Adresi: ', ['class' => 'control-label']) !!}
                                         </div>
                                         <div class="col-sm-10">
-                                            <input type="file" name="contractToUpload" id="contractToUpload">
+                                            {!! Form::email('email', null, ['class' => 'form-control', 'placeholder' => 'E-posta adresini giriniz']) !!}
+
                                         </div>
                                     </div>
                                 </div>
+                                <div class="form-group {{ $errors->has('web') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('web', 'Web Adresi: ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-10">
+                                            {!! Form::text('web', null, ['class' => 'form-control', 'placeholder' => 'Web adresini giriniz']) !!}
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group {{ $errors->has('tax_office') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('tax_office', 'Vergi Dairesi: ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-10">
+                                            {!! Form::text('tax_office', null, ['class' => 'form-control', 'placeholder' => 'Vergi dairesini giriniz']) !!}
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group {{ $errors->has('tax_number') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('tax_number', 'Vergi Numarası:* ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-10">
+                                            {!! Form::text('tax_number', null, ['class' => 'form-control', 'placeholder' => 'Vergi numarasını giriniz']) !!}
+
+                                        </div>
+                                    </div>
+                                </div>
+
 
 
                                 <div class="form-group pull-right">
-                                    <button type="submit" class="btn btn-flat btn-primary">Şantiye Ekle</button>
+                                    <button type="submit" class="btn btn-flat btn-primary">Taşeron Ekle</button>
 
                                     {!! Form::close() !!}
 

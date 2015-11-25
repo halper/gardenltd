@@ -277,22 +277,44 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                     <div class="tab-pane" id="tab_3">
                         <div class="row">
                             <div class="col-sm-12">
-                                {!! Form::open([
+
+                                <div class="row">
+                                    {!! Form::open([
                                                     'url' => "/tekil/$site->slug/add-subcontractor",
                                                     'method' => 'POST',
                                                     'class' => 'form .form-horizontal',
                                                     'id' => 'subcontractorInsertForm',
                                                     'role' => 'form',
-                                                    'files' => true
                                                     ])!!}
-                                @include('tekil._subcontractor-form')
 
 
-                                <div class="form-group pull-right">
-                                    <button type="submit" class="btn btn-flat btn-primary">Şantiye Ekle</button>
+                                    @foreach(App\Subcontractor::all() as $subcontractor)
 
-                                    {!! Form::close() !!}
+                                        <div class="col-md-4 col-xs-6">
+                                            <label class="checkbox-inline">
+                                                {!! Form::checkbox('subcontractors[]', $subcontractor->id, $site->hasSubcontractor($subcontractor->id),
+                                                [
+                                                'id'=>$subcontractor->id,
+                                                ])
+                                                !!}{{ $subcontractor->name}}</label>
+                                        </div>
+
+                                    @endforeach
                                 </div>
+
+                                <div class="row">
+                                    <div class="col-xs-12 col-md-4 col-md-offset-3">
+                                        <div class="form-group">
+                                            <br>
+                                            <br>
+                                            <button type="submit" class="btn btn-primary btn-flat btn-block">
+                                                Güncelle
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {!! Form::close() !!}
                             </div>
                         </div>
 

@@ -17,13 +17,15 @@ class Subcontractor extends Model implements SluggableInterface
 
     protected $table = 'subcontractors';
 
-    protected $fillable = ['name', 'contract_date',
-        'contract_start_date', 'contract_end_date', 'site_id'];
+    protected $fillable = ['name', 'address',
+        'city_id', 'official', 'title', 'area_code_id', 'phone',
+        'fax_code_id', 'fax', 'mobile_code_id', 'mobile', 'email',
+        'web', 'tax_office', 'tax_number'];
 
 
     public function site()
     {
-        return $this->belongsTo('App\Site');
+        return $this->belongsToMany('App\Site')->withTimestamps();
     }
 
     public function manufacturing()

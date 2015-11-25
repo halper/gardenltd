@@ -158,55 +158,30 @@ class AdminController extends Controller
     public function postAddSubcontractor(Request $request)
     {
 
-
         $this->validate($request, [
             'name' => 'required',
-            'contract_date' => 'required',
-            'contract_start_date' => 'required',
-            'contract_end_date' => 'required',
-            'sites' => 'required',
-
+            'address' => 'required',
+            'city_id' => 'required',
+            'official' => 'required',
+            'title' => 'required',
+            'area_code_id' => 'required',
+            'phone' => 'required | size:7',
+            'fax_code_id' => 'required',
+            'fax' => 'required | size:7',
+            'mobile_code_id' => 'required',
+            'mobile' => 'required | size:7',
+            'email' => 'email',
+            'tax_number' => 'required'
         ]);
 
-        $site_id = $request->get('sites');
-
-
-        $subcontractor = Subcontractor::create([
-            "name" => $request->get("name"),
-            'contract_date' => CarbonHelper::getMySQLDate($request->get("contract_date")),
-            'contract_start_date' => CarbonHelper::getMySQLDate($request->get("contract_start_date")),
-            'contract_end_date' => CarbonHelper::getMySQLDate($request->get("contract_end_date")),
-            "site_id" => $site_id,
-        ]);
+        $subcontractor = Subcontractor::create($request->all());
 
         foreach ($request->get('manufacturings') as $man_id) {
             Manufacturing::find($man_id)->subcontractor()->attach($subcontractor->id);
         }
 
-        if ($request->file("contractToUpload")) {
-            $file = $request->file("contractToUpload");
-            $directory = public_path() . '/uploads/' . uniqid(rand(), true);
-            $filename = $file->getClientOriginalName();
 
-            $upload_success = $file->move($directory, $filename);
-
-
-            $db_file = File::create([
-                "name" => $filename,
-                "path" => $directory,
-                "type" => 2,
-            ]);
-
-            Sfile::create([
-                "site_id" => $site_id,
-                "file_id" => $db_file->id,
-                "subcontractor_id" => $subcontractor->id
-
-            ]);
-            Session::flash('flash_message', "Taşeron ($subcontractor->name) kaydı oluşturuldu");
-        } else {
-            Session::flash('flash_message_error', "Taşeron ($subcontractor->name) kaydı oluşturuldu; fakat dosya yükleme başarısız");
-        }
+        Session::flash('flash_message', "Taşeron ($subcontractor->name) kaydı oluşturuldu");
 
         return redirect()->back();
 

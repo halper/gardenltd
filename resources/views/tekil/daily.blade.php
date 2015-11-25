@@ -51,8 +51,8 @@ $end_date = date_create($site->end_date);
 $left = str_replace("+", "", date_diff($now, $end_date)->format("%R%a"));
 
 $subcontractor_staffs = \App\Substaff::all();
-$subcontractors = $site->subcontractor()->where('contract_start_date', '<=', $today)->where('contract_end_date', '>', $today)->get();
-$all_subcontractors = $site->subcontractor()->get();
+$subcontractors = $site->subcontractor()->get();
+$all_subcontractors = $subcontractors;
 $subcontractor_staff_total = 0;
 
 ?>

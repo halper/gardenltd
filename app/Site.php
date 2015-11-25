@@ -48,6 +48,10 @@ class Site extends Eloquent implements SluggableInterface
         return ! is_null($this->equipment()->where('equipment_id', $eq_id)->first());
     }
 
+    public function hasSubcontractor($id){
+        return ! is_null($this->subcontractor()->where('subcontractor_id', $id)->first());
+    }
+
     public function rfile()
     {
         return $this->hasMany('App\Rfile');
@@ -60,7 +64,7 @@ class Site extends Eloquent implements SluggableInterface
 
     public function subcontractor()
     {
-        return $this->hasMany('App\Subcontractor');
+        return $this->belongsToMany('App\Subcontractor')->withTimestamps();
     }
 
     public static function getSites()

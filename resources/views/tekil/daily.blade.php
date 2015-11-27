@@ -4,6 +4,22 @@ use App\Material;use Carbon\Carbon;
 use App\Staff;
 use Illuminate\Support\Facades\Session;
 $my_weather = new Weather;
+$weather_symbol = '';
+
+if (strpos($my_weather->getDescription(), 'Kapalı') !== false) {
+    $weather_symbol = '<i class="wi wi-day-cloudy"></i>';
+} else if (strpos($my_weather->getDescription(), 'Hafif kar yağışlı') !== false) {
+    $weather_symbol = '<i class="wi wi-day-snow"></i>';
+} else if (strpos($my_weather->getDescription(), 'Hafif yağmur') !== false) {
+    $weather_symbol = '<i class="wi wi-day-sprinkle"></i>';
+} else if (strpos($my_weather->getDescription(), 'Şiddetli yağmur') !== false) {
+    $weather_symbol = '<i class="wi wi-day-thunderstorm"></i>';
+} else if (strpos($my_weather->getDescription(), 'Orta şiddetli yağmur') !== false) {
+    $weather_symbol = '<i class="wi wi-day-hail"></i>';
+}else if (strpos($my_weather->getDescription(), 'Açık') !== false) {
+    $weather_symbol = '<i class="wi wi-day-sunny"></i>';
+}
+
 if (session()->has("data")) {
     $report_date = session('data')["date"];
 }
@@ -62,8 +78,9 @@ $subcontractor_staff_total = 0;
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.min.css"/>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker3.min.css"/>
     <link href="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/css/select2.min.css" rel="stylesheet"/>
-    <link href="<?= URL::to('/'); ?>/css/dropzone.css" rel="stylesheet" type="text/css"/>
-    <link href="<?= URL::to('/'); ?>/css/lightbox.css" rel="stylesheet" type="text/css"/>
+    <link href="<?= URL::to('/'); ?>/css/dropzone.css" rel="stylesheet"/>
+    <link href="<?= URL::to('/'); ?>/css/lightbox.css" rel="stylesheet"/>
+    <link href="<?= URL::to('/'); ?>/css/weather-icons.min.css" rel="stylesheet"/>
 @stop
 
 @section('page-specific-js')
@@ -399,7 +416,7 @@ EOT;
 
                             <tr>
                                 <td><strong>HAVA:</strong></td>
-                                <td>{{$my_weather->getDescription()}}</td>
+                                <td>{!! $weather_symbol . " " . $my_weather->getDescription()!!}</td>
                                 <td><strong>SICAKLIK:</strong></td>
                                 <td>{!! $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
                                     <sup>o</sup>C

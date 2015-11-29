@@ -3713,3 +3713,14 @@ input[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
+
+.form-control{
+    height: 28px;
+    padding: 0px 12px;
+    font-size: 14px;
+    line-height: 28px;
+}
+
+.input-group-addon{
+    font-size: 12px;
+}

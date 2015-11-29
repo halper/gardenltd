@@ -77,7 +77,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
 <div class="form-group">
     <div class="row">
         <div class="col-sm-2">
-            {!! Form::label('manufacturings', 'İmalat Grubu: ', ['class' => 'control-label']) !!}
+            {!! Form::label('manufacturings', 'Faaliyet Alanı: ', ['class' => 'control-label']) !!}
         </div>
         <div class="col-sm-10">
             <select name="manufacturings[]"

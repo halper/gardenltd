@@ -16,7 +16,7 @@ if (strpos($my_weather->getDescription(), 'Kapalı') !== false) {
     $weather_symbol = '<i class="wi wi-day-thunderstorm"></i>';
 } else if (strpos($my_weather->getDescription(), 'Orta şiddetli yağmur') !== false) {
     $weather_symbol = '<i class="wi wi-day-hail"></i>';
-}else if (strpos($my_weather->getDescription(), 'Açık') !== false) {
+} else if (strpos($my_weather->getDescription(), 'Açık') !== false) {
     $weather_symbol = '<i class="wi wi-day-sunny"></i>';
 }
 
@@ -41,19 +41,17 @@ $report_staff_arr = [];
 foreach ($report->staff()->get() as $report_staff) {
     array_push($report_staff_arr, $report_staff->id);
 }
-$report_equipment_arr = [];
 
+$report_equipment_arr = [];
 foreach ($report->equipment()->get() as $report_equipment) {
     array_push($report_equipment_arr, $report_equipment->id);
 }
 
 $report_inmaterial_arr = [];
-
-foreach ($report->inmaterial()->get() as $report_inmaterial) {
+$inmaterials = $report->inmaterial()->get();
+foreach ($inmaterials as $report_inmaterial) {
     array_push($report_inmaterial_arr, $report_inmaterial->material_id);
 }
-
-$inmaterials = $report->inmaterial()->get();
 
 $time = strtotime($site->end_date);
 $myFormatForView = date("d.m.Y", $time);
@@ -66,11 +64,37 @@ if (isset($report_date)) {
 $end_date = date_create($site->end_date);
 $left = str_replace("+", "", date_diff($now, $end_date)->format("%R%a"));
 
+$subcontractors = $report->subcontractor()->get();
+$all_subcontractors = $site->subcontractor()->get();
+$report_subcontractor_arr = [];
+foreach ($subcontractors as $report_subcontractor) {
+    array_push($report_subcontractor_arr, $report_subcontractor->id);
+}
+$subcontractor_options = "<option></option>";
+$subcontractor_options_js = "";
+foreach ($all_subcontractors as $subcontractor) {
+    $subcontractor_options_js .= "'<option value=\"$subcontractor->id\">" . TurkishChar::tr_up($subcontractor->name) . "</option>'+\n";
+    if (isset($report_subcontractor_arr)) {
+        if (!in_array($subcontractor->id, $report_subcontractor_arr)) {
+            $subcontractor_options .= "<option value=\"$subcontractor->id\">" . TurkishChar::tr_up($subcontractor->name) . "</option>";
+        }
+    } else {
+        $subcontractor_options .= "<option value=\"$subcontractor->id\">" . TurkishChar::tr_up($subcontractor->name) . "</option>";
+    }
+}
+
 $subcontractor_staffs = \App\Substaff::all();
-$subcontractors = $site->subcontractor()->get();
-$all_subcontractors = $subcontractors;
 $subcontractor_staff_total = 0;
 
+$report_site_photo_files = $report->rfile()->join('files', 'files.id', '=', 'rfiles.file_id')->
+select("files.id", "name", "path")->where("type", "=", 0)->get();
+$report_site_receipt_files = $report->rfile()->join('files', 'files.id', '=', 'rfiles.file_id')->
+select("files.id", "name", "path")->where("type", "=", 1)->get();
+
+$site_photo_files = $site->rfile()->join('files', 'files.id', '=', 'rfiles.file_id')->
+select("files.id", "name", "path")->where("type", "=", 0)->get();
+$site_receipt_files = $site->rfile()->join('files', 'files.id', '=', 'rfiles.file_id')->
+select("files.id", "name", "path")->where("type", "=", 1)->get();
 ?>
 @extends('tekil/layout')
 
@@ -106,6 +130,46 @@ $subcontractor_staff_total = 0;
             $('#' + linkID).remove();
 
         }
+        function removeSubcontractor(subid) {
+
+            var subcontractorId = subid;
+            var reportId = {{$report->id}};
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/delete-report-subcontractor"}}',
+                data: {
+                    "subcontractorid": subcontractorId,
+                    "reportid": reportId
+                }
+            }).success(function () {
+                $('#div-' + subid).remove();
+            });
+        }
+
+        function subcontractorToWorkDelete(id) {
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/delete-swunit"}}',
+                data: {
+                    "swid": id
+                }
+            }).success(function () {
+                $('#div-swid' + id).remove();
+            });
+        }
+
+        function staffToWorkDelete(id) {
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/delete-pwunit"}}',
+                data: {
+                    "pwid": id
+                }
+            }).success(function () {
+                $('#div-pwid' + id).remove();
+            });
+        }
+
 
         Dropzone.options.fileInsertForm = {
             addRemoveLinks: true,
@@ -162,13 +226,24 @@ $subcontractor_staff_total = 0;
             allowClear: true
         });
 
-
         $(document).ready(function () {
 
             $(".radio-inline").on("click", function () {
                 $("#selectIsWorkingForm").submit();
             });
             $(".js-example-basic-single").select2();
+            $(".js-example-responsive").select2({
+                placeholder: "Alt yüklenici seçiniz",
+                allowClear: true
+            });
+            $(".js-example-responsive").on("select2:select", function () {
+                $(".add-subcontractor_staff-row").show();
+            });
+            $(".js-example-responsive").on("select2:unselect", function () {
+                $(".add-subcontractor_staff-row").hide();
+            });
+
+
             $('#dateRangePicker').datepicker({
                 autoclose: true,
                 firstDay: 1,
@@ -206,17 +281,23 @@ $subcontractor_staff_total = 0;
     <?php
 
     $staff_options = '';
+    $staff_options_js = '';
+    $staff_options_js_all = '';
     $management_depts = new \App\Department();
 
     foreach ($management_depts->management() as $dept) {
-        $staff_options .= "'<optgroup label=\"$dept->department\">'+\n";
+        $staff_options .= "<optgroup label=\"$dept->department\">";
+        $staff_options_js .= "'<optgroup label=\"$dept->department\">'+\n";
         foreach ($dept->staff()->get() as $staff) {
+            $staff_options_js_all .= "'<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>'+\n";
             if (isset($report_staff_arr)) {
                 if (!in_array($staff->id, $report_staff_arr)) {
-                    $staff_options .= "'<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>'+\n";
+                    $staff_options .= "<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>";
+                    $staff_options_js .= "'<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>'+\n";
                 }
             } else {
-                $staff_options .= "'<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>'+\n";
+                $staff_options .= "<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>";
+                $staff_options_js .= "'<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>'+\n";
             }
         }
 
@@ -238,7 +319,7 @@ $subcontractor_staff_total = 0;
 
                     $(wrapper).append('<div class="row"><div class="col-sm-8"><div class="form-group">' +
                     '<select name="staffs[]" class="js-additional-staff form-control">' +
-$staff_options
+$staff_options_js
             '</select></div></div>' +
                 '<div class="col-sm-3"><input type="number" class="form-control" name="contractor-quantity[]"/></div>'+
                 '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div></div>'); //add input box
@@ -258,15 +339,18 @@ EOT;
 
 
     $equipment_options = '';
+    $equipment_options_js = '';
 
 
     foreach ($site->equipment()->get() as $equipment) {
         if (isset($report_equipment_arr)) {
             if (!in_array($equipment->id, $report_equipment_arr)) {
-                $equipment_options .= "'<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>'+\n";
+                $equipment_options .= "<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>";
+                $equipment_options_js .= "'<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>'+\n";
             }
         } else {
-            $equipment_options .= "'<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>'+\n";
+            $equipment_options .= "<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>";
+            $equipment_options_js .= "'<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>'+\n";
         }
     }
 
@@ -285,7 +369,7 @@ EOT;
                     $(equipment_wrapper).append('<div class="row"><div class="col-sm-6"><div class="form-group">' +
                     '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
                     '<div class="col-sm-10"><select name="equipments[]" class="js-additional-equipment form-control">' +
-$equipment_options
+$equipment_options_js
             '</select></div></div></div></div>' +
                 '<div class="col-sm-2"><input type="number" class="form-control" name="equipment-present[]"/></div>'+
                 '<div class="col-sm-2"><input type="number" class="form-control" name="equipment-working[]"/></div>'+
@@ -303,15 +387,18 @@ $equipment_options
 EOT;
 
     $inmaterial_options = "";
+    $inmaterial_options_js = "";
 
 
     foreach (Material::all() as $inmaterial) {
         if (isset($report_inmaterial_arr)) {
             if (!in_array($inmaterial->id, $report_inmaterial_arr)) {
-                $inmaterial_options .= "'<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>'+\n";
+                $inmaterial_options .= "<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>";
+                $inmaterial_options_js .= "'<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>'+\n";
             }
         } else {
-            $inmaterial_options .= "'<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>'+\n";
+            $inmaterial_options .= "<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>";
+            $inmaterial_options_js .= "'<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>'+\n";
         }
     }
 
@@ -328,7 +415,7 @@ $(document).ready(function() {
                     $(inmaterial_wrapper).append('<div class="row"><div class="col-sm-2"><div class="form-group">' +
                     '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
                     '<div class="col-sm-10"><select name="inmaterials[]" class="js-additional-inmaterial form-control">' +
-$inmaterial_options
+$inmaterial_options_js
             '</select></div></div></div></div>' +
                 '<div class="col-sm-2"><input type="text" class="form-control" name="inmaterial-from[]"/></div>'+
                 '<div class="col-sm-1"><input type="text" class="form-control" name="inmaterial-unit[]"/></div>'+
@@ -346,8 +433,98 @@ $inmaterial_options
 </script>
 EOT;
 
+    $subcontractor_staff_options = "";
+    $subcontractor_staff_options_js = "";
+    foreach ($subcontractor_staffs as $subcontractor_staff) {
+        $subcontractor_staff_options .= "<option value=\"$subcontractor_staff->id\">" . TurkishChar::tr_up($subcontractor_staff->name) . "</option>";
+        $subcontractor_staff_options_js .= "'<option value=\"$subcontractor_staff->id\">" . TurkishChar::tr_up($subcontractor_staff->name) . "</option>'+\n";
+    }
 
+    echo <<<EOT
+            <script>
+$(document).ready(function() {
+            var subcontractor_staff_wrapper         = $("#subcontractor_staff-insert"); //Fields wrapper
+            var add_subcontractor_staff_button      = $(".add-subcontractor_staff-row"); //Add button ID
+
+            $(add_subcontractor_staff_button).click(function(e){ //on add input button click
+                $(subcontractor_staff_wrapper).append('<div class="form-group"><div class="row">' +
+                '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>'+
+                '<div class="col-sm-7">' +
+                    '<select name="subcontractor_staffs[]" class="js-additional-subcontractor_staff form-control">' +
+$subcontractor_staff_options_js
+            '</select></div>' +
+                '<div class="col-sm-4"><input type="number" placeholder="Personel sayısı giriniz" class="form-control" name="substaff-quantity[]"/></div>'+
+                '</div></div>'); //add input box
+                $(".js-additional-subcontractor_staff").select2();
+
+            });
+
+            $(subcontractor_staff_wrapper).on("click",".remove_field", function(e){ //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
+            })
+        });
+</script>
+EOT;
     ?>
+
+    <script>
+        $(document).ready(function () {
+
+            var subcontractorStaffWrapper = $("#subcontractor-to-work-insert"); //Fields wrapper
+            var addSubcontractorStaffButton = $(".add-subcontractor-to-work-done-row"); //Add button ID
+
+            $(addSubcontractorStaffButton).click(function (e) { //on add input button click
+                $(subcontractorStaffWrapper).append('<div class="form-group"><div class="row">' +
+                        '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                        '<div class="col-sm-2">' +
+                        '<select name="subcontractors[]" class="js-additional-subcontractor_staff form-control">' +
+                        {!! $subcontractor_options_js !!}
+                '</select></div>' +
+                        '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_quantity[]"/></div>' +
+                        '<div class="col-sm-1"><input type="text" class="form-control" name="subcontractor_unit[]"/></div>' +
+                        '<div class="col-sm-5"><textarea class="form-control" name="subcontractor_work_done[]" rows="4"/></div>' +
+                        '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_planned[]"/></div>' +
+                        '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_done[]"/></div>' +
+                        '</div></div>'); //add input box
+                $(".js-additional-subcontractor_staff").select2();
+
+            });
+
+            $(subcontractorStaffWrapper).on("click", ".remove_field", function (e) { //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
+            });
+        });
+
+
+        var staffToWorkDoneWrapper = $("#staff-to-work-insert"); //Fields wrapper
+        var addStaffToWorkDone = $(".add-staff-to-work-done-row"); //Add button ID
+
+        $(addStaffToWorkDone).click(function (e) { //on add input button click
+            $(staffToWorkDoneWrapper).append('<div class="form-group"><div class="row">' +
+                    '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                    '<div class="col-sm-2">' +
+                    '<select name="staffs[]" class="js-additional-staff form-control">' +
+                    {!! $staff_options_js_all !!}
+            '</select></div>' +
+                    '<div class="col-sm-1"><input type="number" class="form-control" name="staff_quantity[]"/></div>' +
+                    '<div class="col-sm-1"><input type="text" class="form-control" name="staff_unit[]"/></div>' +
+                    '<div class="col-sm-5"><textarea class="form-control" name="staff_work_done[]" rows="4"/></div>' +
+                    '<div class="col-sm-1"><input type="number" class="form-control" name="staff_planned[]"/></div>' +
+                    '<div class="col-sm-1"><input type="number" class="form-control" name="staff_done[]"/></div>' +
+                    '</div></div>'); //add input box
+            $(".js-additional-staff").select2();
+
+        });
+
+        $(staffToWorkDoneWrapper).on("click", ".remove_field", function (e) { //user click on remove text
+            e.preventDefault();
+            $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
+        });
+    </script>
+
+    }
 @stop
 
 @section('content')
@@ -841,164 +1018,126 @@ EOT;
                         <!-- /.box-header -->
                         <div class="box-body">
                             @if(!$locked)
+                                @foreach($subcontractors as $sub)
+                                    <?php
+                                    $sub_row_total = 0;
+                                    ?>
+                                    <div class="row" id="div-{{$sub->id}}">
+                                        <div class="col-sm-12">
+                                            <div class="row">
+                                                <div class="col-sm-12">
+                                                    <legend>{{$sub->name}}
+                                                        @foreach($sub->manufacturing()->get() as $manufacture)
+                                                            <small>({{TurkishChar::tr_up($manufacture->name) }})</small>
+                                                        @endforeach
+                                                    </legend>
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-sm-1 text-center">
+                                                    <a class='remove-subcontractor' href='#'
+                                                       onclick='removeSubcontractor({{$sub->id}})'><i
+                                                                class="fa fa-close"></i></a>
+                                                </div>
+                                                <div class="col-sm-10">
+                                                    <div class="row">
+                                                        @foreach($report->substaff()->where('subcontractor_id', $sub->id)->get() as $substaff)
+                                                            <div class="col-sm-1 text-center">
+                                                                <strong>{{$substaff->name}}</strong>
+                                                                <br>
+                                                                {{$substaff->pivot->quantity}}</div>
+                                                            <?php
+                                                            $sub_row_total += (int)$substaff->pivot->quantity;
+                                                            ?>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-1 text-center"><strong>TOPLAM</strong>
+                                                    <br>
+                                                    <strong>{{$sub_row_total}}</strong>
+                                                </div>
+                                            </div>
 
-                                <table class="table table-responsive table-condensed">
-                                    {!! Form::open([
-                                'url' => "/tekil/$site->slug/save-subcontractor-staff",
-                                'method' => 'POST',
-                                'class' => 'form',
-                                'id' => 'subcontractorStaffInsertForm',
-                                'role' => 'form'
-                                ]) !!}
-                                    {!! Form::hidden('report_id', $report->id) !!}
-                                    <thead>
-                                    <tr>
-                                        <th>ALT YÜKLENİCİ</th>
+                                        </div>
+                                    </div>
+                                @endforeach
 
-                                        @foreach($subcontractor_staffs as $sub_staff)
-                                            <th>{{$sub_staff->name}}</th>
-                                        @endforeach
-                                        <th>TOPLAM</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-
-                                    @foreach($subcontractors as $subcontractor)
-                                        <tr>
-                                            <td><a href="#" class="remove_row"><i
-                                                            class="fa fa-close"></i></a>{{$subcontractor->name}}
-
-                                                @foreach($subcontractor->manufacturing()->get() as $manufacture)
-                                                    <?php
-                                                    $sub_row_total = 0;
-                                                    ?>
-                                                    <br> ({{TurkishChar::tr_up($manufacture->name)}})
-                                                @endforeach
-                                            </td>
-                                            {!! Form::hidden("subcontractors[]", $subcontractor->id)!!}
-                                            @for($i = 0; $i<sizeof($subcontractor_staffs); $i++)
-
-                                                <td style="vertical-align: middle">
-
-                                                    {!! Form::number($subcontractor_staffs[$i]->id . "[]", empty($report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity) ? null : $report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity, ['class' => 'form-control']) !!}</td>
-                                                <?php
-                                                if (!empty($report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity)) {
-                                                    $sub_row_total += $report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity;
-                                                }
-                                                ?>
-                                            @endfor
-                                            <td class="text-center"
-                                                style="vertical-align: middle">{{$sub_row_total}}</td>
-                                            <?php
-                                            $subcontractor_staff_total += $sub_row_total;
-                                            ?>
-                                        </tr>
-                                    @endforeach
-
-                                    </tbody>
-                                </table>
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <div class="form-group pull-right">
+                                            <a href="#substaff-modal" data-toggle="modal"
+                                               class="btn btn-primary btn-flat"
+                                               id="substaff-modal-opener">
+                                                Alt Yüklenici ve Personel Ekle
+                                            </a>
 
-                                            <button type="submit" class="btn btn-success btn-flat ">
-                                                Kaydet
-                                            </button>
+
                                         </div>
                                     </div>
 
                                 </div>
-                                {!! Form::close() !!}
                             @else
-
-                                <?php
-                                foreach ($subcontractors as $subcontractor) {
+                                @foreach($subcontractors as $sub)
+                                    <?php
                                     $sub_row_total = 0;
-                                    for ($i = 0; $i < sizeof($subcontractor_staffs); $i++) {
-                                        if (!empty($report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity)) {
-                                            $sub_row_total += $report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity;
-                                        }
-                                    }
+                                    ?>
+
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <legend>{{$sub->name}}
+                                                @foreach($sub->manufacturing()->get() as $manufacture)
+                                                    <small>({{TurkishChar::tr_up($manufacture->name) }})</small>
+                                                @endforeach
+                                            </legend>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+
+                                        <div class="col-sm-11">
+                                            <div class="row">
+                                                @foreach($report->substaff()->where('subcontractor_id', $sub->id)->get() as $substaff)
+                                                    <div class="col-sm-1 text-center">
+                                                        <strong>{{$substaff->name}}</strong>
+                                                        <br>
+                                                        {{$substaff->pivot->quantity}}</div>
+                                                    <?php
+                                                    $sub_row_total += (int)$substaff->pivot->quantity;
+                                                    ?>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-1 text-center"><strong>TOPLAM</strong>
+                                            <br>
+                                            <strong>{{$sub_row_total}}</strong>
+                                        </div>
+                                    </div>
+                                    <?php
                                     $subcontractor_staff_total += $sub_row_total;
-                                }
-                                ?>
+                                    ?>
 
-                                @if($subcontractor_staff_total>0)
-                                    <table class="table table-responsive table-condensed">
+                                @endforeach
 
-                                        <thead>
-                                        <tr>
-                                            <th>ALT YÜKLENİCİ</th>
-                                            @foreach($subcontractor_staffs as $sub_staff)
-                                                <th>{{$sub_staff->name}}</th>
-                                            @endforeach
-                                            <th>TOPLAM</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-
-                                        @foreach($subcontractors as $subcontractor)
-                                            <?php
-                                            $sub_row_total = 0;
-                                            for ($i = 0; $i < sizeof($subcontractor_staffs); $i++) {
-                                                if (!empty($report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity)) {
-                                                    $sub_row_total += $report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity;
-                                                }
-                                            }
-                                            ?>
-                                            @if($sub_row_total>0)
-                                                <tr>
-                                                    <td>
-                                                        {{$subcontractor->name}}
-                                                        @foreach($subcontractor->manufacturing()->get() as $manufacture)
-                                                            <br> ({{TurkishChar::tr_up($manufacture->name)}})
-                                                        @endforeach
-                                                    </td>
-                                                    @for($i = 0; $i<sizeof($subcontractor_staffs); $i++)
-
-                                                        <td style="vertical-align: middle">
-
-                                                            {{empty($report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity) ? "" : $report->substaff()->where('subcontractor_id', $subcontractor->id)->find($subcontractor_staffs[$i]->id)->pivot->quantity }}</td>
-
-                                                    @endfor
-                                                    <td class="text-center"
-                                                        style="vertical-align: middle">{{$sub_row_total}}</td>
-
-                                                </tr>
-                                            @endif
-                                        @endforeach
-                                        </tbody>
-                                    </table>
-                                @endif
                                 @if($main_contractor_total + $subcontractor_staff_total + $total_management>0)
                                     @if($subcontractor_staff_total>0)
                                         <div class="row">
                                             <div class="col-sm-11">
-                                                <p class="text-right"><strong>ALT YÜKLENİCİ TOPLAMI</strong></p>
+                                                <p class="text-right"><strong>ALT YÜKLENİCİ
+                                                        TOPLAMI</strong></p>
                                             </div>
                                             <div class="col-sm-1">
                                                 <p class="text-left">{{$subcontractor_staff_total}}</p>
                                             </div>
                                         </div>
                                     @endif
-                                    @if($main_contractor_total + $subcontractor_staff_total > 0)
-                                        <div class="row">
-                                            <div class="col-sm-11">
-                                                <p class="text-right"><strong>ANA YÜKLENİCİ & ALT YÜKLENİCİ
-                                                        TOPLAMI</strong>
-                                                </p>
-                                            </div>
-                                            <div class="col-sm-1">
-                                                <p class="text-left">{{$main_contractor_total + $subcontractor_staff_total}}</p>
-                                            </div>
-                                        </div>
-                                    @endif
                                     <div class="row">
                                         <div class="col-sm-11">
-                                            <p class="text-right"><strong>GENEL TOPLAM</strong></p>
+                                            <p class="text-right" style="font-size: large"><strong>GENEL
+                                                    TOPLAM</strong>
+                                            </p>
                                         </div>
                                         <div class="col-sm-1">
-                                            <p class="text-left">{{$main_contractor_total + $subcontractor_staff_total + $total_management}}</p>
+                                            <p class="text-left"
+                                               style="font-size: large">{{$main_contractor_total + $subcontractor_staff_total + $total_management}}</p>
                                         </div>
                                     </div>
                                 @endif
@@ -1006,12 +1145,12 @@ EOT;
                         </div>
                     </div>
                 </div>
+
+                {{--End of subcontractors table--}}
             </div>
-            {{--End of subcontractors table--}}
 
+            {{--End of left tables column--}}
         </div>
-        {{--End of left tables column--}}
-
 
         <div class="col-xs-12 col-md-4">
             <div class="row">
@@ -1061,7 +1200,8 @@ EOT;
                                             <div class="col-sm-6">
                                                 <div class="form-group">
                                                     <div class="row">
-                                                        <div class="col-sm-2"><a href="#" class="remove_field"><i
+                                                        <div class="col-sm-2"><a href="#"
+                                                                                 class="remove_field"><i
                                                                         class="fa fa-close"></i></a></div>
                                                         <div class="col-sm-10">
                                                             <span>{{$equipment->name}}</span>
@@ -1211,10 +1351,11 @@ EOT;
                 <div class="box-body">
 
                     @if(!$locked)
-                        <p>Yapılan işler tablosu, içeriğini otomatik olarak Ana Yüklenici ve Alt Yükleniciler Personel
-                            tablolarından alır.</p>
+                        <p>Yapılan işler tablosuna 'Alt Yüklenici Ekle' ve 'Personel Ekle' butonlarıyla çalışan birim
+                            ekleyebilirsiniz.</p>
+
                         <div class="row">
-                            <div class="col-sm-2">
+                            <div class="col-sm-2 col-sm-offset-1">
                                 <span><strong>ÇALIŞAN BİRİM</strong></span>
                             </div>
                             <div class="col-sm-1">
@@ -1223,7 +1364,7 @@ EOT;
                             <div class="col-sm-1">
                                 <span><strong>ÖLÇÜ BİRİMİ</strong></span>
                             </div>
-                            <div class="col-sm-6">
+                            <div class="col-sm-5">
                                 <span><strong>YAPILAN İŞLER</strong></span>
                             </div>
                             <div class="col-sm-1">
@@ -1233,6 +1374,7 @@ EOT;
                                 <span><strong>YAPILAN</strong></span>
                             </div>
                         </div>
+
                         {!! Form::open([
                                                                     'url' => "/tekil/$site->slug/save-work-done",
                                                                     'method' => 'POST',
@@ -1241,65 +1383,61 @@ EOT;
                                                                     'role' => 'form'
                                                                     ]) !!}
                         {!! Form::hidden('report_id', $report->id) !!}
-                        <?php
-                        $working_unit = false;
-                        ?>
-                        @foreach ($report->staff()->get() as $staff)
-                            <?php
-                            $working_unit = true;
-                            $staff_unit_for_work_done = empty($report->pwunit()->where("staff_id", $staff->id)->first()->unit) ? null : $report->pwunit()->where("staff_id", $staff->id)->first()->unit;
-                            $staff_work_done_for_work_done = empty($report->pwunit()->where("staff_id", $staff->id)->first()->works_done) ? null : $report->pwunit()->where("staff_id", $staff->id)->first()->works_done;
-                            $staff_planned_for_work_done = empty($report->pwunit()->where("staff_id", $staff->id)->first()->planned) ? null : $report->pwunit()->where("staff_id", $staff->id)->first()->planned;
-                            $staff_done_for_work_done = empty($report->pwunit()->where("staff_id", $staff->id)->first()->done) ? null : $report->pwunit()->where("staff_id", $staff->id)->first()->done;
-
-                            ?>
-                            <div class="row">
-                                <div class="col-sm-2">
-                                    {{$staff->staff}}
-                                    {!! Form::hidden("staffs[]", $staff->id)!!}
-                                </div>
-                                <div class="col-sm-1">
-                                    {!! Form::number("staff_quantity[]", $staff->pivot->quantity, ['class' => 'form-control']) !!}
-                                </div>
-                                <div class="col-sm-1">
-                                    {!! Form::text("staff_unit[]", null , ['class' => 'form-control']) !!}
-                                </div>
-                                <div class="col-sm-6">
-                                    {!! Form::textarea("staff_work_done[]", null , ['class' => 'form-control', 'rows' => '4']) !!}
-                                </div>
-                                <div class="col-sm-1">
-                                    {!! Form::number("staff_planned[]", null , ['class' => 'form-control']) !!}
-                                </div>
-                                <div class="col-sm-1">
-                                    {!! Form::number("staff_done[]", null , ['class' => 'form-control']) !!}
-                                </div>
-                            </div>
-                        @endforeach
-
-                        @foreach($subcontractors as $subcontractor)
-                            <?php
-                            $substaff_total_for_work_done = 0;
-                            foreach ($report->substaff()->where('subcontractor_id', $subcontractor->id)->get() as $substaff) {
-                                $substaff_total_for_work_done += $substaff->pivot->quantity;
-                            }
-                            $subcontractor_unit_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->unit) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->unit;
-                            $subcontractor_work_done_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->works_done) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->works_done;
-                            $subcontractor_planned_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->planned) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->planned;
-                            $subcontractor_done_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->done) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->id)->first()->done;
-                            ?>
-                            @if($substaff_total_for_work_done>0)
+                        <div id="staff-to-work-insert">
+                            @foreach ($report->pwunit()->get() as $staff)
                                 <?php
-                                $working_unit = true;
+                                $staff_unit_for_work_done = empty($report->pwunit()->where("staff_id", $staff->staff_id)->first()->unit) ? null : $report->pwunit()->where("staff_id", $staff->staff_id)->first()->unit;
+                                $staff_work_done_for_work_done = empty($report->pwunit()->where("staff_id", $staff->staff_id)->first()->works_done) ? null : $report->pwunit()->where("staff_id", $staff->staff_id)->first()->works_done;
+                                $staff_planned_for_work_done = empty($report->pwunit()->where("staff_id", $staff->staff_id)->first()->planned) ? null : $report->pwunit()->where("staff_id", $staff->staff_id)->first()->planned;
+                                $staff_done_for_work_done = empty($report->pwunit()->where("staff_id", $staff->staff_id)->first()->done) ? null : $report->pwunit()->where("staff_id", $staff->staff_id)->first()->done;
                                 ?>
-                                <div class="row">
-                                    <div class="col-sm-2">
-                                        {{$subcontractor->name}}
-                                        {!! Form::hidden("subcontractors[]", $subcontractor->id)!!}
-                                    </div>
-
+                                <div class="row" id="div-pwid{{$staff->id}}">
                                     <div class="col-sm-1">
+                                        <a href="#" onclick="staffToWorkDelete({{$staff->id}})"><i
+                                                    class="fa fa-close"></i></a>
+                                    </div>
+                                    <div class="col-sm-1">
+                                        {{$staffs->find($staff->staff_id)->staff}}
+                                        {!! Form::hidden("staffs[]", $staff->staff_id)!!}
+                                    </div>
+                                    <div class="col-sm-1">
+                                        {!! Form::number("staff_quantity[]", $staff->quantity, ['class' => 'form-control']) !!}
+                                    </div>
+                                    <div class="col-sm-1">
+                                        {!! Form::text("staff_unit[]", $staff_unit_for_work_done , ['class' => 'form-control']) !!}
+                                    </div>
+                                    <div class="col-sm-6">
+                                        {!! Form::textarea("staff_work_done[]", $staff_work_done_for_work_done , ['class' => 'form-control', 'rows' => '4']) !!}
+                                    </div>
+                                    <div class="col-sm-1">
+                                        {!! Form::number("staff_planned[]", $staff_planned_for_work_done , ['class' => 'form-control']) !!}
+                                    </div>
+                                    <div class="col-sm-1">
+                                        {!! Form::number("staff_done[]", $staff_done_for_work_done , ['class' => 'form-control']) !!}
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
 
-                                        {!! Form::number("subcontractor_quantity[]", $substaff_total_for_work_done , ['class' => 'form-control']) !!}
+                        <div id="subcontractor-to-work-insert">
+                            @foreach ($report->swunit()->get() as $subcontractor)
+                                <?php
+                                $subcontractor_unit_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->unit) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->unit;
+                                $subcontractor_work_done_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->works_done) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->works_done;
+                                $subcontractor_planned_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->planned) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->planned;
+                                $subcontractor_done_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->done) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->done;
+                                ?>
+                                <div class="row" id="div-swid{{$subcontractor->id}}">
+                                    <div class="col-sm-1">
+                                        <a href="#" onclick="subcontractorToWorkDelete({{$subcontractor->id}})"><i
+                                                    class="fa fa-close"></i></a>
+                                    </div>
+                                    <div class="col-sm-1">
+                                        {{$all_subcontractors->find($subcontractor->subcontractor_id)->name}}
+                                        {!! Form::hidden("subcontractors[]", $subcontractor->subcontractor_id)!!}
+                                    </div>
+                                    <div class="col-sm-1">
+                                        {!! Form::number("subcontractor_quantity[]", $subcontractor->quantity, ['class' => 'form-control']) !!}
                                     </div>
                                     <div class="col-sm-1">
                                         {!! Form::text("subcontractor_unit[]", $subcontractor_unit_for_work_done , ['class' => 'form-control']) !!}
@@ -1314,21 +1452,37 @@ EOT;
                                         {!! Form::number("subcontractor_done[]", $subcontractor_done_for_work_done , ['class' => 'form-control']) !!}
                                     </div>
                                 </div>
-                            @endif
-                        @endforeach
-                        @if($working_unit)
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <div class="form-group pull-right">
+                            @endforeach
+                        </div>
 
-                                        <button type="submit" class="btn btn-success btn-flat ">
-                                            Kaydet
-                                        </button>
+
+                        <div class="row">
+                            <div class="col-sm-10">
+                                <div class="form-group pull-left">
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <a class="btn btn-warning btn-flat add-subcontractor-to-work-done-row">
+                                                Alt Yüklenici Ekle
+                                            </a>
+                                        </div>
+
+                                        <div class="col-sm-6">
+                                            <a class="btn btn-primary btn-flat add-staff-to-work-done-row">
+                                                Personel Ekle
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
-
                             </div>
-                        @endif
+
+                            <div class="col-sm-2">
+                                <button type="submit" class="btn btn-success btn-flat pull-right">
+                                    Kaydet
+                                </button>
+                            </div>
+
+                        </div>
+
                         {!! Form::close() !!}
                         {{--Locked if--}}
                     @else
@@ -1410,7 +1564,6 @@ EOT;
             </div>
         </div>
     </div>
-
 
 
     <div class="row">
@@ -1608,18 +1761,6 @@ EOT;
                             <span><strong>FATURALAR</strong></span>
                         </div>
                     </div>
-                    <?php
-                    $report_site_photo_files = $report->rfile()->join('files', 'files.id', '=', 'rfiles.file_id')->
-                    select("files.id", "name", "path")->where("type", "=", 0)->get();
-                    $report_site_receipt_files = $report->rfile()->join('files', 'files.id', '=', 'rfiles.file_id')->
-                    select("files.id", "name", "path")->where("type", "=", 1)->get();
-
-                    $site_photo_files = $site->rfile()->join('files', 'files.id', '=', 'rfiles.file_id')->
-                    select("files.id", "name", "path")->where("type", "=", 0)->get();
-                    $site_receipt_files = $site->rfile()->join('files', 'files.id', '=', 'rfiles.file_id')->
-                    select("files.id", "name", "path")->where("type", "=", 1)->get();
-                    ?>
-
                     @if(!$locked)
                         <div class="row">
                             <div class="col-sm-6">
@@ -1638,7 +1779,8 @@ EOT;
                                     <input name="file" type="file" multiple/>
                                 </div>
                                 <div class="dropzone-previews"></div>
-                                <h4 style="text-align: center;color:#428bca;">Şantiye fotoğraflarını bu alana sürükleyin
+                                <h4 style="text-align: center;color:#428bca;">Şantiye fotoğraflarını bu alana
+                                    sürükleyin
                                     <br>Ya da tıklayın<span
                                             class="glyphicon glyphicon-hand-down"></span></h4>
 
@@ -1685,7 +1827,8 @@ EOT;
                                     <input name="file" type="file" multiple/>
                                 </div>
                                 <div class="dropzone-previews"></div>
-                                <h4 style="text-align: center;color:#428bca;">Şantiye faturalarını bu alana sürükleyin
+                                <h4 style="text-align: center;color:#428bca;">Şantiye faturalarını bu alana
+                                    sürükleyin
                                     <br>Ya da tıklayın<span
                                             class="glyphicon glyphicon-hand-down"></span></h4>
 
@@ -1717,6 +1860,85 @@ EOT;
                             </div>
                         </div>
                     @else
+
+                        <div class="row">
+                            <div class="col-sm-6">
+                                @foreach($report_site_photo_files as $report_site_photo)
+                                    <?php
+                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_photo->path);
+                                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
+                                    if (strpos($report_site_photo->name, 'pdf') !== false) {
+                                        $image = URL::to('/') . "/img/pdf.jpg";
+                                    } elseif (strpos($report_site_photo->name, 'doc') !== false) {
+                                        $image = URL::to('/') . "/img/word.png";
+                                    } else {
+                                        $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_photo->name;
+                                    }
+                                    ?>
+
+                                    <a id="lb-link-{{$report_site_photo->id}}" href="{{$image}}"
+                                       data-toggle="lightbox" data-gallery="reportsitephotos"
+                                       class="col-sm-4">
+                                        <img src="{{$image}}" class="img-responsive">
+                                        {{$report_site_photo->name}}
+                                    </a>
+
+                                @endforeach
+                            </div>
+                            <div class="col-sm-6">
+                                @foreach($report_site_receipt_files as $report_site_receipt)
+                                    <?php
+                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_receipt->path);
+                                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
+                                    $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->name;
+                                    if (strpos($report_site_receipt->name, 'pdf') !== false) {
+                                        $image = URL::to('/') . "/img/pdf.jpg";
+                                    } elseif (strpos($report_site_receipt->name, 'doc') !== false) {
+                                        $image = URL::to('/') . "/img/word.png";
+                                    }
+                                    ?>
+
+                                    <a id="lb-link-{{$report_site_receipt->id}}" href="{{$image}}"
+                                       data-toggle="lightbox" data-gallery="reportsitereceipts"
+                                       class="col-sm-4">
+                                        <img src="{{$image}}" class="img-responsive">
+                                        {{$report_site_receipt->name}}
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if($locked)
+        <div class="row">
+            <div class="col-xs-12 col-md-12">
+                <div class="box box-success box-solid">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Şantiye Ekleri
+                        </h3>
+
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                        class="fa fa-minus"></i>
+                            </button>
+                        </div>
+                        <!-- /.box-tools -->
+                    </div>
+                    <!-- /.box-header -->
+                    <div class="box-body">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <span><strong>ŞANTİYE FOTOĞRAFLARI</strong></span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span><strong>FATURALAR</strong></span>
+                            </div>
+                        </div>
 
                         <div class="row">
                             <div class="col-sm-6">
@@ -1765,11 +1987,11 @@ EOT;
                             </div>
                         </div>
 
-                    @endif
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    @endif
 
     @if (!isset($report_date))
         <div class="row">
@@ -1806,8 +2028,86 @@ EOT;
                     <p>Şantiyenin tamamlanması için {{$left}} gün kalmıştır.</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline pull-right" data-dismiss="modal">Kapat</button>
+                    <button type="button" class="btn btn-outline pull-right" data-dismiss="modal">Kapat
+                    </button>
                 </div>
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
+    <div id="substaff-modal" class="modal fade" role="dialog" tabindex="-1"
+         aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span></button>
+                    <h4 class="modal-title">Alt Yüklenici ve Personel Ekle</h4>
+                </div>
+                {!! Form::open([
+                                 'url' => "/tekil/$site->slug/save-subcontractor-staff",
+                                 'method' => 'POST',
+                                 'class' => 'form',
+                                 'id' => 'subcontractorStaffInsertForm',
+                                 'role' => 'form form-horizontal'
+                                 ]) !!}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <p>Alt yükleniciyi seçtikten sonra personel ekleyebilirsiniz.</p>
+                        </div>
+                    </div>
+
+                    {!! Form::hidden('report_id', $report->id) !!}
+
+
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-sm-3">
+                                {!! Form::label('subcontractor', 'Alt Yüklenici: ', ['class' => 'control-label']) !!}
+                            </div>
+                            <div class="col-sm-9">
+                                <select name="subcontractor" class="js-example-responsive form-control"
+                                        style="width: 100%">
+                                    {!! $subcontractor_options !!}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="subcontractor_staff-insert">
+
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-6 col-sm-offset-3">
+                            <a href="#" class="btn btn-primary btn-block btn-flat add-subcontractor_staff-row"
+                               style="display: none">
+                                Personel Ekle
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <button type="button" class="btn btn-warning btn-flat pull-left"
+                                    data-dismiss="modal">Kapat
+                            </button>
+                        </div>
+                        <div class="col-sm-9">
+                            <div class="form-group pull-right">
+
+                                <button type="submit" class="btn btn-success btn-flat ">
+                                    Kaydet
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {!! Form::close() !!}
             </div>
             <!-- /.modal-content -->
         </div>

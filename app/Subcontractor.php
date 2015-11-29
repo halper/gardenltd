@@ -11,9 +11,9 @@ class Subcontractor extends Model implements SluggableInterface
     use SluggableTrait;
 
     protected $sluggable = [
-    'build_from' => 'name',
-    'save_to'    => 'slug',
-];
+        'build_from' => 'name',
+        'save_to' => 'slug',
+    ];
 
     protected $table = 'subcontractors';
 
@@ -26,6 +26,11 @@ class Subcontractor extends Model implements SluggableInterface
     public function site()
     {
         return $this->belongsToMany('App\Site')->withTimestamps();
+    }
+
+    public function report()
+    {
+        return $this->belongsToMany('App\Report')->withTimestamps();
     }
 
     public function manufacturing()

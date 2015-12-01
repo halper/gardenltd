@@ -46,92 +46,168 @@ use App\Library\TurkishChar;
             </div>
         @endif
 
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="text-center" style="background-color: rgb(127,127,127)">
+
+        {{--Main contractor table--}}
+        <?php
+        $main_contractor_total = 0;
+        $number_of_col = 12;
+        foreach ($report->staff()->get() as $staff) {
+            $main_contractor_total += $staff->pivot->quantity;
+        }
+        ?>
+        @if($main_contractor_total>0)
+            <div class="row">
+
+                <div class="col-sm-12">
+                    <div class="text-center" style="background-color: rgb(127,127,127)">
                     <span><strong>{{$site->main_contractor}}
                             <small style="color: #f0f0f0;">(Ana Yüklenici)</small>
                             PERSONEL TABLOSU</strong></span>
-                </div>
-                <?php
-                $main_contractor_total = 0;
-                foreach ($report->staff()->get() as $staff) {
-                    $main_contractor_total += $staff->pivot->quantity;
-                }
-                ?>
-                @if($main_contractor_total>0)
-                    <div class="row">
-                        <div class="col-sm-12 text-center">
-                            <?php
-                            $table_count = (int)floor(sizeof($report->staff()->get()) / 12) + 1;
-                            $staff_name_arr = [];
-                            $staff_quantity_arr = [];
-                            ?>
-                            @foreach($report->staff()->get() as $staff)
-                                <?php
-                                $vowels = ["a", "e", "ı", "i", "o", "ö", "u", "ü"];
-                                $pos = strpos($staff->staff, " ");
-                                $staff_name = "";
-
-                                if ($pos === false) {
-                                    // string needle NOT found in haystack
-                                    $staff_name = $staff->staff;
-                                } else {
-                                    // string needle found in haystack
-                                    $staff_words = explode(" ", $staff->staff);
-                                    $i = 1;
-                                    foreach ($staff_words as $word) {
-                                        if (strlen($word) > 5) {
-                                            $cut = in_array(mb_substr($word, 3, 1), $vowels) ? 3 : 4;
-                                            $staff_name .= mb_substr($word, 0, $cut, 'utf-8') . ".";
-                                        } else {
-                                            $staff_name .= $word;
-                                        }
-                                        if ($i < sizeof($staff_words)) {
-                                            $staff_name .= " ";
-                                            $i++;
-                                        }
-                                    }
-                                }
-                                array_push($staff_name_arr, $staff_name);
-                                array_push($staff_quantity_arr, $staff->pivot->quantity);
-                                ?>
-                            @endforeach
-                            @for($i = 0; $i<$table_count; $i++)
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-condensed">
-                                        <thead>
-                                        <tr>
-                                            @for($j = $i*12; $j<sizeof($staff_name_arr); $j++)
-                                                <th>{{$staff_name_arr[$j]}}</th>
-                                            @endfor
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        <tr>
-                                            @for($j = $i*12; $j<sizeof($staff_name_arr); $j++)
-                                                <td>{{$staff_quantity_arr[$j]}}</td>
-                                            @endfor
-                                        </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            @endfor
-                        </div>
                     </div>
+                </div>
+
+                <?php
+                $table_count = (int)floor(sizeof($report->staff()->get()) / $number_of_col) + 1;
+                $staff_name_arr = [];
+                $staff_quantity_arr = [];
+                ?>
+                @foreach($report->staff()->get() as $staff)
+                    <?php
+                    $vowels = ["a", "e", "ı", "i", "o", "ö", "u", "ü"];
+                    $pos = strpos($staff->staff, " ");
+                    $staff_name = "";
+
+                    if ($pos === false) {
+                        // string needle NOT found in haystack
+                        $staff_name = $staff->staff;
+                    } else {
+                        // string needle found in haystack
+                        $staff_words = explode(" ", $staff->staff);
+                        $i = 1;
+                        foreach ($staff_words as $word) {
+                            if (strlen($word) > 5) {
+                                $cut = in_array(mb_substr($word, 3, 1), $vowels) ? 3 : 4;
+                                $staff_name .= mb_substr($word, 0, $cut, 'utf-8') . ".";
+                            } else {
+                                $staff_name .= $word;
+                            }
+                            if ($i < sizeof($staff_words)) {
+                                $staff_name .= " ";
+                                $i++;
+                            }
+                        }
+                    }
+                    array_push($staff_name_arr, $staff_name);
+                    array_push($staff_quantity_arr, $staff->pivot->quantity);
+                    $extra_column = sizeof($staff_name_arr) > $number_of_col ? $number_of_col - 2 : sizeof($staff_name_arr) - 2;
+                    ?>
+                @endforeach
+                <div class="col-sm-12">
                     <div class="table-responsive">
                         <table class="table table-bordered table-condensed">
-                            <tbody>
+                            <tbody class="text-center">
+
+                            @for($i = 0; $i<$table_count; $i++)
+                                <tr>
+                                    @for($j = $i*$number_of_col; $j<sizeof($staff_name_arr) && $j<($i+1)*$number_of_col; $j++)
+                                        <th>{{$staff_name_arr[$j]}}</th>
+                                    @endfor
+                                </tr>
+
+                                <tr>
+                                    @for($j = $i*$number_of_col; $j<sizeof($staff_name_arr) && $j<($i+1)*$number_of_col; $j++)
+                                        <td>{{$staff_quantity_arr[$j]}}</td>
+                                    @endfor
+                                </tr>
+                            @endfor
                             <tr>
                                 <td><strong>TOPLAM</strong></td>
+                                @for($i = 0; $i<$extra_column; $i++)
+                                    <td></td>
+                                @endfor
                                 <td>{{$main_contractor_total}}</td>
                             </tr>
                             </tbody>
                         </table>
                     </div>
-                @endif
+                </div>
+            </div>
+        @endif
+        {{--End of ana yüklenici table--}}
+
+        {{--Subcontractor table--}}
+            <div class="row">
+            <div class="col-sm-12">
+                <div class="box">
+                    <div class="box-body">
+                        <div class="text-center" style="background-color: rgb(127,127,127)">
+                    <span><strong>ALT YÜKLENİCİLER PERSONEL TABLOSU</strong></span>
+                        </div>
+                    </div>
+                    @foreach($subcontractors as $sub)
+                        <?php
+                        $sub_row_total = 0;
+                        ?>
+
+
+                        <div class="col-sm-12">
+                            <legend>{{$sub->name}}
+                                @foreach($sub->manufacturing()->get() as $manufacture)
+                                    <small>({{TurkishChar::tr_up($manufacture->name) }})</small>
+                                @endforeach
+                            </legend>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-11">
+                                @foreach($report->substaff()->where('subcontractor_id', $sub->id)->get() as $substaff)
+                                    <div class="col-sm-1 text-center">
+                                        <strong>{{$substaff->name}}</strong>
+                                        <br>
+                                        {{$substaff->pivot->quantity}}</div>
+                                    <?php
+                                    $sub_row_total += (int)$substaff->pivot->quantity;
+                                    ?>
+                                @endforeach
+                            </div>
+                            <div class="col-sm-1 text-left"><strong>TOPLAM</strong>
+                                <br>
+                                {{$sub_row_total}}
+                            </div>
+                        </div>
+                        <?php
+                        $subcontractor_staff_total += $sub_row_total;
+                        ?>
+                    @endforeach
+                    @if($main_contractor_total + $subcontractor_staff_total + $total_management>0)
+                        @if($subcontractor_staff_total>0)
+                            <div class="row">
+                                <div class="col-sm-11">
+                                    <p class="text-right"><strong>ALT YÜKLENİCİ
+                                            TOPLAMI</strong></p>
+                                </div>
+                                <div class="col-sm-1">
+                                    <p class="text-left">{{$subcontractor_staff_total}}</p>
+                                </div>
+                            </div>
+                        @endif
+                        <div class="row">
+                            <div class="col-sm-11">
+                                <p class="text-right" style="font-size: large"><strong>GENEL
+                                        TOPLAM</strong>
+                                </p>
+                            </div>
+                            <div class="col-sm-1">
+                                <p class="text-left"
+                                   style="font-size: large">{{$main_contractor_total + $subcontractor_staff_total + $total_management}}</p>
+                            </div>
+                        </div>
+                    @endif
+
+                </div>
             </div>
         </div>
+
     </div>
 
 
@@ -191,6 +267,7 @@ use App\Library\TurkishChar;
         </div>
     </div>
 </div>
+
 <div class="row">
     <div class="col-md-12">
         @if(sizeof($report->pwunit()->get()) + sizeof($report->swunit()->get()) > 0)

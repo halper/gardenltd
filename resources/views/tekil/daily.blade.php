@@ -62,6 +62,7 @@ if (isset($report_date)) {
 $end_date = date_create($site->end_date);
 $left = str_replace("+", "", date_diff($now, $end_date)->format("%R%a"));
 $total_date = str_replace("+", "", date_diff($start_date, $end_date)->format("%R%a"));
+$day_warning = (int) $total_date * 0.2;
 
 $subcontractors = $report->subcontractor()->get();
 $all_subcontractors = $site->subcontractor()->get();
@@ -302,8 +303,10 @@ foreach ($site_reports as $site_report) {
             });
 
             var leftDays = '{{$left}}';
+            var leftWarning = '{{$day_warning}}';
             leftDays = parseInt(leftDays);
-            if (leftDays < 10) {
+            leftWarning = parseInt(leftWarning);
+            if (leftDays < leftWarning) {
                 $('#leftDaysModal').modal("show");
             }
 
@@ -575,7 +578,7 @@ EOT;
 
     <div class="row">
         <div class="col-xs-12 col-md-12">
-            <div class="box box-{{$left < 10 ? "danger" : "primary"}} box-solid">
+            <div class="box box-{{$left < $day_warning ? "danger" : "primary"}} box-solid">
                 <div class="box-header with-border">
                     <h3 class="box-title">{{$site->job_name}} Projesi Raporu
                         @if(isset($report_date))
@@ -644,8 +647,8 @@ EOT;
                             <tr>
                                 <td><strong>İŞ BİTİM TARİHİ:</strong></td>
                                 <td>{{$myFormatForView}}</td>
-                                <td><strong>TOPLAM SÜRE:</strong></td>
-                                <td>{{$total_date}} gün</td>
+                                <td class="text-center"><strong>KALAN SÜRE:</strong></td>
+                                <td></td>
                                 <td><strong>HAVA:</strong></td>
                                 <td>{!! $weather_symbol . " " . $my_weather->getDescription()!!}</td>
                                 <td><strong>SICAKLIK:</strong></td>
@@ -655,14 +658,14 @@ EOT;
 
                             </tr>
                             <tr>
-                                <td><strong>KALAN SÜRE:</strong></td>
-                                <td>{{$left}} gün</td>
-                                <td></td>
+                                <td><strong>TOPLAM SÜRE:</strong></td>
+                                <td>{{$total_date}} gün</td>
+                                <td class="text-center" {{$left<$day_warning ? "style=background-color:red;color:white" : ""}}>{{$left}} gün</td>
                                 <td></td>
                                 <td><strong>RÜZGAR:</strong></td>
                                 <td>{{$my_weather->getWind()}} m/s</td>
                                 <td><strong>ÇALIŞMA:</strong></td>
-                                <td>
+                                <td {{$locked ? "style=color:white;background-color:" . ($report->is_working==1 ? "rgb(0,128,0)" : "red") : ""}}>
                                     @if(!$locked)
                                         {!! Form::open([
                             'url' => "/tekil/$site->slug/select-is-working",
@@ -697,6 +700,16 @@ EOT;
 
     {{--lock check buradan başlayacak--}}
 
+    <?php
+    $total_management = 0;
+    if (!empty($report->management_staff))
+        $total_management += $report->management_staff;
+    if (!empty($report->building_control_staff))
+        $total_management += $report->building_control_staff;
+    if (!empty($report->employer_staff))
+        $total_management += $report->employer_staff;
+    ?>
+    @if(!$locked)
     <div class="row">
         {{--Personel icmal tablosu--}}
         <div class="col-xs-12 col-md-8">
@@ -736,7 +749,7 @@ EOT;
                             'role' => 'form'
                             ]) !!}
 
-                            <div class="row {{($locked && empty($report->employer_staff)) ? "hidden" : ""}}">
+                            <div class="row">
                                 <div class="form-group">
 
                                     <div class="col-sm-10">
@@ -746,16 +759,12 @@ EOT;
                                     </div>
 
                                     <div class="col-sm-2 text-center">
-                                        @if(!$locked)
-                                            {!! Form::number('employer_staff', null, ['class' => 'form-control'])  !!}
-                                        @else
-                                            <span class="input">{{$report->employer_staff}}</span>
-                                        @endif
+                                        {!! Form::number('employer_staff', null, ['class' => 'form-control'])  !!}
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="row {{($locked && empty($report->management_staff)) ? "hidden" : ""}}">
+                            <div class="row">
                                 <div class="form-group">
                                     <div class="col-sm-10">
                                         <label for="management_staff" class="control-label">Proje Yönetimi
@@ -763,18 +772,15 @@ EOT;
                                     </div>
 
                                     <div class="col-sm-2 text-center">
-                                        @if(!$locked)
+
                                             {!! Form::number('management_staff', null, ['class' => 'form-control'])  !!}
-                                        @else
-                                            <span class="input">{{$report->management_staff}}</span>
-                                        @endif
+
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="row {{($locked && empty($report->building_control_staff)) ? "hidden" : ""}}">
+                            <div class="row">
                                 <div class="form-group">
-
                                     <div class="col-sm-10">
                                         <label for="building_control_staff" class="control-label">Yapı Denetim
                                             ({{$site->building_control}}
@@ -782,40 +788,22 @@ EOT;
                                     </div>
 
                                     <div class="col-sm-2 text-center">
-                                        @if(!$locked)
                                             {!! Form::number('building_control_staff', null, ['class' => 'form-control'])  !!}
-                                        @else
-                                            <span class="input">{{$report->building_control_staff}}</span>
-                                        @endif
+
                                     </div>
                                 </div>
                             </div>
-
-                            <?php
-
-                            $total_management = 0;
-                            if (!empty($report->management_staff))
-                                $total_management += $report->management_staff;
-                            if (!empty($report->building_control_staff))
-                                $total_management += $report->building_control_staff;
-                            if (!empty($report->employer_staff))
-                                $total_management += $report->employer_staff;
-
-                            if ($total_management > 0) {
-                                echo <<<EOT
-<div class="row">
-<div class="col-sm-10" style="text-align:right">
-<span><strong>TOPLAM: </strong></span>
-</div>
-<div class="col-sm-2 text-center">
-$total_management
-</div>
-</div>
-EOT;
-                            }
-
-                            ?>
-                            <div class="row {{$locked ? "hidden" : ""}}">
+                            @if($total_management>0)
+                                <div class="row">
+                                    <div class="col-sm-10" style="text-align:right">
+                                        <span><strong>TOPLAM: </strong></span>
+                                    </div>
+                                    <div class="col-sm-2 text-center">
+                                        {{$total_management}}
+                                    </div>
+                                </div>
+                                @endif
+                            <div class="row">
                                 <div class="col-sm-12">
                                     <div class="form-group pull-right">
                                         <button type="submit" class="btn btn-success btn-flat">
@@ -832,11 +820,21 @@ EOT;
                     </div>
                 </div>
             </div>
+
             {{--End of Personel icmal table--}}
 
 
             {{--Main contractor table--}}
-            <div class="row">
+
+            <?php
+            $main_contractor_total = 0;
+            $number_of_col = 12;
+            foreach ($report->staff()->get() as $staff) {
+                $main_contractor_total += $staff->pivot->quantity;
+            }
+            ?>
+
+                    <div class="row">
                 <div class="col-md-12">
                     <div class="box box-success box-solid">
                         <div class="box-header with-border">
@@ -854,7 +852,6 @@ EOT;
                         </div>
                         <!-- /.box-header -->
                         <div class="box-body">
-                            @if(!$locked)
                                 {{$site->main_contractor}} için personel giriniz.
                                 <br>
 
@@ -930,131 +927,17 @@ EOT;
 
                                 </div>
                                 {!! Form::close() !!}
-                            @else
-                                <?php
-                                $main_contractor_total = 0;
-                                $j = 0;
-                                $max_explosion = 0;
-                                foreach ($report->staff()->get() as $staff) {
-                                    $pos = strpos($staff->staff, " ");
 
-
-                                    if ($pos === false) {
-                                        // string needle NOT found in haystack
-
-                                    } else {
-                                        // string needle found in haystack
-                                        $staff_words = explode(" ", $staff->staff);
-                                        if (sizeof($staff_words) > $max_explosion) {
-                                            $max_explosion = sizeof($staff_words);
-                                        }
-                                    }
-
-                                    $main_contractor_total += $staff->pivot->quantity;
-
-                                }
-                                ?>
-                                @if($main_contractor_total>0)
-                                    <div class="row">
-                                        <div class="col-sm-11 text-center">
-
-
-                                            @foreach($report->staff()->get() as $staff)
-                                                <?php
-                                                $vowels = ["a", "e", "ı", "i", "o", "ö", "u", "ü"];
-                                                $pos = strpos($staff->staff, " ");
-                                                $staff_name = "";
-                                                $br_string = "";
-
-
-
-                                                if ($pos === false) {
-                                                    // string needle NOT found in haystack
-                                                    $staff_name = $staff->staff;
-                                                    for ($k = 2; $k < $max_explosion; $k++) {
-                                                        $br_string .= "<br>";
-                                                    }
-                                                } else {
-                                                    // string needle found in haystack
-                                                    $staff_words = explode(" ", $staff->staff);
-                                                    $i = 1;
-                                                    foreach ($staff_words as $word) {
-                                                        if (strlen($word) > 5) {
-                                                            $cut = in_array(mb_substr($word, 3, 1), $vowels) ? 3 : 4;
-                                                            $staff_name .= mb_substr($word, 0, $cut, 'utf-8') . ".";
-                                                        } else {
-                                                            $staff_name .= $word;
-                                                        }
-                                                        if ($i < sizeof($staff_words)) {
-                                                            $staff_name .= " ";
-                                                            $i++;
-                                                        }
-                                                    }
-                                                    for ($k = 1; $k < $max_explosion - sizeof($staff_words); $k++) {
-                                                        $br_string .= "<br>";
-                                                    }
-                                                }
-                                                $x = sizeof($report->staff()->get()) - ((int)floor($j / 12)) * 12;
-                                                if ($x >= 12) {
-                                                    $class_size = 1;
-                                                } else {
-                                                    $class_size = $x % 12;
-                                                    switch ($class_size) {
-                                                        case(0):
-                                                        case(7):
-                                                        case(8):
-                                                        case(9):
-                                                        case(10):
-                                                        case(11):
-                                                            $class_size = 1;
-                                                            break;
-                                                        case(1):
-                                                        case(2):
-                                                        case(3):
-                                                        case(4):
-                                                        case(6):
-                                                            $class_size = 12 / $x;
-                                                            break;
-                                                        case(5):
-                                                            $class_size = 2;
-                                                            break;
-
-                                                    }
-                                                }
-                                                ?>
-                                                {!! $j % 12 == 0 ? "<div class='row'>" : "" !!}
-
-                                                <div class="col-sm-{{$class_size}}">
-                                                    <span><strong>{{$staff_name}}</strong></span>
-                                                    <br>
-                                                    {!! $br_string !!}
-                                                    <span>{{$staff->pivot->quantity}}</span>
-                                                </div>
-                                                {!! ($j % 12 == 11 || $j+1==sizeof($report->staff()->get())) ? "</div>" : "" !!}
-                                                <?php
-                                                $j++;
-                                                ?>
-
-
-                                            @endforeach
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <div class="row text-center">
-                                                <span><strong>TOPLAM</strong></span>
-                                                <br>
-                                                <span>{{$main_contractor_total}}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
-                            @endif
                         </div>
                     </div>
                 </div>
             </div>
+
+
             {{--End of Main contractor table--}}
 
             {{--Subcontractors table--}}
+
             <div class="row">
                 <div class="col-md-12">
                     <div class="box box-success box-solid">
@@ -1071,7 +954,6 @@ EOT;
                         </div>
                         <!-- /.box-header -->
                         <div class="box-body">
-                            @if(!$locked)
                                 @foreach($subcontractors as $sub)
                                     <?php
                                     $sub_row_total = 0;
@@ -1128,77 +1010,11 @@ EOT;
 
                                         </div>
                                     </div>
-
                                 </div>
-                            @else
-                                @foreach($subcontractors as $sub)
-                                    <?php
-                                    $sub_row_total = 0;
-                                    ?>
-
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <legend>{{$sub->name}}
-                                                @foreach($sub->manufacturing()->get() as $manufacture)
-                                                    <small>({{TurkishChar::tr_up($manufacture->name) }})</small>
-                                                @endforeach
-                                            </legend>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-
-                                        <div class="col-sm-11">
-                                            <div class="row">
-                                                @foreach($report->substaff()->where('subcontractor_id', $sub->id)->get() as $substaff)
-                                                    <div class="col-sm-1 text-center">
-                                                        <strong>{{$substaff->name}}</strong>
-                                                        <br>
-                                                        {{$substaff->pivot->quantity}}</div>
-                                                    <?php
-                                                    $sub_row_total += (int)$substaff->pivot->quantity;
-                                                    ?>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-1 text-left"><strong>TOPLAM</strong>
-                                            <br>
-                                            {{$sub_row_total}}
-                                        </div>
-                                    </div>
-                                    <?php
-                                    $subcontractor_staff_total += $sub_row_total;
-                                    ?>
-
-                                @endforeach
-
-                                @if($main_contractor_total + $subcontractor_staff_total + $total_management>0)
-                                    @if($subcontractor_staff_total>0)
-                                        <div class="row">
-                                            <div class="col-sm-11">
-                                                <p class="text-right"><strong>ALT YÜKLENİCİ
-                                                        TOPLAMI</strong></p>
-                                            </div>
-                                            <div class="col-sm-1">
-                                                <p class="text-left">{{$subcontractor_staff_total}}</p>
-                                            </div>
-                                        </div>
-                                    @endif
-                                    <div class="row">
-                                        <div class="col-sm-11">
-                                            <p class="text-right" style="font-size: large"><strong>GENEL
-                                                    TOPLAM</strong>
-                                            </p>
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <p class="text-left"
-                                               style="font-size: large">{{$main_contractor_total + $subcontractor_staff_total + $total_management}}</p>
-                                        </div>
-                                    </div>
-                                @endif
-                            @endif
                         </div>
                     </div>
                 </div>
+
 
                 {{--End of subcontractors table--}}
             </div>
@@ -1206,7 +1022,8 @@ EOT;
             {{--End of left tables column--}}
         </div>
 
-        <div class="col-xs-12 col-md-4">
+
+            <div class="col-xs-12 col-md-4">
             <div class="row">
                 <div class="col-sm-12">
                     <div class="box box-success box-solid">
@@ -1223,8 +1040,6 @@ EOT;
                         </div>
                         <!-- /.box-header -->
                         <div class="box-body">
-
-                            @if(!$locked)
                                 <div class="row">
                                     <div class="col-sm-6">
                                         <span class="text-center"><strong>EKİPMAN ADI</strong></span>
@@ -1331,59 +1146,12 @@ EOT;
 
                                 </div>
                                 {!! Form::close() !!}
-                            @else
-                                <?php
-                                $equipment_total = 0;
-
-                                foreach ($report->equipment()->get() as $eq) {
-                                    $equipment_total += $eq->pivot->present + $eq->pivot->working + $eq->pivot->broken;
-                                }
-                                ?>
-                                @if($equipment_total>0)
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered table-condensed">
-                                            <thead>
-                                            <tr>
-                                                <th>EKİPMAN ADI</th>
-                                                <th>ÇALIŞAN</th>
-                                                <th>MEVCUT</th>
-                                                <th>ARIZALI</th>
-                                                <th>TOPLAM</th>
-                                            </tr>
-                                            </thead>
-                                            <tbody>
-                                            <?php
-                                            $equipment_total = 0;
-                                            ?>
-                                            @foreach ($report->equipment()->get() as $eq)
-                                                <tr>
-                                                    <td>{{$eq->name}}</td>
-                                                    <td>{{$eq->pivot->present}}</td>
-                                                    <td>{{$eq->pivot->working}}</td>
-                                                    <td>{{$eq->pivot->broken}}</td>
-                                                    <td>{{$eq->pivot->present + $eq->pivot->working + $eq->pivot->broken}}</td>
-                                                </tr>
-                                                <?php
-                                                $equipment_total += (int)$eq->pivot->present + (int)$eq->pivot->working + (int)$eq->pivot->broken;
-                                                ?>
-                                            @endforeach
-                                            <tr>
-                                                <td><strong>TOPLAM</strong></td>
-                                                <td></td>
-                                                <td></td>
-                                                <td></td>
-                                                <td>{{$equipment_total}}</td>
-                                            </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @endif
-                            @endif
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
         {{--END of right side--}}
 
     </div>
@@ -1407,7 +1175,7 @@ EOT;
                 <!-- /.box-header -->
                 <div class="box-body">
 
-                    @if(!$locked)
+
                         <p>Yapılan işler tablosuna 'Alt Yüklenici Ekle' ve 'Personel Ekle' butonlarıyla çalışan birim
                             ekleyebilirsiniz.</p>
 
@@ -1550,88 +1318,15 @@ EOT;
 
                         {!! Form::close() !!}
                         {{--Locked if--}}
-                    @else
-                        @if(sizeof($report->pwunit()->get()) + sizeof($report->swunit()->get()) > 0)
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-condensed">
-                                    <thead>
-                                    <tr>
-                                        <th>S.N</th>
-                                        <th>ÇALIŞAN BİRİM</th>
-                                        <th>KİŞİ SAYISI</th>
-                                        <th>ÖLÇÜ BİRİMİ</th>
-                                        <th>YAPILAN İŞLER</th>
-                                        <th>PLANLANAN</th>
-                                        <th>YAPILAN</th>
-                                        <th>YÜZDE</th>
-
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <?php
-                                    $i = 1;
-                                    ?>
-                                    @foreach($report->pwunit()->get() as $pw)
-                                        <?php
-                                        $pw_work_done_in_percent = ((int)$pw->planned == 0 || is_null($pw->planned)) ? 0 : 100 * (int)$pw->done / (int)$pw->planned;
-                                        ?>
-
-                                        @if($pw_work_done_in_percent>100)
-                                            <tr class="bg-success">
-                                        @elseif($pw_work_done_in_percent<100)
-                                            <tr class="bg-danger">
-                                        @elseif($pw_work_done_in_percent == 100)
-                                            <tr class="bg-warning">
-                                                @endif
-                                                <td>{{$i++}}</td>
-                                                <td>{{$staffs->find($pw->staff_id)->staff}}</td>
-                                                <td>{{$pw->quantity}}</td>
-                                                <td>{{$pw->unit}}</td>
-                                                <td>{{$pw->works_done}}</td>
-                                                <td>{{$pw->planned}}</td>
-                                                <td>{{$pw->done}}</td>
-                                                <td>%{{$pw_work_done_in_percent}}</td>
-                                            </tr>
-
-                                            @endforeach
-
-                                            @foreach($report->swunit()->get() as $sw)
-                                                <?php
-
-                                                $sw_work_done_in_percent = ((int)$sw->planned == 0 || is_null($sw->planned)) ? 0 : 100 * (int)$sw->done / (int)$sw->planned;
-
-                                                ?>
-
-                                                @if($sw_work_done_in_percent>100)
-                                                    <tr class="bg-success">
-                                                @elseif($sw_work_done_in_percent<100)
-                                                    <tr class="bg-danger">
-                                                @elseif($sw_work_done_in_percent == 100)
-                                                    <tr class="bg-warning">
-                                                        @endif
-                                                        <td>{{$i++}}</td>
-                                                        <td>{{\App\Subcontractor::find($sw->subcontractor_id)->name}}</td>
-                                                        <td>{{$sw->quantity}}</td>
-                                                        <td>{{$sw->unit}}</td>
-                                                        <td>{{$sw->works_done}}</td>
-                                                        <td>{{$sw->planned}}</td>
-                                                        <td>{{$sw->done}}</td>
-                                                        <td>%{{$sw_work_done_in_percent}}</td>
-                                                    </tr>
-
-                                                    @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endif
-                    @endif
                 </div>
             </div>
         </div>
     </div>
 
 
-    <div class="row">
+
+
+        <div class="row">
         <div class="col-xs-12 col-md-12">
             <div class="box box-success box-solid">
                 <div class="box-header with-border">
@@ -1647,7 +1342,6 @@ EOT;
                 </div>
                 <!-- /.box-header -->
                 <div class="box-body">
-                    @if(!$locked)
                         <div class="row">
                             <div class="col-sm-2"><strong>GELEN MALZEME</strong></div>
                             <div class="col-sm-2"><strong>GELDİĞİ YER</strong></div>
@@ -1766,42 +1460,14 @@ EOT;
 
                         </div>
                         {!! Form::close() !!}
-                    @else
-                        @if(sizeof($inmaterials)>0)
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-condensed">
-                                    <thead>
-                                    <tr>
-                                        <th>S.N</th>
-                                        <th>GELEN MALZEME</th>
-                                        <th>BİRİM</th>
-                                        <th>MİK.</th>
-                                        <th>AÇIKLAMASI</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
 
-                                    @for($i = 1; $i<=sizeof($inmaterials); $i++)
-
-                                        <tr>
-                                            <td>{{$i}}</td>
-                                            <td>{{TurkishChar::tr_up(\App\Material::find($inmaterials[$i-1]->material_id)->material)}}</td>
-                                            <td>{{TurkishChar::tr_up($inmaterials[$i-1]->unit)}}</td>
-                                            <td>{{$inmaterials[$i-1]->quantity}}</td>
-                                            <td>{{$inmaterials[$i-1]->explanation}}</td>
-                                        </tr>
-
-                                    @endfor
-
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endif
-                    @endif
                 </div>
             </div>
         </div>
-    </div>
+        </div>
+        @else
+        @include('tekil._locked')
+    @endif
 
     <div class="row">
         <div class="col-xs-12 col-md-12">
@@ -2179,9 +1845,4 @@ EOT;
         </div>
         <!-- /.modal-dialog -->
     </div>
-
-    @if($locked)
-        @include('tekil._locked')
-    @endif
-
 @stop

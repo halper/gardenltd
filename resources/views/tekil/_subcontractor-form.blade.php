@@ -4,7 +4,7 @@ use App\Library\TurkishChar;
 $manufacturing_options = '';
 
 foreach (\App\Manufacturing::all() as $manufacture) {
-    if(isset($subcontractor) && $subcontractor->hasManufacture($manufacture->id)){
+    if(isset($subcontractor) && $subcontractor->hasManufacture($manufacture->id, $site->id)){
     $manufacturing_options .= "'<option value=\"$manufacture->id\" selected>" . TurkishChar::tr_up($manufacture->name) . "</option>'+\n";
     }
     else
@@ -12,18 +12,6 @@ foreach (\App\Manufacturing::all() as $manufacture) {
 }
 
 ?>
-
-<div class="form-group {{ $errors->has('name') ? 'has-error' : '' }}">
-    <div class="row">
-        <div class="col-sm-2">
-            {!! Form::label('name', 'Taşeronun Adı: ', ['class' => 'control-label']) !!}
-        </div>
-        <div class="col-sm-10">
-            {!! Form::text('name', null, ['class' => 'form-control', 'placeholder' => 'Taşeronun adını giriniz']) !!}
-
-        </div>
-    </div>
-</div>
 
 <div class="form-group {{ $errors->has('contract_date') ? 'has-error' : '' }}">
     <div class="row">
@@ -33,7 +21,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
         <div class="col-sm-10">
             <div class="input-group input-append date dateRangePicker">
                 <input type="text" class="form-control" name="contract_date"
-                       placeholder="Sözleşme tarihini seçiniz" {!! isset($subcontractor) ? "value=\"" . \App\Library\CarbonHelper::getTurkishDate($subcontractor->contract_date) . "\"" : ""!!}/>
+                       placeholder="Sözleşme tarihini seçiniz" {!! isset($subcontractor) && strpos($subcontractor->pivot->contract_date,"0000-00-00") === false ? "value=\"" . \App\Library\CarbonHelper::getTurkishDate($subcontractor->pivot->contract_date) . "\"" : ""!!}/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
             </div>
@@ -50,7 +38,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
         <div class="col-sm-10">
             <div class="input-group input-append date dateRangePicker">
                 <input type="text" class="form-control" name="contract_start_date"
-                       placeholder="Sözleşme başlangıç tarihini seçiniz" {!! isset($subcontractor) ? "value=\"" . \App\Library\CarbonHelper::getTurkishDate($subcontractor->contract_start_date) . "\"" : ""!!}/>
+                       placeholder="Sözleşme başlangıç tarihini seçiniz" {!! isset($subcontractor) && strpos($subcontractor->pivot->contract_start_date,"0000-00-00") === false ? "value=\"" . \App\Library\CarbonHelper::getTurkishDate($subcontractor->pivot->contract_start_date) . "\"" : ""!!}/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
             </div>
@@ -66,7 +54,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
         <div class="col-sm-10">
             <div class="input-group input-append date dateRangePicker">
                 <input type="text" class="form-control" name="contract_end_date"
-                       placeholder="Sözleşme bitim tarihini seçiniz" {!! isset($subcontractor) ? "value=\"" . \App\Library\CarbonHelper::getTurkishDate($subcontractor->contract_end_date) . "\"" : ""!!}/>
+                       placeholder="Sözleşme bitim tarihini seçiniz" {!! isset($subcontractor) && strpos($subcontractor->pivot->contract_end_date,"0000-00-00") === false ? "value=\"" . \App\Library\CarbonHelper::getTurkishDate($subcontractor->pivot->contract_end_date) . "\"" : ""!!}/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
             </div>

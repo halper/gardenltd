@@ -47,11 +47,7 @@ foreach ($report->equipment()->get() as $report_equipment) {
     array_push($report_equipment_arr, $report_equipment->id);
 }
 
-$report_inmaterial_arr = [];
 $inmaterials = $report->inmaterial()->get();
-foreach ($inmaterials as $report_inmaterial) {
-    array_push($report_inmaterial_arr, $report_inmaterial->material_id);
-}
 
 $time = strtotime($site->end_date);
 $myFormatForView = date("d.m.Y", $time);
@@ -170,6 +166,46 @@ select("files.id", "name", "path")->where("type", "=", 1)->get();
             });
         }
 
+        function staffDetach(id) {
+            var reportId = {{$report->id}};
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/detach-staff"}}',
+                data: {
+                    "staffid": id,
+                    "report_id": reportId
+                }
+            }).success(function () {
+                $('#div-staffid' + id).remove();
+            });
+        }
+
+        function equipmentDetach(id) {
+            var reportId = {{$report->id}};
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/detach-equipment"}}',
+                data: {
+                    "equipmentid": id,
+                    "report_id": reportId
+                }
+            }).success(function () {
+                $('#div-equipmentid' + id).remove();
+            });
+        }
+
+        function inmaterialsDelete(id) {
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/delete-inmaterial"}}',
+                data: {
+                    "inmaterialid": id
+                }
+            }).success(function () {
+                $('#div-inmaterialid' + id).remove();
+            });
+        }
+
 
         Dropzone.options.fileInsertForm = {
             addRemoveLinks: true,
@@ -269,6 +305,8 @@ select("files.id", "name", "path")->where("type", "=", 1)->get();
                 }
                 $('#dateRangeForm').submit();
             });
+
+            $("#dateRangePicker > input").val("{{isset($report_date) ? $report_date : App\Library\CarbonHelper::getTurkishDate($today)}}")
 
             $(".remove_row").on("click", function (e) { //user click on remove text
                 e.preventDefault();
@@ -391,15 +429,8 @@ EOT;
 
 
     foreach (Material::all() as $inmaterial) {
-        if (isset($report_inmaterial_arr)) {
-            if (!in_array($inmaterial->id, $report_inmaterial_arr)) {
-                $inmaterial_options .= "<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>";
-                $inmaterial_options_js .= "'<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>'+\n";
-            }
-        } else {
-            $inmaterial_options .= "<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>";
-            $inmaterial_options_js .= "'<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>'+\n";
-        }
+        $inmaterial_options .= "<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>";
+        $inmaterial_options_js .= "'<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>'+\n";
     }
 
 
@@ -475,15 +506,15 @@ EOT;
             var addSubcontractorStaffButton = $(".add-subcontractor-to-work-done-row"); //Add button ID
 
             $(addSubcontractorStaffButton).click(function (e) { //on add input button click
-                $(subcontractorStaffWrapper).append('<div class="form-group"><div class="row">' +
-                        '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
-                        '<div class="col-sm-2">' +
+                $(subcontractorStaffWrapper).append('<div class="form-group"><div class="row"><div class="col-sm-2">' +
+                        '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                        '<div class="col-sm-10">' +
                         '<select name="subcontractors[]" class="js-additional-subcontractor_staff form-control">' +
                         {!! $subcontractor_options_js !!}
-                '</select></div>' +
+                '</select></div></div></div>' +
                         '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_quantity[]"/></div>' +
                         '<div class="col-sm-1"><input type="text" class="form-control" name="subcontractor_unit[]"/></div>' +
-                        '<div class="col-sm-5"><textarea class="form-control" name="subcontractor_work_done[]" rows="4"/></div>' +
+                        '<div class="col-sm-6"><textarea class="form-control" name="subcontractor_work_done[]" rows="3"/></div>' +
                         '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_planned[]"/></div>' +
                         '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_done[]"/></div>' +
                         '</div></div>'); //add input box
@@ -502,15 +533,15 @@ EOT;
         var addStaffToWorkDone = $(".add-staff-to-work-done-row"); //Add button ID
 
         $(addStaffToWorkDone).click(function (e) { //on add input button click
-            $(staffToWorkDoneWrapper).append('<div class="form-group"><div class="row">' +
-                    '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
-                    '<div class="col-sm-2">' +
+            $(staffToWorkDoneWrapper).append('<div class="form-group"><div class="row"><div class="col-sm-2">' +
+                    '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                    '<div class="col-sm-10">' +
                     '<select name="staffs[]" class="js-additional-staff form-control">' +
                     {!! $staff_options_js_all !!}
-            '</select></div>' +
+            '</select></div></div></div>' +
                     '<div class="col-sm-1"><input type="number" class="form-control" name="staff_quantity[]"/></div>' +
                     '<div class="col-sm-1"><input type="text" class="form-control" name="staff_unit[]"/></div>' +
-                    '<div class="col-sm-5"><textarea class="form-control" name="staff_work_done[]" rows="4"/></div>' +
+                    '<div class="col-sm-6"><textarea class="form-control" name="staff_work_done[]" rows="3"/></div>' +
                     '<div class="col-sm-1"><input type="number" class="form-control" name="staff_planned[]"/></div>' +
                     '<div class="col-sm-1"><input type="number" class="form-control" name="staff_done[]"/></div>' +
                     '</div></div>'); //add input box
@@ -568,7 +599,7 @@ EOT;
                             'role' => 'form'
                             ]) !!}
 
-                            <div class="form-group">
+                            <div class="form-group pull-right">
 
                                 <label class="col-xs-3 control-label">TARİH: </label>
 
@@ -824,7 +855,7 @@ EOT;
                                 {!! Form::hidden('report_id', $report->id) !!}
                                 <div id="staff-insert">
                                     @foreach($report->staff()->get() as $staff)
-                                        <div class="row">
+                                        <div class="row" id="div-staffid{{$staff->id}}">
                                             <div class="col-sm-8">
                                                 <div class="form-group">
                                                     <span>{{$staff->staff}}</span>
@@ -838,7 +869,7 @@ EOT;
                                                        name="contractor-quantity[]"
                                                        value="{{$staff->pivot->quantity}}"/>
                                             </div>
-                                            <div class="col-sm-1"><a href="#" class="remove_field"><i
+                                            <div class="col-sm-1"><a href="#" onclick="staffDetach({{$staff->id}})"><i
                                                             class="fa fa-close"></i></a></div>
                                         </div>
                                     @endforeach
@@ -1027,7 +1058,7 @@ EOT;
                                             <div class="row">
                                                 <div class="col-sm-12">
                                                     <legend>{{$sub->name}}
-                                                        @foreach($sub->manufacturing()->get() as $manufacture)
+                                                        @foreach($sub->manufacturing()->where('site_id', $site->id)->get() as $manufacture)
                                                             <small>({{TurkishChar::tr_up($manufacture->name) }})</small>
                                                         @endforeach
                                                     </legend>
@@ -1196,12 +1227,12 @@ EOT;
                                 {!! Form::hidden('report_id', $report->id) !!}
                                 <div id="equipment-insert">
                                     @foreach($report->equipment()->get() as $equipment)
-                                        <div class="row">
+                                        <div class="row" id="div-equipmentid{{$equipment->id}}">
                                             <div class="col-sm-6">
                                                 <div class="form-group">
                                                     <div class="row">
                                                         <div class="col-sm-2"><a href="#"
-                                                                                 class="remove_field"><i
+                                                                                 onclick="equipmentDetach({{$equipment->id}})"><i
                                                                         class="fa fa-close"></i></a></div>
                                                         <div class="col-sm-10">
                                                             <span>{{$equipment->name}}</span>
@@ -1355,7 +1386,7 @@ EOT;
                             ekleyebilirsiniz.</p>
 
                         <div class="row">
-                            <div class="col-sm-2 col-sm-offset-1">
+                            <div class="col-sm-2 text-center">
                                 <span><strong>ÇALIŞAN BİRİM</strong></span>
                             </div>
                             <div class="col-sm-1">
@@ -1364,7 +1395,7 @@ EOT;
                             <div class="col-sm-1">
                                 <span><strong>ÖLÇÜ BİRİMİ</strong></span>
                             </div>
-                            <div class="col-sm-5">
+                            <div class="col-sm-6">
                                 <span><strong>YAPILAN İŞLER</strong></span>
                             </div>
                             <div class="col-sm-1">
@@ -1392,13 +1423,17 @@ EOT;
                                 $staff_done_for_work_done = empty($report->pwunit()->where("staff_id", $staff->staff_id)->first()->done) ? null : $report->pwunit()->where("staff_id", $staff->staff_id)->first()->done;
                                 ?>
                                 <div class="row" id="div-pwid{{$staff->id}}">
-                                    <div class="col-sm-1">
-                                        <a href="#" onclick="staffToWorkDelete({{$staff->id}})"><i
-                                                    class="fa fa-close"></i></a>
-                                    </div>
-                                    <div class="col-sm-1">
-                                        {{$staffs->find($staff->staff_id)->staff}}
-                                        {!! Form::hidden("staffs[]", $staff->staff_id)!!}
+                                    <div class="col-sm-2">
+                                        <div class="row">
+                                            <div class="col-sm-2">
+                                                <a href="#" onclick="staffToWorkDelete({{$staff->id}})"><i
+                                                            class="fa fa-close"></i></a>
+                                            </div>
+                                            <div class="col-sm-10">
+                                                {{$staffs->find($staff->staff_id)->staff}}
+                                                {!! Form::hidden("staffs[]", $staff->staff_id)!!}
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="col-sm-1">
                                         {!! Form::number("staff_quantity[]", $staff->quantity, ['class' => 'form-control']) !!}
@@ -1407,7 +1442,7 @@ EOT;
                                         {!! Form::text("staff_unit[]", $staff_unit_for_work_done , ['class' => 'form-control']) !!}
                                     </div>
                                     <div class="col-sm-6">
-                                        {!! Form::textarea("staff_work_done[]", $staff_work_done_for_work_done , ['class' => 'form-control', 'rows' => '4']) !!}
+                                        {!! Form::textarea("staff_work_done[]", $staff_work_done_for_work_done , ['class' => 'form-control', 'rows' => '3']) !!}
                                     </div>
                                     <div class="col-sm-1">
                                         {!! Form::number("staff_planned[]", $staff_planned_for_work_done , ['class' => 'form-control']) !!}
@@ -1428,13 +1463,17 @@ EOT;
                                 $subcontractor_done_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->done) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->done;
                                 ?>
                                 <div class="row" id="div-swid{{$subcontractor->id}}">
-                                    <div class="col-sm-1">
-                                        <a href="#" onclick="subcontractorToWorkDelete({{$subcontractor->id}})"><i
-                                                    class="fa fa-close"></i></a>
-                                    </div>
-                                    <div class="col-sm-1">
-                                        {{$all_subcontractors->find($subcontractor->subcontractor_id)->name}}
-                                        {!! Form::hidden("subcontractors[]", $subcontractor->subcontractor_id)!!}
+                                    <div class="col-sm-2">
+                                        <div class="row">
+                                            <div class="col-sm-2">
+                                                <a href="#" onclick="subcontractorToWorkDelete({{$subcontractor->id}})"><i
+                                                            class="fa fa-close"></i></a>
+                                            </div>
+                                            <div class="col-sm-10">
+                                                {{\App\Subcontractor::all()->find($subcontractor->subcontractor_id)->name}}
+                                                {!! Form::hidden("subcontractors[]", $subcontractor->subcontractor_id)!!}
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="col-sm-1">
                                         {!! Form::number("subcontractor_quantity[]", $subcontractor->quantity, ['class' => 'form-control']) !!}
@@ -1443,7 +1482,7 @@ EOT;
                                         {!! Form::text("subcontractor_unit[]", $subcontractor_unit_for_work_done , ['class' => 'form-control']) !!}
                                     </div>
                                     <div class="col-sm-6">
-                                        {!! Form::textarea("subcontractor_work_done[]", $subcontractor_work_done_for_work_done , ['class' => 'form-control', 'rows' => '4']) !!}
+                                        {!! Form::textarea("subcontractor_work_done[]", $subcontractor_work_done_for_work_done , ['class' => 'form-control', 'rows' => '3']) !!}
                                     </div>
                                     <div class="col-sm-1">
                                         {!! Form::number("subcontractor_planned[]", $subcontractor_planned_for_work_done , ['class' => 'form-control']) !!}
@@ -1545,7 +1584,7 @@ EOT;
                                                     <tr class="bg-warning">
                                                         @endif
                                                         <td>{{$i++}}</td>
-                                                        <td>{{$all_subcontractors->find($sw->subcontractor_id)->name}}</td>
+                                                        <td>{{\App\Subcontractor::find($sw->subcontractor_id)->name}}</td>
                                                         <td>{{$sw->quantity}}</td>
                                                         <td>{{$sw->unit}}</td>
                                                         <td>{{$sw->works_done}}</td>
@@ -1602,11 +1641,12 @@ EOT;
 
                         <div id="inmaterial-insert">
                             @foreach($inmaterials as $inmaterial)
-                                <div class="row">
+                                <div class="row" id="div-inmaterialid{{$inmaterial->id}}">
                                     <div class="col-sm-2">
                                         <div class="form-group">
                                             <div class="row">
-                                                <div class="col-sm-2"><a href="#" class="remove_field"><i
+                                                <div class="col-sm-2"><a href="#"
+                                                                         onclick="inmaterialsDelete({{$inmaterial->id}})"><i
                                                                 class="fa fa-close"></i></a></div>
                                                 <div class="col-sm-10">
                                                     <span>{{\App\Material::find($inmaterial->material_id)->material}}</span>

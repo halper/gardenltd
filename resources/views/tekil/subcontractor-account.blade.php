@@ -38,12 +38,12 @@ foreach (\App\Manufacturing::all() as $manufacture) {
             e.preventDefault();
             var mySubcontractorId = $(this).data('id');
             var mySubcontractorName = $(this).data('name');
-            var myForm = $('.modal-footer #userDeleteForm');
+            var myForm = $('.modal-footer #subcontractorDeleteForm');
             var myP = $('.modal-body .userDel');
             myP.html("<em>" + mySubcontractorName + "</em> adlı taşeronu silmek istediğinize emin misiniz?");
             $('<input>').attr({
                 type: 'hidden',
-                name: 'subcontractorDeleteIn',
+                name: 'subId',
                 value: mySubcontractorId
             }).appendTo(myForm);
             $('#deleteSubcontractorConfirm').modal('show');
@@ -97,12 +97,13 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                                     @foreach($site->subcontractor()->get() as $sub)
                                         <tr>
                                             <td>{{ $sub->name}}</td>
-                                            <td>{{ \App\Library\CarbonHelper::getTurkishDate($sub->contract_date) }}</td>
+
+                                            <td>{{ strpos($sub->pivot->contract_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->pivot->contract_date) }}</td>
 
                                             <td>
-                                                {{\App\Library\CarbonHelper::getTurkishDate($sub->contract_start_date)}}
+                                                {{strpos($sub->pivot->contract_start_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->pivot->contract_start_date)}}
                                             </td>
-                                            <td>{{\App\Library\CarbonHelper::getTurkishDate($sub->contract_end_date)}}</td>
+                                            <td>{{strpos($sub->pivot->contract_end_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->pivot->contract_end_date)}}</td>
                                             <td>
                                                 <?php
                                                 $my_path = '';
@@ -290,14 +291,16 @@ foreach (\App\Manufacturing::all() as $manufacture) {
 
                                     @foreach(App\Subcontractor::all() as $subcontractor)
 
+                                        @if(!$site->hasSubcontractor($subcontractor->id))
                                         <div class="col-md-4 col-xs-6">
                                             <label class="checkbox-inline">
                                                 {!! Form::checkbox('subcontractors[]', $subcontractor->id, $site->hasSubcontractor($subcontractor->id),
                                                 [
-                                                'id'=>$subcontractor->id,
+                                                'id'=>$subcontractor->id
                                                 ])
                                                 !!}{{ $subcontractor->name}}</label>
                                         </div>
+                                        @endif
 
                                     @endforeach
                                 </div>
@@ -329,7 +332,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
 
 
 
-    <div id="deleteUserConfirm" class="modal fade" role="dialog">
+    <div id="deleteSubcontractorConfirm" class="modal fade" role="dialog">
         <div class="modal-dialog">
 
             <!-- Modal content-->
@@ -349,8 +352,8 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                     'id' => 'subcontractorDeleteForm',
                     'role' => 'form'
                     ]) !!}
-                    <button type="submit" class="btn btn-warning">Sil</button>
-                    <button type="button" class="btn btn-default" data-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-warning btn-flat">Sil</button>
+                    <button type="button" class="btn btn-default btn-flat" data-dismiss="modal">İptal</button>
                     {!! Form::close() !!}
                 </div>
             </div>

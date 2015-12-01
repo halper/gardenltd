@@ -1,6 +1,5 @@
 <?php
 $sites = \App\Site::getSites();
-$manufacturing_options = '';
 $city_options = '';
 $phone_options = '';
 $mobile_options = '';
@@ -9,9 +8,6 @@ $eq_json = json_encode(\App\Equipment::all());
 $staffs = \App\Staff::all();
 $staff_json = [];
 
-foreach (\App\Manufacturing::all() as $manufacture) {
-    $manufacturing_options .= "'<option value=\"$manufacture->id\">" . \App\Library\TurkishChar::tr_up($manufacture->name) . "</option>'+\n";
-}
 
 foreach (\App\City::all() as $city) {
     $city_options .= "'<option value=\"$city->id\">" . \App\Library\TurkishChar::tr_up($city->name) . "</option>'+\n";
@@ -294,23 +290,6 @@ $(".mobile-select").select2({
                                                 {!! $city_options !!}
                                             </select>
 
-                                        </div>
-                                    </div>
-                                </div>
-
-
-                                <div class="form-group">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('manufacturings', 'İmalat Grubu: ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-10">
-                                            <select name="manufacturings[]"
-                                                    class="js-example-basic-multiple form-control"
-                                                    multiple>
-
-                                                {!! $manufacturing_options !!}
-                                            </select>
                                         </div>
                                     </div>
                                 </div>

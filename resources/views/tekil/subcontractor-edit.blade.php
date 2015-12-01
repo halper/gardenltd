@@ -16,49 +16,164 @@
             placeholder: "Çoklu seçim yapabilirsiniz",
             allowClear: true
         });
+        $('.dateRangePicker').datepicker({
+            autoclose: true,
+            firstDay: 1,
+            format: 'dd.mm.yyyy',
+            startDate: '01.01.2015',
+            endDate: '30.12.2100'
+        });
     </script>
 @stop
 
 @section('content')
     <h2>{{$subcontractor->name}}</h2>
-    {!! Form::model($subcontractor, [
-                                                    'url' => "/tekil/$site->slug/update-subcontractor",
-                                                    'method' => 'POST',
-                                                    'class' => 'form .form-horizontal',
-                                                    'id' => 'subcontractorEditForm',
-                                                    'role' => 'form',
-                                                    'files' => true
-                                                    ])!!}
-    {!! Form::hidden('sub-id', $subcontractor->id) !!}
-    @include('tekil._subcontractor-form')
-
     <div class="row">
-        <div class="col-sm-2"><strong>Sözleşme: </strong></div>
-        <div class="col-sm-10">
-            <?php
-            $my_path = '';
-            $file_name = '';
+        <div class="col-md-12">
+            <!-- Custom Tabs -->
+            <div class="nav-tabs-custom">
+                <ul class="nav nav-tabs">
+                    <li class="active"><a href="#tab_1" data-toggle="tab">Taşeron Sözleşme Bilgileri</a></li>
+                    <li><a href="#tab_2" data-toggle="tab">Ücretler ve Oranlar</a></li>
+                    <li><a href="#tab_3" data-toggle="tab">Ek Ödemeler</a></li>
+                    <li><a href="#tab_4" data-toggle="tab">Yemek Ücretleri</a></li>
 
-            if (!is_null($subcontractor->sfile)) {
-                $my_path_arr = explode(DIRECTORY_SEPARATOR, $subcontractor->sfile->file->path);
-                $file_name = $subcontractor->sfile->file->name;
-                $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
-            }
-            ?>
-            <a href="{{!empty($my_path) ? $my_path : ""}}">
-                {{!empty($file_name) ? $file_name : ""}}
-            </a>
-        </div>
-    </div>
+                </ul>
+                <div class="tab-content">
+                    <!-- /.tab-pane -->
+                    <div class="tab-pane active" id="tab_1">
 
-    <div class="row">
-        <div class="col-md-3 col-md-offset-4">
-            <div class="form-group">
-                <button type="submit" class="btn btn-flat btn-primary btn-block">Şantiye Düzenle</button>
+                        {!! Form::model($subcontractor, [
+                                                                        'url' => "/tekil/$site->slug/update-subcontractor",
+                                                                        'method' => 'POST',
+                                                                        'class' => 'form .form-horizontal',
+                                                                        'id' => 'subcontractorEditForm',
+                                                                        'role' => 'form',
+                                                                        'files' => true
+                                                                        ])!!}
+                        {!! Form::hidden('sub-id', $subcontractor->id) !!}
+                        @include('tekil._subcontractor-form')
+
+                        <div class="row">
+                            <div class="col-sm-2"><strong>Sözleşme: </strong></div>
+                            <div class="col-sm-10">
+                                <?php
+                                $my_path = '';
+                                $file_name = '';
+
+                                if (!is_null($subcontractor->sfile)) {
+                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $subcontractor->sfile->file->path);
+                                    $file_name = $subcontractor->sfile->file->name;
+                                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
+                                }
+                                ?>
+                                <a href="{{!empty($my_path) ? $my_path : ""}}">
+                                    {{!empty($file_name) ? $file_name : ""}}
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-3 col-md-offset-4">
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-flat btn-primary btn-block">Sözleşme
+                                        Detaylarını
+                                        Kaydet
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {!! Form::close() !!}
+                    </div>
+                    {{--Tab pane--}}
+
+
+                    <!-- /.tab-pane -->
+                    <div class="tab-pane" id="tab_2">
+                        <div class="row">
+                            <div class="col-xs-12">
+                                @include('tekil._subcontractor-fee-form')
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- /.tab-pane -->
+                    <div class="tab-pane" id="tab_3">
+                        <div class="row">
+                            <div class="col-xs-12">
+                                @include('tekil._subcontractor-cost-form')
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- /.tab-pane -->
+                    <div class="tab-pane" id="tab_4">
+                        <div class="row">
+                            <div class="col-xs-12">
+                                @include('tekil._subcontractor-meal-form')
+                            </div>
+                        </div>
+                    </div>
+
+
+                </div>
             </div>
         </div>
     </div>
 
-    {!! Form::close() !!}
+    @if(sizeof($costs)>0)
+        <div class="row">
+            <div class="col-xs-12 col-md-12">
+                <div class="box box-success box-solid">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Yapılan Ödemeler Tablosu
+                        </h3>
+
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                        class="fa fa-minus"></i>
+                            </button>
+                        </div>
+                        <!-- /.box-tools -->
+                    </div>
+                    <!-- /.box-header -->
+                    <div class="box-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-condensed">
+                                <thead>
+                                <tr>
+                                    <th>TARİH</th>
+                                    <th>MALZEME</th>
+                                    <th>AKARYAKIT</th>
+                                    <th>İŞÇİLİK</th>
+                                    <th>İŞ MAKİNASI</th>
+                                    <th>TEMİZLİK</th>
+                                    <th>AÇIKLAMA</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach ($costs as $cost)
+                                    <tr>
+                                        <td>{{ \App\Library\CarbonHelper::getTurkishDate($cost->pay_date) }}</td>
+                                        <td>{{ $cost->material }} TL</td>
+                                        <td>{{ $cost->oil }} TL</td>
+                                        <td>{{ $cost->labour }} TL</td>
+                                        <td>{{ $cost->equipment }} TL</td>
+                                        <td>{{ $cost->cleaning }} TL</td>
+                                        <td>{{ $cost->explanation }}</td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        {!! $costs->render() !!}
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 
 @stop

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Account;
+use App\Cost;
 use App\Demand;
 use App\Expense;
+use App\Fee;
 use App\File;
 use App\Inmaterial;
 use App\Library\CarbonHelper;
@@ -117,6 +119,15 @@ class TekilController extends Controller
         return redirect()->back();
     }
 
+    public function postDetachStaff(Request $request)
+    {
+//        Main contractor
+        $staff_id = $request->get("staffid");
+        $report = Report::find($request->get("report_id"));
+        $report->staff()->detach($staff_id);
+        return response()->json('success', 200);
+    }
+
     public function postAddManagementStaffs(Site $site, Request $request)
     {
         $report = Report::where('created_at', Carbon::now()->toDateString())
@@ -147,18 +158,18 @@ class TekilController extends Controller
 
         $report = Report::find($request->get("report_id"));
 
-        if(is_null($request->get("subcontractor_staffs")) || is_null($request->get("substaff-quantity"))){
+        if (is_null($request->get("subcontractor_staffs")) || is_null($request->get("substaff-quantity"))) {
             Session::flash('flash_message_error', 'Taşeron personeli eklemelisiniz');
             return redirect()->back();
         }
         $staffs = $request->get("subcontractor_staffs");
         $q_arr = $request->get("substaff-quantity");
-        if(is_null($report->subcontractor($request->get("subcontractor"))->first())) {
+        if (is_null($report->subcontractor($request->get("subcontractor"))->first())) {
             $report->subcontractor()->attach($request->get("subcontractor"));
         }
 
         for ($i = 0; $i < sizeof($staffs); $i++) {
-            if($report->hasSubstaff($staffs[$i], $request->get("subcontractor"))){
+            if ($report->hasSubstaff($staffs[$i], $request->get("subcontractor"))) {
                 $report->detachSubstaff($staffs[$i], $request->get("subcontractor"));
             }
             $report->substaff()->attach($staffs[$i], ["quantity" => $q_arr[$i], "subcontractor_id" => $request->get("subcontractor")]);
@@ -173,7 +184,7 @@ class TekilController extends Controller
         $subcontractor_id = $request->get("subcontractorid");
         $substaffs = $report->substaff()->where("subcontractor_id", $subcontractor_id)->get();
         $report->subcontractor()->detach($subcontractor_id);
-        foreach($substaffs as $substaff){
+        foreach ($substaffs as $substaff) {
             $report->substaff()->detach($substaff->id);
         }
         return response()->json('success', 200);
@@ -203,12 +214,22 @@ class TekilController extends Controller
         return redirect()->back();
     }
 
+    public function postDetachEquipment(Request $request)
+    {
+//        Main contractor
+        $equipment_id = $request->get("equipmentid");
+        $report = Report::find($request->get("report_id"));
+        $report->equipment()->detach($equipment_id);
+        return response()->json('success', 200);
+    }
+
+
     public function postSaveWorkDone(Request $request)
     {
         $report = Report::find($request->get("report_id"));
         $subcontractor_ids = $request->get("subcontractors");
         $i = 0;
-        if(!is_null($subcontractor_ids)) {
+        if (!is_null($subcontractor_ids)) {
             foreach ($subcontractor_ids as $subcontractor_id) {
                 $swunit = new Swunit();
 
@@ -243,7 +264,7 @@ class TekilController extends Controller
 
         $staff_ids = $request->get("staffs");
         $i = 0;
-        if(!is_null($staff_ids)) {
+        if (!is_null($staff_ids)) {
             foreach ($staff_ids as $staff_id) {
                 $pwunit = new Pwunit();
 
@@ -281,13 +302,13 @@ class TekilController extends Controller
     public function postDeleteSwunit(Request $request)
     {
         Swunit::destroy($request->get('swid'));
-        return response()->json('success',200);
+        return response()->json('success', 200);
     }
 
     public function postDeletePwunit(Request $request)
     {
         Pwunit::destroy($request->get('pwid'));
-        return response()->json('success',200);
+        return response()->json('success', 200);
     }
 
     public function postSaveIncomingMaterial(Request $request)
@@ -340,6 +361,12 @@ class TekilController extends Controller
 
 
         return redirect()->back();
+    }
+
+    public function postDeleteInmaterial(Request $request)
+    {
+        Inmaterial::find($request->get("inmaterialid"))->delete();
+        return response()->json('success', 200);
     }
 
     public function postSelectIsWorking(Request $request)
@@ -418,19 +445,22 @@ class TekilController extends Controller
 
     public function getTaseronDuzenle(Site $site, Module $modules, $id)
     {
-        $subcontractor = Subcontractor::find($id);
-        return view('tekil/subcontractor-edit', compact('subcontractor', 'site', 'modules'));
+        if (is_null($site->subcontractor()->find($id))) {
+            return redirect()->back();
+        }
+        $costs = Cost::additionalCosts($site->id, $id, 15);
+        $subcontractor = $site->subcontractor()->find($id);
+        return view('tekil/subcontractor-edit', compact('subcontractor', 'site', 'modules', 'costs'));
     }
 
     public function postAddSubcontractor(Request $request, Site $site)
     {
-
-        $site->subcontractor()->detach();
-
-        foreach ($request->get("subcontractors") as $subcontractor) {
-            $site->subcontractor()->attach($subcontractor);
+        $subcontractor_ids = $request->get("subcontractors");
+        foreach ($subcontractor_ids as $subcontractor_id) {
+            if (!$site->hasSubcontractor($subcontractor_id)) {
+                $site->subcontractor()->attach($subcontractor_id);
+            }
         }
-
         Session::flash('flash_message', "Taşeron seçimleri güncellendi");
         return redirect()->back();
 
@@ -440,14 +470,19 @@ class TekilController extends Controller
     {
         $has_error = false;
         $subcontractor = Subcontractor::find($request->get('sub-id'));
-        $subcontractor->manufacturing()->detach();
-        foreach ($request->get('manufacturings') as $man_id) {
-            $subcontractor->manufacturing()->attach($man_id);
+        $sub_name = $subcontractor->name;
+        $site->subcontractor()->detach($subcontractor->id);
+        foreach ($subcontractor->manufacturing()->where('site_id', $site->id)->get() as $man) {
+            $man->detachSubcontractor($subcontractor->id, $site->id);
         }
-        $subcontractor->name = $request->get('name');
-        $subcontractor->contract_date = CarbonHelper::getMySQLDate($request->get('contract_date'));
-        $subcontractor->contract_start_date = CarbonHelper::getMySQLDate($request->get('contract_start_date'));
-        $subcontractor->contract_end_date = CarbonHelper::getMySQLDate($request->get('contract_end_date'));
+        foreach ($request->get('manufacturings') as $man_id) {
+            $subcontractor->manufacturing()->attach($man_id, ['site_id' => $site->id]);
+        }
+        $site->subcontractor()->attach($subcontractor->id,
+            ['contract_date' => CarbonHelper::getMySQLDate($request->get('contract_date')),
+                'contract_start_date' => CarbonHelper::getMySQLDate($request->get('contract_start_date')),
+                'contract_end_date' => CarbonHelper::getMySQLDate($request->get('contract_end_date'))]);
+
 
         if ($request->file("contractToUpload")) {
             $file = $request->file("contractToUpload");
@@ -464,12 +499,10 @@ class TekilController extends Controller
 
                         $db_file->name = $filename;
                         $db_file->save();
-                    }
-                    else{
+                    } else {
                         $has_error = true;
                     }
-                }
-                else{
+                } else {
                     $has_error = true;
                 }
             } else {
@@ -490,20 +523,79 @@ class TekilController extends Controller
                         "subcontractor_id" => $subcontractor->id
 
                     ]);
-                }
-                else{
+                } else {
                     $has_error = true;
                 }
             }
         }
-        if($has_error){
+        if ($has_error) {
             Session::flash('flash_message_error', "Dosya yüklenirken hata oluştu");
+        } else {
+            Session::flash('flash_message', "Taşeron ($sub_name) kaydı güncellendi");
         }
-        else {
-            Session::flash('flash_message', "Taşeron ($subcontractor->name) kaydı güncellendi");
-        }
-            return redirect()->back();
+        return redirect()->back();
     }
+
+    public function patchDelSubcontractor(Site $site, Request $request)
+    {
+        $site->subcontractor()->detach($request->get("subId"));
+        $subcontractor = Subcontractor::find($request->get("subId"));
+        $subcontractor->sfile()->delete();
+        (new Manufacturing())->detachSubcontractor($subcontractor->id, $site->id);
+
+        Session::flash('flash_message', "Taşeron kayıtları güncellendi");
+        return redirect()->back();
+    }
+
+    public function postUpdateFee(Site $site, Request $request, Fee $fee)
+    {
+        $my_arr = $request->all();
+        $my_arr["site_id"] = $site->id;
+        if (is_null($site->fee()->where('subcontractor_id', $request->get("subcontractor_id"))->first())) {
+            $fee->create($my_arr);
+        } else {
+            $fee->breakfast = $request->get("breakfast");
+            $fee->lunch = $request->get("lunch");
+            $fee->supper = $request->get("supper");
+            $fee->material = $request->get("material");
+            $fee->equipment = $request->get("equipment");
+            $fee->oil = $request->get("oil");
+            $fee->cleaning = $request->get("cleaning");
+            $fee->labour = $request->get("labour");
+            $fee->shelter = $request->get("shelter");
+            $fee->sgk = $request->get("sgk");
+            $fee->allrisk = $request->get("allrisk");
+            $fee->isg = $request->get("isg");
+            $fee->contract_tax = $request->get("contract_tax");
+            $fee->kdv = $request->get("kdv");
+            $fee->electricity = $request->get("electricity");
+            $fee->water = $request->get("water");
+            $fee->save();
+        }
+        Session::flash('flash_message', 'Bilgiler kaydedildi');
+
+        return redirect()->back();
+
+    }
+
+    public function postUpdateCost(Site $site, Request $request)
+    {
+        $explain = $request->get("explanation");
+        if(isset($explain) && strlen($explain)==0){
+            Session::flash('flash_message_error', 'Ek ödemelerin açıklama kısmı boş olamaz');
+            $this->validate($request, [
+                "explanation" => "required"
+            ]);
+        }
+        $my_arr = $request->all();
+        $my_arr["site_id"] = $site->id;
+        $my_arr["pay_date"] = CarbonHelper::getMySQLDate($request->get("pay_date"));
+        Cost::create($my_arr);
+        Session::flash('flash_message', 'Bilgiler eklendi');
+
+        return redirect()->back();
+    }
+
 
 //  END OF TAŞERON CARİ HESAP PAGE
 

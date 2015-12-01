@@ -176,11 +176,6 @@ class AdminController extends Controller
 
         $subcontractor = Subcontractor::create($request->all());
 
-        foreach ($request->get('manufacturings') as $man_id) {
-            Manufacturing::find($man_id)->subcontractor()->attach($subcontractor->id);
-        }
-
-
         Session::flash('flash_message', "Taşeron ($subcontractor->name) kaydı oluşturuldu");
 
         return redirect()->back();

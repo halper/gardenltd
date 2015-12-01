@@ -24,6 +24,8 @@ if (session()->has("data")) {
     $report_date = session('data')["date"];
 }
 
+
+
 $today = Carbon::now()->toDateString();
 
 $locked = true;
@@ -59,6 +61,7 @@ if (isset($report_date)) {
 }
 $end_date = date_create($site->end_date);
 $left = str_replace("+", "", date_diff($now, $end_date)->format("%R%a"));
+$total_date = str_replace("+", "", date_diff($start_date, $end_date)->format("%R%a"));
 
 $subcontractors = $report->subcontractor()->get();
 $all_subcontractors = $site->subcontractor()->get();
@@ -91,6 +94,16 @@ $site_photo_files = $site->rfile()->join('files', 'files.id', '=', 'rfiles.file_
 select("files.id", "name", "path")->where("type", "=", 0)->get();
 $site_receipt_files = $site->rfile()->join('files', 'files.id', '=', 'rfiles.file_id')->
 select("files.id", "name", "path")->where("type", "=", 1)->get();
+
+$site_reports = $site->report()->get();
+$report_no = 1;
+foreach ($site_reports as $site_report) {
+    $report_no++;
+    if ($report->id == $site_report->id) {
+        break;
+    }
+}
+
 ?>
 @extends('tekil/layout')
 
@@ -590,31 +603,37 @@ EOT;
                                 </div>
                             </div>
                         </div>
-                        <div class="col-sm-8">
-                            {!! Form::open([
-                            'url' => "/tekil/$site->slug/select-date",
-                            'method' => 'POST',
-                            'class' => 'form form-horizontal',
-                            'id' => 'dateRangeForm',
-                            'role' => 'form'
-                            ]) !!}
+                        <div class="col-sm-4">
+                            <div class="row">
+                                {!! Form::open([
+                                'url' => "/tekil/$site->slug/select-date",
+                                'method' => 'POST',
+                                'class' => 'form form-horizontal',
+                                'id' => 'dateRangeForm',
+                                'role' => 'form'
+                                ]) !!}
 
-                            <div class="form-group pull-right">
+                                <div class="form-group pull-right">
 
-                                <label class="col-xs-3 control-label">TARİH: </label>
+                                    <label class="col-xs-4 control-label">TARİH: </label>
 
-                                <div class="col-xs-3 date">
-                                    <div class="input-group input-append date" id="dateRangePicker">
-                                        <input type="text" class="form-control" name="date"/>
+                                    <div class="col-xs-8 date">
+                                        <div class="input-group input-append date" id="dateRangePicker">
+                                            <input type="text" class="form-control" name="date"/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
+                                        </div>
+                                        <span class="help-block"></span>
                                     </div>
-                                    <span class="help-block"></span>
                                 </div>
                             </div>
-
-
                             {!! Form::close() !!}
+                        </div>
+                        <div class="col-sm-2 col-sm-offset-2">
+                            <div class="row">
+                                <div class="col-sm-6"><strong>RAPOR NO:</strong></div>
+                                <div class="col-sm-6">{{$report_no}}</div>
+                            </div>
                         </div>
                     </div>
                     <div class="table-responsive">
@@ -623,24 +642,25 @@ EOT;
                             <tbody>
 
                             <tr>
+                                <td><strong>İŞ BİTİM TARİHİ:</strong></td>
+                                <td>{{$myFormatForView}}</td>
+                                <td><strong>TOPLAM SÜRE:</strong></td>
+                                <td>{{$total_date}} gün</td>
                                 <td><strong>HAVA:</strong></td>
                                 <td>{!! $weather_symbol . " " . $my_weather->getDescription()!!}</td>
                                 <td><strong>SICAKLIK:</strong></td>
                                 <td>{!! $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
                                     <sup>o</sup>C
                                 </td>
-                                <td><strong>NEM:</strong></td>
-                                <td>{!! $my_weather->getHumidity() ." %" !!}</td>
-                                <td><strong>RÜZGAR:</strong></td>
-                                <td>{{$my_weather->getWind()}} m/s</td>
+
                             </tr>
                             <tr>
-                                <td><strong>İŞ BİTİM TARİHİ:</strong></td>
-                                <td>{{$myFormatForView}}</td>
                                 <td><strong>KALAN SÜRE:</strong></td>
                                 <td>{{$left}} gün</td>
-                                <td><strong>ŞANTİYE ŞEFİ:</strong></td>
-                                <td>{{$site->site_chief}}</td>
+                                <td></td>
+                                <td></td>
+                                <td><strong>RÜZGAR:</strong></td>
+                                <td>{{$my_weather->getWind()}} m/s</td>
                                 <td><strong>ÇALIŞMA:</strong></td>
                                 <td>
                                     @if(!$locked)
@@ -673,6 +693,9 @@ EOT;
             <!-- /.box -->
         </div>
     </div>
+
+
+    {{--lock check buradan başlayacak--}}
 
     <div class="row">
         {{--Personel icmal tablosu--}}
@@ -1083,7 +1106,7 @@ EOT;
                                                         @endforeach
                                                     </div>
                                                 </div>
-                                                <div class="col-sm-1 text-center"><strong>TOPLAM</strong>
+                                                <div class="col-sm-1"><strong>TOPLAM</strong>
                                                     <br>
                                                     <strong>{{$sub_row_total}}</strong>
                                                 </div>
@@ -1137,9 +1160,9 @@ EOT;
                                                 @endforeach
                                             </div>
                                         </div>
-                                        <div class="col-sm-1 text-center"><strong>TOPLAM</strong>
+                                        <div class="col-sm-1 text-left"><strong>TOPLAM</strong>
                                             <br>
-                                            <strong>{{$sub_row_total}}</strong>
+                                            {{$sub_row_total}}
                                         </div>
                                     </div>
                                     <?php
@@ -1340,6 +1363,9 @@ EOT;
                                                     <td>{{$eq->pivot->broken}}</td>
                                                     <td>{{$eq->pivot->present + $eq->pivot->working + $eq->pivot->broken}}</td>
                                                 </tr>
+                                                <?php
+                                                $equipment_total += (int)$eq->pivot->present + (int)$eq->pivot->working + (int)$eq->pivot->broken;
+                                                ?>
                                             @endforeach
                                             <tr>
                                                 <td><strong>TOPLAM</strong></td>
@@ -2153,5 +2179,9 @@ EOT;
         </div>
         <!-- /.modal-dialog -->
     </div>
+
+    @if($locked)
+        @include('tekil._locked')
+    @endif
 
 @stop

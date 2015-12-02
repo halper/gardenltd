@@ -23,6 +23,7 @@ use App\Library\TurkishChar;
         </div>
     </div>
 </div>
+
 <div class="row">
     <div class="col-sm-8">
         <div style="background-color: rgb(0, 102, 204)">
@@ -32,8 +33,10 @@ use App\Library\TurkishChar;
                         <span>ŞANTİYE KODU/ADI</span>
                     </div>
                 </div>
-                <div class="col-sm-6" style="background-color: rgb(0, 102, 204)">
-                    <span><strong>{{$site->job_name}}</strong></span>
+                <div class="col-sm-6">
+                    <div style="background-color: rgb(0, 102, 204)">
+                        <span><strong>{{$site->job_name}}</strong></span>
+                    </div>
                 </div>
             </div>
 
@@ -49,69 +52,57 @@ use App\Library\TurkishChar;
             'role' => 'form'
             ]) !!}
 
-            <div class="col-xs-6 date">
+            <div class="col-xs-6 date text-center">
                 <div class="input-group input-append date" id="dateRangePicker">
-                    <input type="text" class="text-center" name="date" style="line-height: 22px; height:22px" autocomplete="false"/>
+                    <input type="text" class="text-center" name="date" style="line-height: 22px; height:22px"
+                           autocomplete="false"/>
                     <span class="input-group-addon add-on" style="border: none; background-color: inherit"></span>
                 </div>
                 <span class="help-block"></span>
             </div>
-            <div class="col-xs-6">
+            {!! Form::close() !!}
+            <div class="col-xs-6 text-center">
                 <?php
                 $creation = strtotime($report->updated_at);
                 $myFormatForCreation = date("H:m:s", $creation);
                 ?>
                 {{$myFormatForCreation}}
             </div>
-            {!! Form::close() !!}
         </div>
 
     </div>
 </div>
 <div class="table-responsive">
-    <table class="table table-condensed">
+    <table class="table table-condensed table-bordered">
 
         <tbody>
 
         <tr>
-            <td><strong>İŞ BİTİM TARİHİ:</strong></td>
-            <td>{{$myFormatForView}}</td>
+            <td><strong>İŞİN SÜRESİ</strong></td>
+            <td>{{$total_date}} gün</td>
             <td class="text-center"><strong>KALAN SÜRE:</strong></td>
             <td></td>
-            <td><strong>HAVA:</strong></td>
-            <td>{!! $weather_symbol . " " . $my_weather->getDescription()!!}</td>
-            <td><strong>SICAKLIK:</strong></td>
-            <td>{!! $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
+            <td><strong>HAVA</strong></td>
+            <td class="text-center" style="color: #fff; background-color: rgb(0, 102, 204)">{!! $weather_symbol !!}</td>
+            <td class="text-center">{!! $my_weather->getDescription() !!}</td>
+            <td class="text-center">{!! $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
                 <sup>o</sup>C
             </td>
 
         </tr>
         <tr>
-            <td><strong>TOPLAM SÜRE:</strong></td>
+            <td><strong>TOPLAM SÜRE</strong></td>
             <td>{{$total_date}} gün</td>
             <td class="text-center" {{$left<$day_warning ? "style=background-color:red;color:white" : ""}}>{{$left}}
                 gün
             </td>
             <td></td>
-            <td><strong>RÜZGAR:</strong></td>
-            <td>{{$my_weather->getWind()}} m/s</td>
-            <td><strong>ÇALIŞMA:</strong></td>
-            <td>
-
-                {!! Form::open([
-    'url' => "/tekil/$site->slug/select-is-working",
-    'method' => 'POST',
-    'class' => 'form',
-    'id' => 'selectIsWorkingForm',
-    'role' => 'form'
-    ]) !!}
-                {!! Form::hidden('report_id', $report->id) !!}
-                <label class="radio-inline"><input type="radio" name="is_working"
-                                                   value="1" {{$report->is_working == 1 ? "checked" : ""}}>Var</label>
-                <label class="radio-inline"><input type="radio" name="is_working"
-                                                   value="0" {{$report->is_working == 0 ? "checked" : ""}}>Yok</label>
-                {!! Form::close() !!}
-            </td>
+            <td><strong>RÜZGAR</strong></td>
+            <td class="text-center">{{$my_weather->getWind()}} m/s</td>
+            <td class="text-center" style="font-size: larger"><i
+                        class="wi wi-wind towards-{{$my_weather->getDirection()}}-deg"></i></td>
+            <td class="text-center" style="background-color: {{$report->is_working == 1 ? "rgb(0,128,0)" : "red"}}">
+                <strong>ÇALIŞMA {{$report->is_working == 1 ? "VAR":"YOK"}}</strong></td>
         </tr>
 
         </tbody>

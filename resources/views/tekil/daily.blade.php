@@ -115,6 +115,7 @@ foreach ($site_reports as $site_report) {
     <link href="<?= URL::to('/'); ?>/css/dropzone.css" rel="stylesheet"/>
     <link href="<?= URL::to('/'); ?>/css/lightbox.css" rel="stylesheet"/>
     <link href="<?= URL::to('/'); ?>/css/weather-icons.min.css" rel="stylesheet"/>
+    <link href="<?= URL::to('/'); ?>/css/weather-icons-wind.css" rel="stylesheet"/>
 @stop
 
 @section('page-specific-js')

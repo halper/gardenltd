@@ -40,6 +40,11 @@ namespace App\Library {
             return $this->getList()["speed"];
         }
 
+        public function getDirection()
+        {
+            return $this->getList()["deg"];
+        }
+
         private function getList()
         {
             $this->getWeather();
@@ -51,7 +56,8 @@ namespace App\Library {
             return $this->getList()["temp"];
         }
 
-        public function getDescription(){
+        public function getDescription()
+        {
             return $this->getList()["weather"][0]["description"];
         }
 

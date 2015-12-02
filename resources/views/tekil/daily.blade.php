@@ -575,7 +575,16 @@ EOT;
 @stop
 
 @section('content')
-
+    <?php
+    $total_management = 0;
+    if (!empty($report->management_staff))
+        $total_management += $report->management_staff;
+    if (!empty($report->building_control_staff))
+        $total_management += $report->building_control_staff;
+    if (!empty($report->employer_staff))
+        $total_management += $report->employer_staff;
+    ?>
+    @if(!$locked)
     <div class="row">
         <div class="col-xs-12 col-md-12">
             <div class="box box-{{$left < $day_warning ? "danger" : "primary"}} box-solid">
@@ -596,17 +605,7 @@ EOT;
                 <!-- /.box-header -->
                 <div class="box-body">
                     <div class="row">
-                        <div class="col-sm-4">
-                            <div class="row">
-                                <div class="col-sm-6">
-                                    <span><strong>TANZİM EDEN: </strong></span>
-                                </div>
-                                <div class="col-sm-6">
-                                    <span>{{Auth::User()->employer . " / " . Auth::User()->name}} </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-4">
+                       <div class="col-sm-4">
                             <div class="row">
                                 {!! Form::open([
                                 'url' => "/tekil/$site->slug/select-date",
@@ -665,8 +664,8 @@ EOT;
                                 <td><strong>RÜZGAR:</strong></td>
                                 <td>{{$my_weather->getWind()}} m/s</td>
                                 <td><strong>ÇALIŞMA:</strong></td>
-                                <td {{$locked ? "style=color:white;background-color:" . ($report->is_working==1 ? "rgb(0,128,0)" : "red") : ""}}>
-                                    @if(!$locked)
+                                <td>
+
                                         {!! Form::open([
                             'url' => "/tekil/$site->slug/select-is-working",
                             'method' => 'POST',
@@ -680,9 +679,6 @@ EOT;
                                         <label class="radio-inline"><input type="radio" name="is_working"
                                                                            value="0" {{$report->is_working == 0 ? "checked" : ""}}>Yok</label>
                                         {!! Form::close() !!}
-                                    @else
-                                        {{$report->is_working==0 ? "Yok" : "Var"}}
-                                    @endif
                                 </td>
                             </tr>
 
@@ -700,16 +696,7 @@ EOT;
 
     {{--lock check buradan başlayacak--}}
 
-    <?php
-    $total_management = 0;
-    if (!empty($report->management_staff))
-        $total_management += $report->management_staff;
-    if (!empty($report->building_control_staff))
-        $total_management += $report->building_control_staff;
-    if (!empty($report->employer_staff))
-        $total_management += $report->employer_staff;
-    ?>
-    @if(!$locked)
+
     <div class="row">
         {{--Personel icmal tablosu--}}
         <div class="col-xs-12 col-md-8">

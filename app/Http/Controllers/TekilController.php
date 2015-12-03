@@ -164,9 +164,6 @@ class TekilController extends Controller
         }
         $staffs = $request->get("subcontractor_staffs");
         $q_arr = $request->get("substaff-quantity");
-        if (is_null($report->subcontractor($request->get("subcontractor"))->first())) {
-            $report->subcontractor()->attach($request->get("subcontractor"));
-        }
 
         for ($i = 0; $i < sizeof($staffs); $i++) {
             if ($report->hasSubstaff($staffs[$i], $request->get("subcontractor"))) {

@@ -31,7 +31,7 @@ class Subcontractor extends Model implements SluggableInterface
 
     public function report()
     {
-        return $this->belongsToMany('App\Report')->withTimestamps();
+        return $this->belongsToMany('App\Report', 'report_substaff')->withTimestamps();
     }
 
     public function manufacturing()

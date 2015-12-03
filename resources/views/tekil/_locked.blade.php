@@ -34,7 +34,7 @@ use App\Library\TurkishChar;
                     </div>
                 </div>
                 <div class="col-sm-6">
-                    <div style="background-color: rgb(0, 102, 204)">
+                    <div style="background-color: rgb(0, 102, 204); margin-right: 3px">
                         <span><strong>{{$site->job_name}}</strong></span>
                     </div>
                 </div>
@@ -58,7 +58,6 @@ use App\Library\TurkishChar;
                            autocomplete="false"/>
                     <span class="input-group-addon add-on" style="border: none; background-color: inherit"></span>
                 </div>
-                <span class="help-block"></span>
             </div>
             {!! Form::close() !!}
             <div class="col-xs-6 text-center">
@@ -83,7 +82,8 @@ use App\Library\TurkishChar;
             <td class="text-center"><strong>KALAN SÜRE:</strong></td>
             <td></td>
             <td><strong>HAVA</strong></td>
-            <td class="text-center" style="color: #fff; background-color: rgb(0, 102, 204)">{!! $weather_symbol !!}</td>
+            <td class="text-center"
+                style="color: #fff; background-color: rgb(0, 102, 204); font-size: 20px;">{!! $weather_symbol !!}</td>
             <td class="text-center">{!! $my_weather->getDescription() !!}</td>
             <td class="text-center">{!! $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
                 <sup>o</sup>C
@@ -91,15 +91,15 @@ use App\Library\TurkishChar;
 
         </tr>
         <tr>
-            <td><strong>TOPLAM SÜRE</strong></td>
-            <td>{{$total_date}} gün</td>
+            <td><strong>GEÇEN SÜRE</strong></td>
+            <td>{{$total_date - $left}} gün</td>
             <td class="text-center" {{$left<$day_warning ? "style=background-color:red;color:white" : ""}}>{{$left}}
                 gün
             </td>
             <td></td>
             <td><strong>RÜZGAR</strong></td>
             <td class="text-center">{{$my_weather->getWind()}} m/s</td>
-            <td class="text-center" style="font-size: larger"><i
+            <td class="text-center" style="font-size: 20px; margin-top: 0; margin-bottom: 0"><i
                         class="wi wi-wind towards-{{$my_weather->getDirection()}}-deg"></i></td>
             <td class="text-center" style="background-color: {{$report->is_working == 1 ? "rgb(0,128,0)" : "red"}}">
                 <strong>ÇALIŞMA {{$report->is_working == 1 ? "VAR":"YOK"}}</strong></td>
@@ -253,6 +253,7 @@ use App\Library\TurkishChar;
                         </div>
                     </div>
                     @foreach($subcontractors as $sub)
+                        {{--{{dd($subcontractors)}}--}}
                         <?php
                         $sub_row_total = 0;
                         ?>

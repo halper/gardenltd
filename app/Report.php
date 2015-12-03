@@ -29,7 +29,7 @@ class Report extends Model
 
     public function subcontractor()
     {
-        return $this->belongsToMany('App\Subcontractor')->withTimestamps();
+        return $this->belongsToMany('App\Subcontractor', 'report_substaff')->withTimestamps();
     }
 
     public function substaff()

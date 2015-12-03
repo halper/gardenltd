@@ -62,9 +62,14 @@ if (isset($report_date)) {
 $end_date = date_create($site->end_date);
 $left = str_replace("+", "", date_diff($now, $end_date)->format("%R%a"));
 $total_date = str_replace("+", "", date_diff($start_date, $end_date)->format("%R%a"));
-$day_warning = (int) $total_date * 0.2;
+$day_warning = (int)$total_date * 0.2;
 
-$subcontractors = $report->subcontractor()->get();
+$subcontractors = [];
+foreach ($report->subcontractor()->get() as $report_staff) {
+    if (!in_array($report_staff, $subcontractors)) {
+        array_push($subcontractors, $report_staff);
+    }
+}
 $all_subcontractors = $site->subcontractor()->get();
 $report_subcontractor_arr = [];
 foreach ($subcontractors as $report_subcontractor) {
@@ -124,6 +129,7 @@ foreach ($site_reports as $site_report) {
     <script src="<?= URL::to('/'); ?>/js/dropzone.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/lightbox.js" type="text/javascript"></script>
     <script>
+
         function removeFiles(fid, rid) {
 
             var fileId = fid;
@@ -314,8 +320,7 @@ foreach ($site_reports as $site_report) {
             $("#dateRangePicker").datepicker().on('changeDate', function (ev) {
 
                 if (ev.date.valueOf() > new Date()) {
-                    $(this).closest("div").next("span").text('Bugünden ileri bir tarih seçemezsiniz!');
-                    $(this).closest("div").next("span").addClass('text-danger');
+                    $(this).closest("div").append('<span class="text-danger">Bugünden ileri bir tarih seçemezsiniz!</span>');
                     $(this).parent().closest("div").addClass('has-error');
                     return false;
 
@@ -586,86 +591,87 @@ EOT;
         $total_management += $report->employer_staff;
     ?>
     @if(!$locked)
-    <div class="row">
-        <div class="col-xs-12 col-md-12">
-            <div class="box box-{{$left < $day_warning ? "danger" : "primary"}} box-solid">
-                <div class="box-header with-border">
-                    <h3 class="box-title">{{$site->job_name}} Projesi Raporu
-                        @if(isset($report_date))
-                            <small style="color: #f9f9f9">{{$report_date}}</small>
-                        @endif
-                    </h3>
+        <div class="row">
+            <div class="col-xs-12 col-md-12">
+                <div class="box box-{{$left < $day_warning ? "danger" : "primary"}} box-solid">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">{{$site->job_name}} Projesi Raporu
+                            @if(isset($report_date))
+                                <small style="color: #f9f9f9">{{$report_date}}</small>
+                            @endif
+                        </h3>
 
-                    <div class="box-tools pull-right">
-                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                    class="fa fa-minus"></i>
-                        </button>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                        class="fa fa-minus"></i>
+                            </button>
+                        </div>
+                        <!-- /.box-tools -->
                     </div>
-                    <!-- /.box-tools -->
-                </div>
-                <!-- /.box-header -->
-                <div class="box-body">
-                    <div class="row">
-                       <div class="col-sm-4">
-                            <div class="row">
-                                {!! Form::open([
-                                'url' => "/tekil/$site->slug/select-date",
-                                'method' => 'POST',
-                                'class' => 'form form-horizontal',
-                                'id' => 'dateRangeForm',
-                                'role' => 'form'
-                                ]) !!}
+                    <!-- /.box-header -->
+                    <div class="box-body">
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <div class="row">
+                                    {!! Form::open([
+                                    'url' => "/tekil/$site->slug/select-date",
+                                    'method' => 'POST',
+                                    'class' => 'form form-horizontal',
+                                    'id' => 'dateRangeForm',
+                                    'role' => 'form'
+                                    ]) !!}
 
-                                <div class="form-group pull-right">
+                                    <div class="form-group pull-right">
 
-                                    <label class="col-xs-4 control-label">TARİH: </label>
+                                        <label class="col-xs-4 control-label">TARİH: </label>
 
-                                    <div class="col-xs-8 date">
-                                        <div class="input-group input-append date" id="dateRangePicker">
-                                            <input type="text" class="form-control" name="date"/>
+                                        <div class="col-xs-8 date">
+                                            <div class="input-group input-append date" id="dateRangePicker">
+                                                <input type="text" class="form-control" name="date"/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
+                                            </div>
                                         </div>
-                                        <span class="help-block"></span>
                                     </div>
                                 </div>
+                                {!! Form::close() !!}
                             </div>
-                            {!! Form::close() !!}
-                        </div>
-                        <div class="col-sm-2 col-sm-offset-2">
-                            <div class="row">
-                                <div class="col-sm-6"><strong>RAPOR NO:</strong></div>
-                                <div class="col-sm-6">{{$report_no}}</div>
+                            <div class="col-sm-2 col-sm-offset-2">
+                                <div class="row">
+                                    <div class="col-sm-6"><strong>RAPOR NO:</strong></div>
+                                    <div class="col-sm-6">{{$report_no}}</div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-condensed">
+                        <div class="table-responsive">
+                            <table class="table table-condensed">
 
-                            <tbody>
+                                <tbody>
 
-                            <tr>
-                                <td><strong>İŞ BİTİM TARİHİ:</strong></td>
-                                <td>{{$myFormatForView}}</td>
-                                <td class="text-center"><strong>KALAN SÜRE:</strong></td>
-                                <td></td>
-                                <td><strong>HAVA:</strong></td>
-                                <td>{!! $weather_symbol . " " . $my_weather->getDescription()!!}</td>
-                                <td><strong>SICAKLIK:</strong></td>
-                                <td>{!! $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
-                                    <sup>o</sup>C
-                                </td>
+                                <tr>
+                                    <td><strong>İŞ BİTİM TARİHİ:</strong></td>
+                                    <td>{{$myFormatForView}}</td>
+                                    <td class="text-center"><strong>KALAN SÜRE:</strong></td>
+                                    <td></td>
+                                    <td><strong>HAVA:</strong></td>
+                                    <td>{!! $weather_symbol . " " . $my_weather->getDescription()!!}</td>
+                                    <td><strong>SICAKLIK:</strong></td>
+                                    <td>{!! $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
+                                        <sup>o</sup>C
+                                    </td>
 
-                            </tr>
-                            <tr>
-                                <td><strong>TOPLAM SÜRE:</strong></td>
-                                <td>{{$total_date}} gün</td>
-                                <td class="text-center" {{$left<$day_warning ? "style=background-color:red;color:white" : ""}}>{{$left}} gün</td>
-                                <td></td>
-                                <td><strong>RÜZGAR:</strong></td>
-                                <td>{{$my_weather->getWind()}} m/s</td>
-                                <td><strong>ÇALIŞMA:</strong></td>
-                                <td>
+                                </tr>
+                                <tr>
+                                    <td><strong>TOPLAM SÜRE:</strong></td>
+                                    <td>{{$total_date}} gün</td>
+                                    <td class="text-center" {{$left<$day_warning ? "style=background-color:red;color:white" : ""}}>{{$left}}
+                                        gün
+                                    </td>
+                                    <td></td>
+                                    <td><strong>RÜZGAR:</strong></td>
+                                    <td>{{$my_weather->getWind()}} m/s</td>
+                                    <td><strong>ÇALIŞMA:</strong></td>
+                                    <td>
 
                                         {!! Form::open([
                             'url' => "/tekil/$site->slug/select-is-working",
@@ -680,166 +686,166 @@ EOT;
                                         <label class="radio-inline"><input type="radio" name="is_working"
                                                                            value="0" {{$report->is_working == 0 ? "checked" : ""}}>Yok</label>
                                         {!! Form::close() !!}
-                                </td>
-                            </tr>
+                                    </td>
+                                </tr>
 
-                            </tbody>
-                        </table>
-                    </div>
-
-                </div>
-                <!-- /.box-body -->
-            </div>
-            <!-- /.box -->
-        </div>
-    </div>
-
-
-    {{--lock check buradan başlayacak--}}
-
-
-    <div class="row">
-        {{--Personel icmal tablosu--}}
-        <div class="col-xs-12 col-md-8">
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="box box-success box-solid">
-                        <div class="box-header with-border">
-                            <h3 class="box-title">Personel İcmal Tablosu</h3>
-
-                            <div class="box-tools pull-right">
-                                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                            class="fa fa-minus"></i>
-                                </button>
-                            </div>
-                            <!-- /.box-tools -->
+                                </tbody>
+                            </table>
                         </div>
-                        <!-- /.box-header -->
-                        <div class="box-body">
+
+                    </div>
+                    <!-- /.box-body -->
+                </div>
+                <!-- /.box -->
+            </div>
+        </div>
 
 
-                            <div class="row">
-                                <div class="text-center">
-                                    <div class="col-sm-10">
-                                        <span><strong>PERSONEL İCMALİ</strong></span>
-                                    </div>
-                                    <div class="col-sm-2">
-                                        <span><strong>TOPLAM</strong></span>
+        {{--lock check buradan başlayacak--}}
+
+
+        <div class="row">
+            {{--Personel icmal tablosu--}}
+            <div class="col-xs-12 col-md-8">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="box box-success box-solid">
+                            <div class="box-header with-border">
+                                <h3 class="box-title">Personel İcmal Tablosu</h3>
+
+                                <div class="box-tools pull-right">
+                                    <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                                class="fa fa-minus"></i>
+                                    </button>
+                                </div>
+                                <!-- /.box-tools -->
+                            </div>
+                            <!-- /.box-header -->
+                            <div class="box-body">
+
+
+                                <div class="row">
+                                    <div class="text-center">
+                                        <div class="col-sm-10">
+                                            <span><strong>PERSONEL İCMALİ</strong></span>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <span><strong>TOPLAM</strong></span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {!! Form::model($report, [
-                            'url' => "/tekil/$site->slug/add-management-staffs",
-                            'method' => 'POST',
-                            'class' => 'form',
-                            'id' => 'managementStaffInsertForm',
-                            'role' => 'form'
-                            ]) !!}
+                                {!! Form::model($report, [
+                                'url' => "/tekil/$site->slug/add-management-staffs",
+                                'method' => 'POST',
+                                'class' => 'form',
+                                'id' => 'managementStaffInsertForm',
+                                'role' => 'form'
+                                ]) !!}
 
-                            <div class="row">
-                                <div class="form-group">
+                                <div class="row">
+                                    <div class="form-group">
 
-                                    <div class="col-sm-10">
-                                        <label for="employer_staff" class="control-label">İşveren
-                                            ({{$site->employer}}
-                                            )</label>
-                                    </div>
+                                        <div class="col-sm-10">
+                                            <label for="employer_staff" class="control-label">İşveren
+                                                ({{$site->employer}}
+                                                )</label>
+                                        </div>
 
-                                    <div class="col-sm-2 text-center">
-                                        {!! Form::number('employer_staff', null, ['class' => 'form-control'])  !!}
+                                        <div class="col-sm-2 text-center">
+                                            {!! Form::number('employer_staff', null, ['class' => 'form-control'])  !!}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="row">
-                                <div class="form-group">
-                                    <div class="col-sm-10">
-                                        <label for="management_staff" class="control-label">Proje Yönetimi
-                                            ({{$site->management_name}})</label>
-                                    </div>
+                                <div class="row">
+                                    <div class="form-group">
+                                        <div class="col-sm-10">
+                                            <label for="management_staff" class="control-label">Proje Yönetimi
+                                                ({{$site->management_name}})</label>
+                                        </div>
 
-                                    <div class="col-sm-2 text-center">
+                                        <div class="col-sm-2 text-center">
 
                                             {!! Form::number('management_staff', null, ['class' => 'form-control'])  !!}
 
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="row">
-                                <div class="form-group">
-                                    <div class="col-sm-10">
-                                        <label for="building_control_staff" class="control-label">Yapı Denetim
-                                            ({{$site->building_control}}
-                                            )</label>
-                                    </div>
+                                <div class="row">
+                                    <div class="form-group">
+                                        <div class="col-sm-10">
+                                            <label for="building_control_staff" class="control-label">Yapı Denetim
+                                                ({{$site->building_control}}
+                                                )</label>
+                                        </div>
 
-                                    <div class="col-sm-2 text-center">
+                                        <div class="col-sm-2 text-center">
                                             {!! Form::number('building_control_staff', null, ['class' => 'form-control'])  !!}
 
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            @if($total_management>0)
-                                <div class="row">
-                                    <div class="col-sm-10" style="text-align:right">
-                                        <span><strong>TOPLAM: </strong></span>
+                                @if($total_management>0)
+                                    <div class="row">
+                                        <div class="col-sm-10" style="text-align:right">
+                                            <span><strong>TOPLAM: </strong></span>
+                                        </div>
+                                        <div class="col-sm-2 text-center">
+                                            {{$total_management}}
+                                        </div>
                                     </div>
-                                    <div class="col-sm-2 text-center">
-                                        {{$total_management}}
-                                    </div>
-                                </div>
                                 @endif
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <div class="form-group pull-right">
-                                        <button type="submit" class="btn btn-success btn-flat">
-                                            Kaydet
-                                        </button>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="form-group pull-right">
+                                            <button type="submit" class="btn btn-success btn-flat">
+                                                Kaydet
+                                            </button>
+                                        </div>
                                     </div>
+
                                 </div>
+                                {!! Form::close() !!}
+
 
                             </div>
-                            {!! Form::close() !!}
-
-
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {{--End of Personel icmal table--}}
+                {{--End of Personel icmal table--}}
 
 
-            {{--Main contractor table--}}
+                {{--Main contractor table--}}
 
-            <?php
-            $main_contractor_total = 0;
-            $number_of_col = 12;
-            foreach ($report->staff()->get() as $staff) {
-                $main_contractor_total += $staff->pivot->quantity;
-            }
-            ?>
+                <?php
+                $main_contractor_total = 0;
+                $number_of_col = 12;
+                foreach ($report->staff()->get() as $staff) {
+                    $main_contractor_total += $staff->pivot->quantity;
+                }
+                ?>
 
-                    <div class="row">
-                <div class="col-md-12">
-                    <div class="box box-success box-solid">
-                        <div class="box-header with-border">
-                            <h3 class="box-title">{{$site->main_contractor}}
-                                <small style="color: #f0f0f0;">(Ana Yüklenici)</small>
-                                Personel Tablosu
-                            </h3>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="box box-success box-solid">
+                            <div class="box-header with-border">
+                                <h3 class="box-title">{{$site->main_contractor}}
+                                    <small style="color: #f0f0f0;">(Ana Yüklenici)</small>
+                                    Personel Tablosu
+                                </h3>
 
-                            <div class="box-tools pull-right">
-                                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                            class="fa fa-minus"></i>
-                                </button>
+                                <div class="box-tools pull-right">
+                                    <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                                class="fa fa-minus"></i>
+                                    </button>
+                                </div>
+                                <!-- /.box-tools -->
                             </div>
-                            <!-- /.box-tools -->
-                        </div>
-                        <!-- /.box-header -->
-                        <div class="box-body">
+                            <!-- /.box-header -->
+                            <div class="box-body">
                                 {{$site->main_contractor}} için personel giriniz.
                                 <br>
 
@@ -916,32 +922,33 @@ EOT;
                                 </div>
                                 {!! Form::close() !!}
 
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
 
-            {{--End of Main contractor table--}}
+                {{--End of Main contractor table--}}
 
-            {{--Subcontractors table--}}
+                {{--Subcontractors table--}}
 
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="box box-success box-solid">
-                        <div class="box-header with-border">
-                            <h3 class="box-title">Alt Yükleniciler Personel Tablosu
-                            </h3>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="box box-success box-solid">
+                            <div class="box-header with-border">
+                                <h3 class="box-title">Alt Yükleniciler Personel Tablosu
+                                </h3>
 
-                            <div class="box-tools pull-right">
-                                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                            class="fa fa-minus"></i>
-                                </button>
+                                <div class="box-tools pull-right">
+                                    <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                                class="fa fa-minus"></i>
+                                    </button>
+                                </div>
+                                <!-- /.box-tools -->
                             </div>
-                            <!-- /.box-tools -->
-                        </div>
-                        <!-- /.box-header -->
-                        <div class="box-body">
+                            <!-- /.box-header -->
+                            <div class="box-body">
+
                                 @foreach($subcontractors as $sub)
                                     <?php
                                     $sub_row_total = 0;
@@ -999,35 +1006,35 @@ EOT;
                                         </div>
                                     </div>
                                 </div>
+                            </div>
                         </div>
                     </div>
+
+
+                    {{--End of subcontractors table--}}
                 </div>
 
-
-                {{--End of subcontractors table--}}
+                {{--End of left tables column--}}
             </div>
-
-            {{--End of left tables column--}}
-        </div>
 
 
             <div class="col-xs-12 col-md-4">
-            <div class="row">
-                <div class="col-sm-12">
-                    <div class="box box-success box-solid">
-                        <div class="box-header with-border">
-                            <h3 class="box-title">Ekipman Tablosu
-                            </h3>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="box box-success box-solid">
+                            <div class="box-header with-border">
+                                <h3 class="box-title">Ekipman Tablosu
+                                </h3>
 
-                            <div class="box-tools pull-right">
-                                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                            class="fa fa-minus"></i>
-                                </button>
+                                <div class="box-tools pull-right">
+                                    <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                                class="fa fa-minus"></i>
+                                    </button>
+                                </div>
+                                <!-- /.box-tools -->
                             </div>
-                            <!-- /.box-tools -->
-                        </div>
-                        <!-- /.box-header -->
-                        <div class="box-body">
+                            <!-- /.box-header -->
+                            <div class="box-body">
                                 <div class="row">
                                     <div class="col-sm-6">
                                         <span class="text-center"><strong>EKİPMAN ADI</strong></span>
@@ -1134,34 +1141,34 @@ EOT;
 
                                 </div>
                                 {!! Form::close() !!}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {{--END of right side--}}
+
         </div>
-
-        {{--END of right side--}}
-
-    </div>
-    {{--end of row--}}
+        {{--end of row--}}
 
 
-    <div class="row">
-        <div class="col-xs-12 col-md-12">
-            <div class="box box-success box-solid">
-                <div class="box-header with-border">
-                    <h3 class="box-title">Yapılan İşler Tablosu
-                    </h3>
+        <div class="row">
+            <div class="col-xs-12 col-md-12">
+                <div class="box box-success box-solid">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Yapılan İşler Tablosu
+                        </h3>
 
-                    <div class="box-tools pull-right">
-                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                    class="fa fa-minus"></i>
-                        </button>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                        class="fa fa-minus"></i>
+                            </button>
+                        </div>
+                        <!-- /.box-tools -->
                     </div>
-                    <!-- /.box-tools -->
-                </div>
-                <!-- /.box-header -->
-                <div class="box-body">
+                    <!-- /.box-header -->
+                    <div class="box-body">
 
 
                         <p>Yapılan işler tablosuna 'Alt Yüklenici Ekle' ve 'Personel Ekle' butonlarıyla çalışan birim
@@ -1306,30 +1313,30 @@ EOT;
 
                         {!! Form::close() !!}
                         {{--Locked if--}}
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
 
 
 
         <div class="row">
-        <div class="col-xs-12 col-md-12">
-            <div class="box box-success box-solid">
-                <div class="box-header with-border">
-                    <h3 class="box-title">Gelen Malzemeler Tablosu
-                    </h3>
+            <div class="col-xs-12 col-md-12">
+                <div class="box box-success box-solid">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Gelen Malzemeler Tablosu
+                        </h3>
 
-                    <div class="box-tools pull-right">
-                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                    class="fa fa-minus"></i>
-                        </button>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                        class="fa fa-minus"></i>
+                            </button>
+                        </div>
+                        <!-- /.box-tools -->
                     </div>
-                    <!-- /.box-tools -->
-                </div>
-                <!-- /.box-header -->
-                <div class="box-body">
+                    <!-- /.box-header -->
+                    <div class="box-body">
                         <div class="row">
                             <div class="col-sm-2"><strong>GELEN MALZEME</strong></div>
                             <div class="col-sm-2"><strong>GELDİĞİ YER</strong></div>
@@ -1449,11 +1456,11 @@ EOT;
                         </div>
                         {!! Form::close() !!}
 
+                    </div>
                 </div>
             </div>
         </div>
-        </div>
-        @else
+    @else
         @include('tekil._locked')
     @endif
 
@@ -1717,11 +1724,11 @@ EOT;
         <div class="row">
             <div class="col-xs-12 col-md-6 col-md-offset-3">
                 {!! Form::open([
-                                    'url' => "/tekil/$site->slug/lock-report",
-                                    'method' => 'PATCH',
-                                    'class' => 'form',
-                                    'id' => 'lock-report-form',
-                                    'role' => 'form']) !!}
+                'url' => "/tekil/$site->slug/lock-report",
+                'method' => 'PATCH',
+                'class' => 'form',
+                'id' => 'lock-report-form',
+                'role' => 'form']) !!}
                 {!! Form::hidden('report_id', $report->id) !!}
                 {!! Form::hidden('lock', !$locked) !!}
 
@@ -1735,6 +1742,14 @@ EOT;
             </div>
         </div>
     @endif
+    {{--<div class="row">
+        <div class="col-xs-12 col-md-6 col-md-offset-3">
+            <a href="#report-view-modal" data-toggle="modal"
+               class="btn btn-primary btn-flat btn-lg btn-block">
+                Rapor Görünümü
+            </a>
+        </div>
+    </div>--}}
 
     <div class="modal modal-danger" role="dialog" id="leftDaysModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
@@ -1833,4 +1848,38 @@ EOT;
         </div>
         <!-- /.modal-dialog -->
     </div>
+    {{--<div id="report-view-modal" class="modal fade" role="dialog" tabindex="-1"
+         aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span></button>
+                    <h4 class="modal-title">Rapor Görünümü</h4>
+                </div>
+                <div class="modal-body">
+                    @include('tekil._locked')
+                    <div class="modal-footer">
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <button type="button" class="btn btn-warning btn-flat pull-left"
+                                        data-dismiss="modal">Kapat
+                                </button>
+                            </div>
+                            <div class="col-sm-9">
+                                <div class="form-group pull-right">
+
+                                    <button type="submit" class="btn btn-success btn-flat ">
+                                        Yazdır
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- /.modal-content -->
+            </div>
+            <!-- /.modal-dialog -->
+        </div>
+    </div>--}}
 @stop

@@ -555,7 +555,8 @@ class TekilController extends Controller
         $site->subcontractor()->attach($subcontractor->id,
             ['contract_date' => CarbonHelper::getMySQLDate($request->get('contract_date')),
                 'contract_start_date' => CarbonHelper::getMySQLDate($request->get('contract_start_date')),
-                'contract_end_date' => CarbonHelper::getMySQLDate($request->get('contract_end_date'))]);
+                'contract_end_date' => CarbonHelper::getMySQLDate($request->get('contract_end_date')),
+            'price' => $request->get('price')]);
 
 
         if ($request->file("contractToUpload")) {

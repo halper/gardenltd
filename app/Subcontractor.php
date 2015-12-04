@@ -26,7 +26,7 @@ class Subcontractor extends Model implements SluggableInterface
 
     public function site()
     {
-        return $this->belongsToMany('App\Site')->withPivot('contract_date', 'contract_start_date', 'contract_end_date')->withTimestamps();
+        return $this->belongsToMany('App\Site')->withPivot('contract_date', 'contract_start_date', 'contract_end_date', 'price')->withTimestamps();
     }
 
     public function report()

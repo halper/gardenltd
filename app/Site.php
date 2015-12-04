@@ -68,7 +68,7 @@ class Site extends Eloquent implements SluggableInterface
 
     public function subcontractor()
     {
-        return $this->belongsToMany('App\Subcontractor')->withPivot('contract_date', 'contract_start_date', 'contract_end_date')->withTimestamps();
+        return $this->belongsToMany('App\Subcontractor')->withPivot('contract_date', 'contract_start_date', 'contract_end_date', 'price')->withTimestamps();
     }
 
     public function fee()

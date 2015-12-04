@@ -13,6 +13,18 @@ foreach (\App\Manufacturing::all() as $manufacture) {
 
 ?>
 
+<div class="form-group" {{ $errors->has('contract_date') ? 'has-error' : '' }}>
+    <div class="row">
+        <div class="col-sm-2">
+            {!! Form::label('price', 'Sözleşme Bedeli: ', ['class' => 'control-label']) !!}
+        </div>
+        <div class="col-sm-10">
+            {!! Form::number('price', $subcontractor->pivot->price, ['class' => 'form-control', 'placeholder' => 'Sözleşme Bedelini Giriniz(TL)', 'step' => 'any']) !!}
+        </div>
+    </div>
+
+</div>
+
 <div class="form-group {{ $errors->has('contract_date') ? 'has-error' : '' }}">
     <div class="row">
         <div class="col-sm-2">

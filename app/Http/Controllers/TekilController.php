@@ -13,6 +13,7 @@ use App\Library\CarbonHelper;
 use App\Manufacturing;
 use App\Material;
 use App\Module;
+use App\Outmaterial;
 use App\Pwunit;
 use App\Report;
 use App\Rfile;
@@ -130,26 +131,44 @@ class TekilController extends Controller
 
     public function postAddManagementStaffs(Site $site, Request $request)
     {
-        $report = Report::where('created_at', Carbon::now()->toDateString())
-            ->where('site_id', $site->id)->first();
+        $report = Report::find($request->get("report_id"));
+        $main_staff_arr = $request->get("main-staffs");
+        $q_arr = $request->get("main-staff-quantity");
         $exists = false;
-        if (!strlen($request->get('employer_staff')) == 0) {
-            $report->employer_staff = $request->get('employer_staff');
-            $exists = true;
-        }
-        if (!strlen($request->get('management_staff')) == 0) {
-            $report->management_staff = $request->get('management_staff');
-            $exists = true;
-        }
-        if (!strlen($request->get('building_control_staff')) == 0) {
-            $report->building_control_staff = $request->get('building_control_staff');
-            $exists = true;
+        for ($i = 0; $i < sizeof($main_staff_arr); $i++) {
+            switch ($main_staff_arr[$i]) {
+                case 0:
+                    $report->management_staff = $q_arr[$i];
+                    $exists = true;
+                    break;
+                case 1:
+                    $report->employer_staff = $q_arr[$i];
+                    $exists = true;
+                    break;
+                case 2:
+                    $report->building_control_staff = $q_arr[$i];
+                    $exists = true;
+                    break;
+                case 3:
+                    $report->isg_staff = $q_arr[$i];
+                    $exists = true;
+                    break;
+            }
         }
         if ($exists) {
             $report->save();
         }
-        Session::flash('flash_message', 'Personel icmal kaydı başarılı');
+        Session::flash('flash_message', 'Personel kaydı başarılı');
         return redirect()->back();
+    }
+
+    public function postDeleteManagementStaff(Request $request)
+    {
+        $report = Report::find($request->get("reportid"));
+        $column_name = $request->get("column");
+        $report->$column_name = "0";
+        $report->save();
+        return response()->json('success', 200);
     }
 
     public function postSaveSubcontractorStaff(Request $request)
@@ -366,6 +385,64 @@ class TekilController extends Controller
         return response()->json('success', 200);
     }
 
+    public function postSaveOutgoingMaterial(Request $request)
+    {
+        $in_arr = $request->get("outmaterials");
+
+        $report = Report::find($request->get("report_id"));
+        $report_id = $report->id;
+        $i = 0;
+        foreach ($report->outmaterial()->get() as $inmat) {
+            $inmat->delete();
+        }
+        foreach ($in_arr as $mat_id) {
+            $outmaterial = new outmaterial();
+
+            if (empty($outmaterial->where("report_id", $report_id)
+                ->where('material_id', $mat_id)->first())
+            ) {
+                if (!(empty($request->get("outmaterial-quantity")[$i]) &&
+                    empty($request->get("outmaterial-unit")[$i]) &&
+                    empty($request->get("outmaterial-from")[$i]) &&
+                    empty($request->get("outmaterial-explanation")[$i]))
+                ) {
+
+                    $outmaterial = $outmaterial->create([
+                        "material_id" => $mat_id,
+                        "report_id" => $report_id,
+                        "quantity" => $request->get("outmaterial-quantity")[$i],
+                        "unit" => $request->get("outmaterial-unit")[$i],
+                        "coming_from" => $request->get("outmaterial-from")[$i],
+                        "explanation" => $request->get("outmaterial-explanation")[$i],
+                    ]);
+                }
+
+            } else {
+
+                $outmaterial = $outmaterial->where("report_id", $report_id)
+                    ->where('material_id', $mat_id)->first();
+
+                $outmaterial->quantity = $request->get("outmaterial-quantity")[$i];
+                $outmaterial->unit = $request->get("outmaterial-unit")[$i];
+                $outmaterial->coming_from = $request->get("outmaterial-from")[$i];
+                $outmaterial->explanation = $request->get("outmaterial-explanation")[$i];
+                $outmaterial->save();
+
+            }
+            $i++;
+            Session::flash('flash_message', 'Gelen materyal tablosu güncellendi');
+        }
+
+
+        return redirect()->back();
+    }
+
+    public function postDeleteOutmaterial(Request $request)
+    {
+        Outmaterial::find($request->get("outmaterialid"))->delete();
+        return response()->json('success', 200);
+    }
+
     public function postSelectIsWorking(Request $request)
     {
         $report = Report::find($request->get("report_id"));
@@ -435,12 +512,12 @@ class TekilController extends Controller
 
 
     //  TAŞERON CARİ HESAP PAGE AND RELATED OPERATIONS
-    public function getTaseronCariHesap(Site $site, Module $modules)
+    public function getAltYukleniciCariHesap(Site $site, Module $modules)
     {
         return view('tekil/subcontractor-account', compact('site', 'modules'));
     }
 
-    public function getTaseronDuzenle(Site $site, Module $modules, $id)
+    public function getAltYukleniciDuzenle(Site $site, Module $modules, $id)
     {
         if (is_null($site->subcontractor()->find($id))) {
             return redirect()->back();
@@ -578,7 +655,7 @@ class TekilController extends Controller
     public function postUpdateCost(Site $site, Request $request)
     {
         $explain = $request->get("explanation");
-        if(isset($explain) && strlen($explain)==0){
+        if (isset($explain) && strlen($explain) == 0) {
             Session::flash('flash_message_error', 'Ek ödemelerin açıklama kısmı boş olamaz');
             $this->validate($request, [
                 "explanation" => "required"

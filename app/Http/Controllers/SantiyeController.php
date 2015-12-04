@@ -27,6 +27,7 @@ class SantiyeController extends ManagementController
             'site_chief' => 'required',
             'employer' => 'required',
             'building_control' => 'required',
+            'isg' => 'required',
         ]);
 
 
@@ -43,6 +44,7 @@ class SantiyeController extends ManagementController
                 'site_chief' => $request->get('site_chief'),
                 'employer' => $request->get('employer'),
                 'building_control' => $request->get('building_control'),
+                'isg' => $request->get('isg'),
             ]);
         Session::flash('flash_message', $request->get('job_name')." şantiyesi eklendi");
         return redirect('santiye');

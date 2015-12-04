@@ -20,14 +20,11 @@ else{
 @stop
 
 @section('page-specific-js')
-    <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.min.js"></script>
+    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
+    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
     <script>
     $('.dateRangePicker').datepicker({
-    autoclose: true,
-    firstDay: 1,
-    format: 'dd.mm.yyyy',
-    startDate: '01.01.2010',
-    endDate: '30.12.2100'
+    language: 'tr'
     });
     </script>
         @stop
@@ -202,6 +199,18 @@ else{
                             <div class="col-sm-10">
                                 {!! Form::text('main_contractor', null, ['class' => 'form-control', 'placeholder' =>
                                 'Ana yüklenicinin adını giriniz']) !!}
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group {{ $errors->has('isg') ? 'has-error' : '' }}">
+                        <div class="row">
+                            <div class="col-sm-2">
+                                {!! Form::label('isg', 'İSG: ', ['class' => 'control-label']) !!}
+                            </div>
+                            <div class="col-sm-10">
+                                {!! Form::text('isg', null, ['class' => 'form-control', 'placeholder' =>
+                                'İSG\'nin adını giriniz']) !!}
 
                             </div>
                         </div>

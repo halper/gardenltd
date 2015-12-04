@@ -21,7 +21,8 @@ foreach (\App\Manufacturing::all() as $manufacture) {
 
 @section('page-specific-js')
     <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/select2.min.js"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.min.js"></script>
+    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
+    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
     <script>
         $(document).ready(function () {
             $(".js-example-basic-multiple").select2({
@@ -52,11 +53,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
         });
 
         $('.dateRangePicker').datepicker({
-            autoclose: true,
-            firstDay: 1,
-            format: 'dd.mm.yyyy',
-            startDate: '01.01.2010',
-            endDate: '30.12.2100'
+            language: 'tr'
         });
 
 
@@ -122,7 +119,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                                             <td>
                                                 <div class="row">
                                                     <div class="col-sm-3">
-                                                        <a href="{{"taseron-duzenle/$sub->id"}}"
+                                                        <a href="{{"alt-yuklenici-duzenle/$sub->id"}}"
                                                            class="btn btn-flat btn-warning btn-sm">Düzenle</a>
                                                     </div>
                                                     <div class="col-sm-2 col-sm-offset-1">

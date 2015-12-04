@@ -24,14 +24,14 @@ use App\Library\TurkishChar;
 <body class="skin-blue">
 <!-- header logo: style can be found in header.less -->
 <div class="wrapper row-offcanvas row-offcanvas-left">
-    <header class="main-header">
+    <header class="main-header hidden-print">
         <a href="/" class="logo">
             <!-- Add the class icon to your logo image or logo icon to add the margining -->
 
             <span class="logo-lg"><b>Garden</b>Ltd.</span>
         </a>
         <!-- Header Navbar: style can be found in header.less -->
-        <nav class="navbar navbar-static-top" role="navigation">
+        <nav class="hidden-print navbar navbar-static-top" role="navigation">
             <!-- Sidebar toggle button-->
             <a href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button">
                 <span class="sr-only">Toggle navigation</span>

@@ -3,7 +3,7 @@
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateInmaterialsTable extends Migration
+class CreateOutmaterialsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -12,7 +12,7 @@ class CreateInmaterialsTable extends Migration
      */
     public function up()
     {
-        Schema::create('inmaterials', function (Blueprint $table) {
+        Schema::create('outmaterials', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('material_id')->unsigned()->index();
             $table->foreign('material_id')->references('id')->on('materials')->onDelete('cascade')->onUpdate('cascade');
@@ -33,6 +33,6 @@ class CreateInmaterialsTable extends Migration
      */
     public function down()
     {
-        Schema::drop('inmaterials');
+        Schema::drop('outmaterials');
     }
 }

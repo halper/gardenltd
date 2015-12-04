@@ -15,7 +15,7 @@ class Report extends Model
      * @var array
      */
     protected $fillable = ['site_id', 'management_staff', 'employer_staff', 'building_control_staff',
-        'weather', 'temp_min', 'temp_max', 'humidity', 'wind', 'is_working', 'admin_lock'];
+        'isg_staff', 'weather', 'temp_min', 'temp_max', 'humidity', 'wind', 'is_working', 'admin_lock'];
 
     public function site()
     {
@@ -34,7 +34,7 @@ class Report extends Model
 
     public function substaff()
     {
-        return $this->belongsToMany('App\Substaff')->withPivot('quantity', 'subcontractor_id')->join('subcontractors', 'subcontractor_id', '=', 'subcontractors.id');
+        return $this->belongsToMany('App\Staff', 'report_substaff', 'report_id', 'substaff_id')->withPivot('quantity', 'subcontractor_id')->join('subcontractors', 'subcontractor_id', '=', 'subcontractors.id');
     }
 
     public function hasSubstaff($id, $subcontractor_id)
@@ -42,9 +42,9 @@ class Report extends Model
         return !is_null($this->substaff()->where('subcontractor_id', $subcontractor_id)->where('substaff_id', $id)->first());
     }
 
-   public function detachSubstaff($id, $subcontractor_id)
+    public function detachSubstaff($id, $subcontractor_id)
     {
-        DB::delete('delete from report_substaff where substaff_id = ? AND subcontractor_id = ?',[$id, $subcontractor_id]);
+        DB::delete('delete from report_substaff where substaff_id = ? AND subcontractor_id = ?', [$id, $subcontractor_id]);
     }
 
     public function equipment()
@@ -65,6 +65,11 @@ class Report extends Model
     public function inmaterial()
     {
         return $this->hasMany('App\Inmaterial');
+    }
+
+    public function outmaterial()
+    {
+        return $this->hasMany('App\Outmaterial');
     }
 
     public function rfile()

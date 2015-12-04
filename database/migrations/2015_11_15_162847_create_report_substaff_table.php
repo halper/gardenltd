@@ -15,7 +15,7 @@ class CreateReportSubstaffTable extends Migration
         Schema::create('report_substaff', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('substaff_id')->unsigned()->index();
-            $table->foreign('substaff_id')->references('id')->on('substaffs')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('substaff_id')->references('id')->on('staffs')->onDelete('cascade')->onUpdate('cascade');
             $table->integer('report_id')->unsigned()->index();
             $table->foreign('report_id')->references('id')->on('reports')->onDelete('cascade')->onUpdate('cascade');
             $table->integer('subcontractor_id')->unsigned()->index()->default('1');

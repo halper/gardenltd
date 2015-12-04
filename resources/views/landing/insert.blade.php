@@ -45,7 +45,8 @@ $dept_json = json_encode(\App\Department::all());
 @section('page-specific-js')
     <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/select2.min.js"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.min.js"></script>
+    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
+    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
     <script>
         var addApp = angular.module('addApp', [], function ($interpolateProvider) {
             $interpolateProvider.startSymbol('<%');
@@ -214,11 +215,7 @@ $(".mobile-select").select2({
         });
 
         $('.dateRangePicker').datepicker({
-            autoclose: true,
-            firstDay: 1,
-            format: 'dd.mm.yyyy',
-            startDate: '01.01.2010',
-            endDate: '30.12.2100'
+            language: 'tr'
         });
     </script>
 

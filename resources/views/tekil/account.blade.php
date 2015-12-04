@@ -11,7 +11,8 @@ $account = $site->account;
 @stop
 
 @section('page-specific-js')
-    <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.min.js"></script>
+    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
+    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
     <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
 
 
@@ -148,9 +149,7 @@ $account = $site->account;
         });
 
         $('#dateRangePicker').datepicker({
-            autoclose: true,
-            firstDay: 1,
-            format: 'dd.mm.yyyy'
+            language: 'tr',
         });
 
     </script>

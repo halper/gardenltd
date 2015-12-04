@@ -3,7 +3,7 @@
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateSubstaffsTable extends Migration
+class AddIsgToSitesTable extends Migration
 {
     /**
      * Run the migrations.
@@ -12,10 +12,9 @@ class CreateSubstaffsTable extends Migration
      */
     public function up()
     {
-        Schema::create('substaffs', function (Blueprint $table) {
-            $table->increments('id');
-            $table->string('name');
-            $table->timestamps();
+        Schema::table('sites', function (Blueprint $table) {
+            //
+            $table->string('isg')->nullable();
         });
     }
 
@@ -26,6 +25,10 @@ class CreateSubstaffsTable extends Migration
      */
     public function down()
     {
-        Schema::drop('substaffs');
+        Schema::table('sites', function (Blueprint $table) {
+            //
+            $table->dropColumn('isg');
+
+        });
     }
 }

@@ -1,14 +1,13 @@
 <?php
 use App\Library\TurkishChar;
 ?>
-
 <div class="row">
     <div class="col-sm-12">
         <div class="row">
-            <div class="col-sm-10 text-center">
+            <div class="col-xs-10 col-sm-10 text-center">
                 <span><strong>GÜNLÜK ŞANTİYE RAPORU</strong></span>
             </div>
-            <div class="col-sm-2">
+            <div class="col-xs-2 col-sm-2">
                 <span><strong>NO:</strong> {{$report_no}}</span>
             </div>
         </div>
@@ -25,15 +24,15 @@ use App\Library\TurkishChar;
 </div>
 
 <div class="row">
-    <div class="col-sm-8">
+    <div class="col-xs-8 col-sm-8">
         <div style="background-color: rgb(0, 102, 204)">
             <div class="row">
-                <div class="col-sm-6">
+                <div class="col-xs-6 col-sm-6">
                     <div>
                         <span>ŞANTİYE KODU/ADI</span>
                     </div>
                 </div>
-                <div class="col-sm-6">
+                <div class="col-xs-6 col-sm-6">
                     <div style="background-color: rgb(0, 102, 204); margin-right: 3px">
                         <span><strong>{{$site->job_name}}</strong></span>
                     </div>
@@ -42,7 +41,7 @@ use App\Library\TurkishChar;
 
         </div>
     </div>
-    <div class="col-sm-4">
+    <div class="col-xs-4 col-sm-4">
         <div class="row">
             {!! Form::open([
             'url' => "/tekil/$site->slug/select-date",
@@ -110,7 +109,41 @@ use App\Library\TurkishChar;
 </div>
 
 <div class="row">
-    <div class="col-xs-12 col-md-8">
+    <div class="col-xs-6 col-md-8">
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="table-responsive">
+                    <table class="table table-condensed table-bordered">
+                        <thead>
+                        <tr style="background-color: rgb(127,127,127)">
+                            <th class="col-sm-10">PERSONEL İCMALİ</th>
+                            <th class="col-sm-2">TOPLAM</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>YÖNETİM/DENETİM PERSONEL TOPLAMI</td>
+                            <td id="man-tot-res"></td>
+                        </tr>
+                        <tr>
+                            <td>ANA YÜKLENİCİ PERSONEL TOPLAMI</td>
+                            <td id="main-con-tot-res"></td>
+                        </tr>
+                        <tr>
+                            <td>ALT YÜKLENİCİLER PERSONEL TOPLAMI</td>
+                            <td id="sub-staff-tot-res"></td>
+                        </tr>
+                        <tr>
+                            <td>GENEL TOPLAM</td>
+                            <td id="gen-tot-res"></td>
+                        </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         @if((int)$report->building_control_staff + (int) $report->management_staff + (int) $report->employer_staff > 0)
             <div class="row">
                 <div class="col-xs-12">
@@ -118,7 +151,7 @@ use App\Library\TurkishChar;
                         <table class="table table-condensed table-bordered">
                             <thead>
                             <tr style="background-color: rgb(127,127,127)">
-                                <th class="col-sm-10">PERSONEL İCMAL TABLOSU</th>
+                                <th class="col-sm-10">YÖNETİM/DENETİM PERSONEL TABLOSU</th>
                                 <th class="col-sm-2">ADET</th>
                             </tr>
                             </thead>
@@ -141,10 +174,16 @@ use App\Library\TurkishChar;
                                     <td>{{$report->building_control_staff}}</td>
                                 </tr>
                             @endif
+                            @if(!empty($report->isg_staff))
+                                <tr>
+                                    <td><strong>İSG({{$site->isg}})</strong></td>
+                                    <td>{{$report->isg_staff}}</td>
+                                </tr>
+                            @endif
 
                             <tr>
                                 <td><strong>TOPLAM</strong></td>
-                                <td>{{(int)$report->building_control_staff + (int) $report->management_staff + (int) $report->employer_staff}}</td>
+                                <td id="man-tot">{{(int)$report->building_control_staff + (int) $report->management_staff + (int) $report->employer_staff + (int) $report->isg_staff}}</td>
                             </tr>
 
                             </tbody>
@@ -158,7 +197,7 @@ use App\Library\TurkishChar;
         {{--Main contractor table--}}
         <?php
         $main_contractor_total = 0;
-        $number_of_col = 12;
+        $number_of_col = 9;
         foreach ($report->staff()->get() as $staff) {
             $main_contractor_total += $staff->pivot->quantity;
         }
@@ -176,40 +215,15 @@ use App\Library\TurkishChar;
 
                 <?php
                 $table_count = (int)floor(sizeof($report->staff()->get()) / $number_of_col) + 1;
-                $staff_name_arr = [];
+                $staff_name_arr = \App\Library\Shortener::shorten_collection($report->staff()->get(), 'staff');
                 $staff_quantity_arr = [];
-                ?>
-                @foreach($report->staff()->get() as $staff)
-                    <?php
-                    $vowels = ["a", "e", "ı", "i", "o", "ö", "u", "ü"];
-                    $pos = strpos($staff->staff, " ");
-                    $staff_name = "";
 
-                    if ($pos === false) {
-                        // string needle NOT found in haystack
-                        $staff_name = $staff->staff;
-                    } else {
-                        // string needle found in haystack
-                        $staff_words = explode(" ", $staff->staff);
-                        $i = 1;
-                        foreach ($staff_words as $word) {
-                            if (strlen($word) > 5) {
-                                $cut = in_array(mb_substr($word, 3, 1), $vowels) ? 3 : 4;
-                                $staff_name .= mb_substr($word, 0, $cut, 'utf-8') . ".";
-                            } else {
-                                $staff_name .= $word;
-                            }
-                            if ($i < sizeof($staff_words)) {
-                                $staff_name .= " ";
-                                $i++;
-                            }
-                        }
-                    }
-                    array_push($staff_name_arr, $staff_name);
+                foreach ($report->staff()->get() as $staff) {
                     array_push($staff_quantity_arr, $staff->pivot->quantity);
                     $extra_column = sizeof($staff_name_arr) > $number_of_col ? $number_of_col - 2 : sizeof($staff_name_arr) - 2;
-                    ?>
-                @endforeach
+                }
+                ?>
+
                 <div class="col-sm-12">
                     <div class="table-responsive">
                         <table class="table table-bordered table-condensed">
@@ -233,7 +247,7 @@ use App\Library\TurkishChar;
                                 @for($i = 0; $i<$extra_column; $i++)
                                     <td></td>
                                 @endfor
-                                <td>{{$main_contractor_total}}</td>
+                                <td id="main-con-tot">{{$main_contractor_total}}</td>
                             </tr>
                             </tbody>
                         </table>
@@ -252,13 +266,24 @@ use App\Library\TurkishChar;
                             <span><strong>ALT YÜKLENİCİLER PERSONEL TABLOSU</strong></span>
                         </div>
                     </div>
+
                     @foreach($subcontractors as $sub)
                         {{--{{dd($subcontractors)}}--}}
                         <?php
                         $sub_row_total = 0;
+                        $report_substaffs = $report->substaff()->where('subcontractor_id', $sub->id)->get();
+                        $row_count = (int)floor(sizeof($report_substaffs) / $number_of_col) + 1;
+                        $staff_name_arr = \App\Library\Shortener::shorten_collection($report_substaffs, 'staff');
+                        $staff_quantity_arr = [];
+
+                        foreach ($report_substaffs as $staff) {
+                            array_push($staff_quantity_arr, $staff->pivot->quantity);
+                            $extra_column = sizeof($staff_name_arr) > $number_of_col ? $number_of_col - 2 : sizeof($staff_name_arr) - 2;
+
+                            $sub_row_total += (int)$staff->pivot->quantity;
+
+                        }
                         ?>
-
-
                         <div class="col-sm-12">
                             <legend>{{$sub->name}}
                                 @foreach($sub->manufacturing()->get() as $manufacture)
@@ -268,20 +293,33 @@ use App\Library\TurkishChar;
                         </div>
 
                         <div class="row">
-                            <div class="col-sm-11">
-                                @foreach($report->substaff()->where('subcontractor_id', $sub->id)->get() as $substaff)
-                                    <div class="col-sm-1 text-center">
-                                        <strong>{{$substaff->name}}</strong>
-                                        <br>
-                                        {{$substaff->pivot->quantity}}</div>
-                                    <?php
-                                    $sub_row_total += (int)$substaff->pivot->quantity;
-                                    ?>
-                                @endforeach
-                            </div>
-                            <div class="col-sm-1 text-left"><strong>TOPLAM</strong>
-                                <br>
-                                {{$sub_row_total}}
+                            <div class="col-sm-12">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-condensed">
+                                        <tbody class="text-center">
+                                        @for($i = 0; $i<$row_count; $i++)
+                                            <tr>
+                                                @for($j = $i*$number_of_col; $j<sizeof($staff_name_arr) && $j<($i+1)*$number_of_col; $j++)
+                                                    <th>{{$staff_name_arr[$j]}}</th>
+                                                @endfor
+                                            </tr>
+                                            <tr>
+                                                @for($j = $i*$number_of_col; $j<sizeof($staff_name_arr) && $j<($i+1)*$number_of_col; $j++)
+                                                    <td>{{$staff_quantity_arr[$j]}}</td>
+                                                @endfor
+                                            </tr>
+
+                                        @endfor
+                                        <tr>
+                                            <td><strong>TOPLAM</strong></td>
+                                            @for($i = 0; $i<$extra_column; $i++)
+                                                <td></td>
+                                            @endfor
+                                            <td class="sub-staff-tot">{{$sub_row_total}}</td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                         <?php
@@ -290,17 +328,17 @@ use App\Library\TurkishChar;
                     @endforeach
                     @if($main_contractor_total + $subcontractor_staff_total + $total_management>0)
                         @if($subcontractor_staff_total>0)
-                            <div class="row">
+                            <div class="row hidden">
                                 <div class="col-sm-11">
                                     <p class="text-right"><strong>ALT YÜKLENİCİ
                                             TOPLAMI</strong></p>
                                 </div>
                                 <div class="col-sm-1">
-                                    <p class="text-left">{{$subcontractor_staff_total}}</p>
+                                    <p class="text-left" id="sub-staff-tot">{{$subcontractor_staff_total}}</p>
                                 </div>
                             </div>
                         @endif
-                        <div class="row">
+                        <div class="row hidden">
                             <div class="col-sm-11">
                                 <p class="text-right" style="font-size: large"><strong>GENEL
                                         TOPLAM</strong>
@@ -318,9 +356,11 @@ use App\Library\TurkishChar;
         </div>
 
     </div>
+    {{--END OF SUBCONTRACTOR TABLE--}}
 
+    {{--EKİPMAN TABLE--}}
 
-    <div class="col-xs-12 col-md-4">
+    <div class="col-xs-6 col-md-4">
         <div class="row">
             <div class="col-md-12">
                 <div class="text-center" style="background-color: rgb(255,204,0)">
@@ -376,7 +416,10 @@ use App\Library\TurkishChar;
         </div>
     </div>
 </div>
+{{--END OF EKİPMAN TABLE--}}
 
+
+{{--WORK DONE TABLE--}}
 <div class="row">
     <div class="col-md-12">
         @if(sizeof($report->pwunit()->get()) + sizeof($report->swunit()->get()) > 0)
@@ -457,7 +500,9 @@ use App\Library\TurkishChar;
         @endif
     </div>
 </div>
+{{--END OF YAPILAN İŞLER TABLE--}}
 
+{{--GELEN MALZEMELER TABLE--}}
 <div class="row">
     <div class="col-md-12">
         @if(sizeof($inmaterials)>0)
@@ -470,6 +515,7 @@ use App\Library\TurkishChar;
                     <tr>
                         <th>S.N</th>
                         <th>GELEN MALZEME</th>
+                        <th>GELDİĞİ YER</th>
                         <th>BİRİM</th>
                         <th>MİK.</th>
                         <th>AÇIKLAMASI</th>
@@ -482,6 +528,7 @@ use App\Library\TurkishChar;
                         <tr>
                             <td>{{$i}}</td>
                             <td>{{TurkishChar::tr_up(\App\Material::find($inmaterials[$i-1]->material_id)->material)}}</td>
+                            <td>{{TurkishChar::tr_up($inmaterials[$i-1]->coming_from)}}</td>
                             <td>{{TurkishChar::tr_up($inmaterials[$i-1]->unit)}}</td>
                             <td>{{$inmaterials[$i-1]->quantity}}</td>
                             <td>{{$inmaterials[$i-1]->explanation}}</td>
@@ -495,3 +542,46 @@ use App\Library\TurkishChar;
         @endif
     </div>
 </div>
+{{--END OF GELEN MALZEMELER TABLE--}}
+
+{{--GİDEN MALZEMELER TABLE--}}
+<div class="row">
+    <div class="col-md-12">
+        @if(sizeof($outmaterials)>0)
+            <div class="text-center" style="background-color: rgb(127,127,127)">
+                <span><strong>GÖNDERİLEN MALZEMELER</strong></span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-condensed">
+                    <thead>
+                    <tr>
+                        <th>S.N</th>
+                        <th>GİDEN MALZEME</th>
+                        <th>GİTTİĞİ YER</th>
+                        <th>BİRİM</th>
+                        <th>MİK.</th>
+                        <th>AÇIKLAMASI</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+
+                    @for($i = 1; $i<=sizeof($outmaterials); $i++)
+
+                        <tr>
+                            <td>{{$i}}</td>
+                            <td>{{TurkishChar::tr_up(\App\Material::find($outmaterials[$i-1]->material_id)->material)}}</td>
+                            <td>{{TurkishChar::tr_up($outmaterials[$i-1]->coming_from)}}</td>
+                            <td>{{TurkishChar::tr_up($outmaterials[$i-1]->unit)}}</td>
+                            <td>{{$outmaterials[$i-1]->quantity}}</td>
+                            <td>{{$outmaterials[$i-1]->explanation}}</td>
+                        </tr>
+
+                    @endfor
+
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </div>
+</div>
+{{--END OF GELEN MALZEMELER TABLE--}}

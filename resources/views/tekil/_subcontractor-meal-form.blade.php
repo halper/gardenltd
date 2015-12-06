@@ -1,7 +1,7 @@
 {!! Form::open([
 'url' => "/tekil/$site->slug/update-cost",
 'method' => 'POST',
-'class' => 'form .form-horizontal',
+'class' => 'form form-horizontal',
 'id' => 'subcontractorCostForm',
 'role' => 'form'
 ])!!}

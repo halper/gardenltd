@@ -15,7 +15,7 @@ class Report extends Model
      * @var array
      */
     protected $fillable = ['site_id', 'management_staff', 'employer_staff', 'building_control_staff',
-        'isg_staff', 'weather', 'temp_min', 'temp_max', 'humidity', 'wind', 'is_working', 'admin_lock'];
+        'isg_staff', 'weather', 'temp_min', 'temp_max', 'degree', 'wind', 'is_working', 'admin_lock'];
 
     public function site()
     {
@@ -42,10 +42,6 @@ class Report extends Model
         return !is_null($this->substaff()->where('subcontractor_id', $subcontractor_id)->where('substaff_id', $id)->first());
     }
 
-    public function detachSubstaff($id, $subcontractor_id)
-    {
-        DB::delete('delete from report_substaff where substaff_id = ? AND subcontractor_id = ?', [$id, $subcontractor_id]);
-    }
 
     public function equipment()
     {
@@ -72,15 +68,24 @@ class Report extends Model
         return $this->hasMany('App\Outmaterial');
     }
 
-    public function rfile()
-    {
-        return $this->hasMany('App\Rfile');
-    }
-
     public function locked()
     {
         return $this->is_locked == 1;
     }
 
+    public function work()
+    {
+        return $this->hasMany('App\Work');
+    }
+
+    public function receipt()
+    {
+        return $this->hasMany('App\Receipt');
+    }
+
+    public function photo()
+    {
+        return $this->morphMany('App\Photo', 'imageable');
+    }
 
 }

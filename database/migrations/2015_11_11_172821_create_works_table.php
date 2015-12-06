@@ -20,10 +20,8 @@ class CreateWorksTable extends Migration
             $table->string('unit');
             $table->integer('report_id')->unsigned()->index();
             $table->foreign('report_id')->references('id')->on('reports')->onDelete('cascade')->onUpdate('cascade');
-            $table->integer('subcontractor_id')->unsigned()->index();
-            $table->foreign('subcontractor_id')->references('id')->on('subcontractors')->onDelete('cascade')->onUpdate('cascade');
-            $table->integer('staff_id')->unsigned()->index();
-            $table->foreign('staff_id')->references('id')->on('staffs')->onDelete('cascade')->onUpdate('cascade');
+            $table->integer('workable_id')->unsigned();
+            $table->string('workable_type');
             $table->timestamps();
         });
     }

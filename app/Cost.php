@@ -10,15 +10,15 @@ class Cost extends Model
     protected $table = 'costs';
 
     protected $fillable = ['breakfast', 'lunch', 'supper', 'material', 'equipment',
-        'oil', 'cleaning', 'labour', 'pay_date', 'explanation', 'site_id', 'subcontractor_id'];
+        'oil', 'cleaning', 'labour', 'pay_date', 'explanation', 'subcontractor_id'];
 
-    public function site()
+    public function subcontractor()
     {
-        return $this->belongsTo('App\Site');
+        return $this->belongsTo('App\Subcontractor');
     }
 
-    public static function additionalCosts($site_id, $subcontractor_id, $paginate){
-        return Cost::where('site_id', $site_id)->where('subcontractor_id', $subcontractor_id)->whereNotNull('explanation')
+    public static function scopeAdditionalCosts($query, $paginate){
+        return $query->whereNotNull('explanation')
             ->orderBy('pay_date', 'DESC')->paginate($paginate);
     }
 }

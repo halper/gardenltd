@@ -8,10 +8,12 @@ use App\File;
 use App\Library\CarbonHelper;
 use App\Manufacturing;
 use App\Module;
+use App\Personnel;
 use App\Sfile;
 use App\Site;
 use App\Staff;
 use App\Subcontractor;
+use App\Subdetail;
 use App\User;
 use Illuminate\Http\Request;
 use App\Http\Requests;
@@ -155,6 +157,28 @@ class AdminController extends Controller
         return view('landing/insert');
     }
 
+    public function postCheckTck(Request $request)
+    {
+        if(is_null(Personnel::where('tck_no', $request->get('tck_no'))->first())){
+            return response()->json('unique', 200);
+        }else{
+            return response()->json('found!', 200);
+        }
+
+    }
+
+    public function postAddPersonnel(Request $request)
+    {
+        $this->validate($request, [
+            'tck_no' => 'required | size:11',
+            'name' => 'required',
+            'is_subpersonnel' => 'required'
+        ]);
+        Personnel::create($request->all());
+        Session::flash('flash_message', 'Personel eklendi');
+        return redirect()->back();
+    }
+
     public function postAddSubcontractor(Request $request)
     {
 
@@ -174,9 +198,9 @@ class AdminController extends Controller
             'tax_number' => 'required'
         ]);
 
-        $subcontractor = Subcontractor::create($request->all());
+        $subcontractor = Subdetail::create($request->all());
 
-        Session::flash('flash_message', "Taşeron ($subcontractor->name) kaydı oluşturuldu");
+        Session::flash('flash_message', "Alt yüklenici ($subcontractor->name) kaydı oluşturuldu");
 
         return redirect()->back();
 

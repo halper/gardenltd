@@ -11,10 +11,10 @@ class Fee extends Model
 
     protected $fillable = ['breakfast', 'lunch', 'supper', 'material',
         'equipment', 'oil', 'cleaning', 'labour', 'shelter', 'sgk', 'allrisk',
-        'isg', 'contract_tax', 'kdv', 'electricity', 'water', 'site_id', 'subcontractor_id'];
+        'isg', 'contract_tax', 'kdv', 'electricity', 'water', 'subcontractor_id'];
 
-    public function site()
+    public function subcontractor()
     {
-        return $this->belongsTo('App\Site');
+        return $this->belongsTo('App\Subcontractor');
     }
 }

@@ -83,8 +83,8 @@ use App\Library\TurkishChar;
             <td><strong>HAVA</strong></td>
             <td class="text-center"
                 style="color: #fff; background-color: rgb(0, 102, 204); font-size: 20px;">{!! $weather_symbol !!}</td>
-            <td class="text-center">{!! $my_weather->getDescription() !!}</td>
-            <td class="text-center">{!! $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
+            <td class="text-center">{!! !is_null($report->weather) ? $report->weather : $my_weather->getDescription() !!}</td>
+            <td class="text-center">{!! !is_null($report->temp_min) ? $report->temp_min ."<sup>o</sup>C / ". $report->temp_max : $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
                 <sup>o</sup>C
             </td>
 
@@ -97,9 +97,9 @@ use App\Library\TurkishChar;
             </td>
             <td></td>
             <td><strong>RÜZGAR</strong></td>
-            <td class="text-center">{{$my_weather->getWind()}} m/s</td>
+            <td class="text-center">{{ !is_null($report->weather) ? $report->wind :$my_weather->getWind()}} m/s</td>
             <td class="text-center" style="font-size: 20px; margin-top: 0; margin-bottom: 0"><i
-                        class="wi wi-wind towards-{{$my_weather->getDirection()}}-deg"></i></td>
+                        class="wi wi-wind towards-{{ !is_null($report->weather) ? $report->degree :$my_weather->getDirection()}}-deg"></i></td>
             <td class="text-center" style="background-color: {{$report->is_working == 1 ? "rgb(0,128,0)" : "red"}}">
                 <strong>ÇALIŞMA {{$report->is_working == 1 ? "VAR":"YOK"}}</strong></td>
         </tr>

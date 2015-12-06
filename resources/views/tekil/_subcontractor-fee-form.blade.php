@@ -1,4 +1,4 @@
-{!! Form::model($site->fee()->where('subcontractor_id', $subcontractor->id)->first(), [
+{!! Form::model($subcontractor->fee()->first(), [
 'url' => "/tekil/$site->slug/update-fee",
 'method' => 'POST',
 'class' => 'form .form-horizontal',
@@ -41,7 +41,7 @@
         <div class="form-group">
             <div class="row">
                 <div class="col-sm-4">
-                    {!! Form::label('sgk', 'SGK ORANI: ', ['class' => 'control-label']) !!}
+                    {!! Form::label('sgk', 'SGK TUTARI: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
                     {!! Form::number('sgk', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
@@ -59,7 +59,7 @@
                     {!! Form::label('allrisk', 'ALL-RİSK SİGORTA TUTARI: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('allrisk', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)']) !!}
+                    {!! Form::number('allrisk', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
                 </div>
             </div>
         </div>
@@ -71,7 +71,7 @@
                     {!! Form::label('isg', 'İSG TUTARI: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('isg', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)']) !!}
+                    {!! Form::number('isg', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
                 </div>
             </div>
         </div>

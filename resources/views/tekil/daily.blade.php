@@ -6,25 +6,9 @@ use Illuminate\Support\Facades\Session;
 $my_weather = new Weather;
 $weather_symbol = '';
 
-if (strpos($my_weather->getDescription(), 'Kapalı') !== false) {
-    $weather_symbol = '<i class="wi wi-day-cloudy"></i>';
-} else if (strpos($my_weather->getDescription(), 'Hafif kar yağışlı') !== false) {
-    $weather_symbol = '<i class="wi wi-day-snow"></i>';
-} else if (strpos($my_weather->getDescription(), 'Hafif yağmur') !== false) {
-    $weather_symbol = '<i class="wi wi-day-sprinkle"></i>';
-} else if (strpos($my_weather->getDescription(), 'Şiddetli yağmur') !== false) {
-    $weather_symbol = '<i class="wi wi-day-thunderstorm"></i>';
-} else if (strpos($my_weather->getDescription(), 'Orta şiddetli yağmur') !== false) {
-    $weather_symbol = '<i class="wi wi-day-hail"></i>';
-} else if (strpos($my_weather->getDescription(), 'Açık') !== false) {
-    $weather_symbol = '<i class="wi wi-day-sunny"></i>';
-}
-
 if (session()->has("data")) {
     $report_date = session('data')["date"];
 }
-
-
 
 $today = Carbon::now()->toDateString();
 
@@ -79,28 +63,18 @@ foreach ($subcontractors as $report_subcontractor) {
 $subcontractor_options = "<option></option>";
 $subcontractor_options_js = "";
 foreach ($all_subcontractors as $subcontractor) {
-    $subcontractor_options_js .= "'<option value=\"$subcontractor->id\">" . TurkishChar::tr_up($subcontractor->name) . "</option>'+\n";
+    $subcontractor_options_js .= "'<option value=\"$subcontractor->id\">" . TurkishChar::tr_up($subcontractor->subdetail->name) . "</option>'+\n";
     if (isset($report_subcontractor_arr)) {
         if (!in_array($subcontractor->id, $report_subcontractor_arr)) {
-            $subcontractor_options .= "<option value=\"$subcontractor->id\">" . TurkishChar::tr_up($subcontractor->name) . "</option>";
+            $subcontractor_options .= "<option value=\"$subcontractor->id\">" . TurkishChar::tr_up($subcontractor->subdetail->name) . "</option>";
         }
     } else {
-        $subcontractor_options .= "<option value=\"$subcontractor->id\">" . TurkishChar::tr_up($subcontractor->name) . "</option>";
+        $subcontractor_options .= "<option value=\"$subcontractor->id\">" . TurkishChar::tr_up($subcontractor->subdetail->name) . "</option>";
     }
 }
 
 $subcontractor_staffs = \App\Staff::all();
 $subcontractor_staff_total = 0;
-
-$report_site_photo_files = $report->rfile()->join('files', 'files.id', '=', 'rfiles.file_id')->
-select("files.id", "name", "path")->where("type", "=", 0)->get();
-$report_site_receipt_files = $report->rfile()->join('files', 'files.id', '=', 'rfiles.file_id')->
-select("files.id", "name", "path")->where("type", "=", 1)->get();
-
-$site_photo_files = $site->rfile()->join('files', 'files.id', '=', 'rfiles.file_id')->
-select("files.id", "name", "path")->where("type", "=", 0)->get();
-$site_receipt_files = $site->rfile()->join('files', 'files.id', '=', 'rfiles.file_id')->
-select("files.id", "name", "path")->where("type", "=", 1)->get();
 
 $site_reports = $site->report()->get();
 $report_no = 1;
@@ -110,6 +84,41 @@ foreach ($site_reports as $site_report) {
         break;
     }
 }
+        
+        if(!is_null($report->weather)){
+            if (strpos($report->weather, 'Kapalı') !== false) {
+                $weather_symbol = '<i class="wi wi-day-cloudy"></i>';
+            } else if (strpos($report->weather, 'Az bulutlu') !== false) {
+                $weather_symbol = '<i class="wi wi-day-cloudy"></i>';
+            } else if (strpos($report->weather, 'Hafif kar yağışlı') !== false) {
+                $weather_symbol = '<i class="wi wi-day-snow"></i>';
+            } else if (strpos($report->weather, 'Hafif yağmur') !== false) {
+                $weather_symbol = '<i class="wi wi-day-sprinkle"></i>';
+            } else if (strpos($report->weather, 'Şiddetli yağmur') !== false) {
+                $weather_symbol = '<i class="wi wi-day-thunderstorm"></i>';
+            } else if (strpos($report->weather, 'Orta şiddetli yağmur') !== false) {
+                $weather_symbol = '<i class="wi wi-day-hail"></i>';
+            } else if (strpos($report->weather, 'Açık') !== false) {
+                $weather_symbol = '<i class="wi wi-day-sunny"></i>';
+            }
+        }
+        else{
+            if (strpos($my_weather->getDescription(), 'Kapalı') !== false) {
+                $weather_symbol = '<i class="wi wi-day-cloudy"></i>';
+            } else if (strpos($my_weather->getDescription(), 'Az bulutlu') !== false) {
+                $weather_symbol = '<i class="wi wi-day-cloudy"></i>';
+            } else if (strpos($my_weather->getDescription(), 'Hafif kar yağışlı') !== false) {
+                $weather_symbol = '<i class="wi wi-day-snow"></i>';
+            } else if (strpos($my_weather->getDescription(), 'Hafif yağmur') !== false) {
+                $weather_symbol = '<i class="wi wi-day-sprinkle"></i>';
+            } else if (strpos($my_weather->getDescription(), 'Şiddetli yağmur') !== false) {
+                $weather_symbol = '<i class="wi wi-day-thunderstorm"></i>';
+            } else if (strpos($my_weather->getDescription(), 'Orta şiddetli yağmur') !== false) {
+                $weather_symbol = '<i class="wi wi-day-hail"></i>';
+            } else if (strpos($my_weather->getDescription(), 'Açık') !== false) {
+                $weather_symbol = '<i class="wi wi-day-sunny"></i>';
+            }
+        }
 
 ?>
 @extends('tekil/layout')
@@ -143,10 +152,10 @@ foreach ($site_reports as $site_report) {
                     "fileid": fileId,
                     "reportid": reportId
                 }
+            }).success(function () {
+                var linkID = "lb-link-" + fid;
+                $('#' + linkID).remove();
             });
-
-            var linkID = "lb-link-" + fid;
-            $('#' + linkID).remove();
 
         }
         function removeSubcontractor(subid, subname) {
@@ -338,16 +347,15 @@ foreach ($site_reports as $site_report) {
             }
 
             if ($('.sub-staff-tot').length > 0) {
-                $('.sub-staff-tot').each(function(index, element){
+                $('.sub-staff-tot').each(function (index, element) {
                     subcontractorStaffTotal += parseInt($(this).text());
                 });
                 $('#sub-staff-tot-res').text(subcontractorStaffTotal);
             }
             else {
-                $('#man-tot-res').text(0);
+                $('#sub-staff-tot-res').text(0);
             }
             $('#gen-tot-res').text(managementTotal + mainContractorTotal + subcontractorStaffTotal);
-
 
 
             var data = [{id: 0, text: 'İşveren ({!! $site->employer!!})'}, {
@@ -510,14 +518,15 @@ EOT;
             $(add_equipment_button).click(function(e){ //on add input button click
                 e.preventDefault();
 
-                    $(equipment_wrapper).append('<div class="row"><div class="col-sm-6"><div class="form-group">' +
+                    $(equipment_wrapper).append('<div class="row"><div class="col-sm-4"><div class="form-group">' +
                     '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
                     '<div class="col-sm-10"><select name="equipments[]" class="js-additional-equipment form-control">' +
 $equipment_options_js
             '</select></div></div></div></div>' +
-                '<div class="col-sm-2"><input type="number" class="form-control" name="equipment-present[]"/></div>'+
-                '<div class="col-sm-2"><input type="number" class="form-control" name="equipment-working[]"/></div>'+
-                '<div class="col-sm-2"><input type="number" class="form-control" name="equipment-broken[]"/></div></div>'); //add input box
+                '<div class="col-sm-8"><div class="row">'+
+                '<div class="col-sm-4"><input type="number" class="form-control" name="equipment-present[]"/></div>'+
+                '<div class="col-sm-4"><input type="number" class="form-control" name="equipment-working[]"/></div>'+
+                '<div class="col-sm-4"><input type="number" class="form-control" name="equipment-broken[]"/></div></div></div></div>'); //add input box
                 $(".js-additional-equipment").select2();
 
             });
@@ -800,9 +809,10 @@ EOT;
                                     <td class="text-center"><strong>KALAN SÜRE:</strong></td>
                                     <td></td>
                                     <td><strong>HAVA:</strong></td>
-                                    <td>{!! $weather_symbol . " " . $my_weather->getDescription()!!}</td>
+                                    <td>{!! $weather_symbol !!}{!! !is_null($report->weather) ? $report->weather : $my_weather->getDescription() !!}</td>
                                     <td><strong>SICAKLIK:</strong></td>
-                                    <td>{!! $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
+                                    <td>{!! !is_null($report->temp_min) ? $report->temp_min ."<sup>o</sup>C / ". $report->temp_max : $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
+
                                         <sup>o</sup>C
                                     </td>
 
@@ -815,7 +825,7 @@ EOT;
                                     </td>
                                     <td></td>
                                     <td><strong>RÜZGAR:</strong></td>
-                                    <td>{{$my_weather->getWind()}} m/s</td>
+                                    <td>{{ !is_null($report->weather) ? $report->wind :$my_weather->getWind()}} m/s</td>
                                     <td><strong>ÇALIŞMA:</strong></td>
                                     <td>
 
@@ -852,7 +862,7 @@ EOT;
 
         <div class="row">
             {{--Yönetim Denetim Personel tablosu--}}
-            <div class="col-xs-12 col-md-8">
+            <div class="col-xs-12 col-md-7">
                 <div class="row">
                     <div class="col-md-12">
                         <div class="box box-success box-solid">
@@ -989,51 +999,6 @@ EOT;
                                 <div id="main-staff-insert">
 
                                 </div>
-
-                                {{--<div class="row">
-                                    <div class="form-group">
-
-                                        <div class="col-sm-10">
-                                            <label for="employer_staff" class="control-label">İşveren
-                                                ({{$site->employer}}
-                                                )</label>
-                                        </div>
-
-                                        <div class="col-sm-2 text-center">
-                                            {!! Form::number('employer_staff', null, ['class' => 'form-control'])  !!}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="form-group">
-                                        <div class="col-sm-10">
-                                            <label for="management_staff" class="control-label">Proje Yönetimi
-                                                ({{$site->management_name}})</label>
-                                        </div>
-
-                                        <div class="col-sm-2 text-center">
-
-                                            {!! Form::number('management_staff', null, ['class' => 'form-control'])  !!}
-
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="form-group">
-                                        <div class="col-sm-10">
-                                            <label for="building_control_staff" class="control-label">Yapı Denetim
-                                                ({{$site->building_control}}
-                                                )</label>
-                                        </div>
-
-                                        <div class="col-sm-2 text-center">
-                                            {!! Form::number('building_control_staff', null, ['class' => 'form-control'])  !!}
-
-                                        </div>
-                                    </div>
-                                </div>--}}
                                 @if($total_management>0)
                                     <div class="row">
                                         <div class="col-sm-10" style="text-align:right">
@@ -1207,8 +1172,8 @@ EOT;
                                         <div class="col-sm-12">
                                             <div class="row">
                                                 <div class="col-sm-12">
-                                                    <legend>{{$sub->name}}
-                                                        @foreach($sub->manufacturing()->where('site_id', $site->id)->get() as $manufacture)
+                                                    <legend>{{$sub->subdetail->name}}
+                                                        @foreach($sub->manufacturing()->get() as $manufacture)
                                                             <small>({{TurkishChar::tr_up($manufacture->name) }})</small>
                                                         @endforeach
                                                     </legend>
@@ -1217,7 +1182,7 @@ EOT;
                                             <div class="row">
                                                 <div class="col-sm-1 text-center">
                                                     <a class='remove-subcontractor' href='#'
-                                                       onclick='removeSubcontractor("{{$sub->id}}", "{{$sub->name}}")'><i
+                                                       onclick='removeSubcontractor("{{$sub->id}}", "{{$sub->subdetail->name}}")'><i
                                                                 class="fa fa-close"></i></a>
                                                 </div>
                                                 <div class="col-sm-10">
@@ -1268,7 +1233,7 @@ EOT;
             </div>
 
 
-            <div class="col-xs-12 col-md-4">
+            <div class="col-xs-12 col-md-5">
                 <div class="row">
                     <div class="col-sm-12">
                         <div class="box box-success box-solid">
@@ -1286,19 +1251,22 @@ EOT;
                             <!-- /.box-header -->
                             <div class="box-body">
                                 <div class="row">
-                                    <div class="col-sm-6">
+                                    <div class="col-sm-4">
                                         <span class="text-center"><strong>EKİPMAN ADI</strong></span>
                                     </div>
-                                    <div class="col-sm-2">
-                                        <span class="text-center"><strong>ÇALIŞAN</strong></span>
+                                    <div class="col-sm-8">
+                                        <div class="row">
+                                            <div class="col-sm-4">
+                                                <span class="text-center"><strong>ÇALIŞAN</strong></span>
+                                            </div>
+                                            <div class="col-sm-4">
+                                                <span class="text-center"><strong>MEVCUT</strong></span>
+                                            </div>
+                                            <div class="col-sm-4">
+                                                <span class="text-center"><strong>ARIZALI</strong></span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="col-sm-2">
-                                        <span class="text-center"><strong>MEVCUT</strong></span>
-                                    </div>
-                                    <div class="col-sm-2">
-                                        <span class="text-center"><strong>ARIZALI</strong></span>
-                                    </div>
-
                                 </div>
                                 {!! Form::open([
                                                                 'url' => "/tekil/$site->slug/save-equipment",
@@ -1311,7 +1279,7 @@ EOT;
                                 <div id="equipment-insert">
                                     @foreach($report->equipment()->get() as $equipment)
                                         <div class="row" id="div-equipmentid{{$equipment->id}}">
-                                            <div class="col-sm-6">
+                                            <div class="col-sm-4">
                                                 <div class="form-group">
                                                     <div class="row">
                                                         <div class="col-sm-2"><a href="#"
@@ -1324,31 +1292,34 @@ EOT;
                                                     </div>
                                                 </div>
                                             </div>
+                                            <div class="col-sm-8">
+                                                <div class="row">
+                                                    <div class="col-sm-4">
 
-                                            <div class="col-sm-2">
+                                                        <input type="number" class="form-control"
+                                                               name="equipment-present[]"
+                                                               value="{{$equipment->pivot->present}}"/>
+                                                    </div>
+                                                    <div class="col-sm-4">
 
-                                                <input type="number" class="form-control"
-                                                       name="equipment-present[]"
-                                                       value="{{$equipment->pivot->present}}"/>
-                                            </div>
-                                            <div class="col-sm-2">
+                                                        <input type="number" class="form-control"
+                                                               name="equipment-working[]"
+                                                               value="{{$equipment->pivot->working}}"/>
+                                                    </div>
+                                                    <div class="col-sm-4">
 
-                                                <input type="number" class="form-control"
-                                                       name="equipment-working[]"
-                                                       value="{{$equipment->pivot->working}}"/>
-                                            </div>
-                                            <div class="col-sm-2">
-
-                                                <input type="number" class="form-control"
-                                                       name="equipment-broken[]"
-                                                       value="{{$equipment->pivot->broken}}"/>
+                                                        <input type="number" class="form-control"
+                                                               name="equipment-broken[]"
+                                                               value="{{$equipment->pivot->broken}}"/>
+                                                    </div>
+                                                </div>
                                             </div>
 
                                         </div>
                                     @endforeach
 
                                     <div class="row">
-                                        <div class="col-sm-6">
+                                        <div class="col-sm-4">
                                             <div class="form-group">
                                                 <select name="equipments[]"
                                                         class="js-example-basic-single form-control">
@@ -1357,21 +1328,24 @@ EOT;
                                                 </select>
                                             </div>
                                         </div>
+                                        <div class="col-sm-8">
+                                            <div class="row">
+                                                <div class="col-sm-4">
 
-                                        <div class="col-sm-2">
+                                                    <input type="number" class="form-control"
+                                                           name="equipment-present[]"/>
+                                                </div>
+                                                <div class="col-sm-4">
 
-                                            <input type="number" class="form-control"
-                                                   name="equipment-present[]"/>
-                                        </div>
-                                        <div class="col-sm-2">
+                                                    <input type="number" class="form-control"
+                                                           name="equipment-working[]"/>
+                                                </div>
+                                                <div class="col-sm-4">
 
-                                            <input type="number" class="form-control"
-                                                   name="equipment-working[]"/>
-                                        </div>
-                                        <div class="col-sm-2">
-
-                                            <input type="number" class="form-control"
-                                                   name="equipment-broken[]"/>
+                                                    <input type="number" class="form-control"
+                                                           name="equipment-broken[]"/>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1509,7 +1483,7 @@ EOT;
                                                             class="fa fa-close"></i></a>
                                             </div>
                                             <div class="col-sm-10">
-                                                {{\App\Subcontractor::all()->find($subcontractor->subcontractor_id)->name}}
+                                                {{\App\Subcontractor::find($subcontractor->subcontractor_id)->subdetail()->name}}
                                                 {!! Form::hidden("subcontractors[]", $subcontractor->subcontractor_id)!!}
                                             </div>
                                         </div>
@@ -1882,6 +1856,7 @@ EOT;
                     @if(!$locked)
                         <div class="row">
                             <div class="col-sm-6">
+                                {{--photos--}}
                                 {!! Form::open([
                                                                                             'url' => "/tekil/$site->slug/save-files",
                                                                                             'method' => 'POST',
@@ -1905,13 +1880,13 @@ EOT;
 
                                 {!! Form::close() !!}
                                 <div class="row">
-                                    @foreach($report_site_photo_files as $report_site_photo)
+                                    @foreach($report->photo as $report_site_photo)
                                         <?php
-                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_photo->path);
+                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_photo->file()->first()->path);
                                         $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-                                        if (strpos($report_site_photo->name, 'pdf') !== false) {
+                                        if (strpos($report_site_photo->file()->first()->name, 'pdf') !== false) {
                                             $image = URL::to('/') . "/img/pdf.jpg";
-                                        } elseif (strpos($report_site_photo->name, 'doc') !== false) {
+                                        } elseif (strpos($report_site_photo->file()->first()->name, 'doc') !== false) {
                                             $image = URL::to('/') . "/img/word.png";
                                         } else {
                                             $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_photo->name;
@@ -1923,7 +1898,7 @@ EOT;
                                            data-footer="<a data-dismiss='modal' class='remove-files' href='#' onclick='removeFiles({{$report_site_photo->id}}, {{$report->id}})'>Dosyayı Sil<a/>"
                                            class="col-sm-4">
                                             <img src="{{$image}}" class="img-responsive">
-                                            {{$report_site_photo->name}}
+                                            {{$report_site_photo->file()->first()->name}}
                                         </a>
 
                                     @endforeach
@@ -1953,14 +1928,14 @@ EOT;
 
                                 {!! Form::close() !!}
                                 <div class="row">
-                                    @foreach($report_site_receipt_files as $report_site_receipt)
+                                    @foreach($report->receipt as $report_site_receipt)
                                         <?php
-                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_receipt->path);
+                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_receipt->file()->first()->path);
                                         $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-                                        $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->name;
-                                        if (strpos($report_site_receipt->name, 'pdf') !== false) {
+                                        $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->file()->first()->name;
+                                        if (strpos($report_site_receipt->file()->first()->name, 'pdf') !== false) {
                                             $image = URL::to('/') . "/img/pdf.jpg";
-                                        } elseif (strpos($report_site_receipt->name, 'doc') !== false) {
+                                        } elseif (strpos($report_site_receipt->file()->first()->name, 'doc') !== false) {
                                             $image = URL::to('/') . "/img/word.png";
                                         }
                                         ?>
@@ -1970,7 +1945,7 @@ EOT;
                                            data-footer="<a data-dismiss='modal' class='remove-files' href='#' onclick='removeFiles({{$report_site_receipt->id}}, {{$report->id}})'>Dosyayı Sil<a/>"
                                            class="col-sm-4">
                                             <img src="{{$image}}" class="img-responsive">
-                                            {{$report_site_receipt->name}}
+                                            {{$report_site_receipt->file()->first()->name}}
                                         </a>
 
                                     @endforeach
@@ -1979,18 +1954,20 @@ EOT;
                         </div>
                     @else
 
+                        {{--photos--}}
                         <div class="row">
                             <div class="col-sm-6">
-                                @foreach($report_site_photo_files as $report_site_photo)
+
+                                @foreach($report->photo as $report_site_photo)
                                     <?php
-                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_photo->path);
+                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_photo->file()->first()->path);
                                     $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-                                    if (strpos($report_site_photo->name, 'pdf') !== false) {
+                                    if (strpos($report_site_photo->file()->first()->name, 'pdf') !== false) {
                                         $image = URL::to('/') . "/img/pdf.jpg";
-                                    } elseif (strpos($report_site_photo->name, 'doc') !== false) {
+                                    } elseif (strpos($report_site_photo->file()->first()->name, 'doc') !== false) {
                                         $image = URL::to('/') . "/img/word.png";
                                     } else {
-                                        $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_photo->name;
+                                        $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_photo->file()->first()->name;
                                     }
                                     ?>
 
@@ -1998,20 +1975,23 @@ EOT;
                                        data-toggle="lightbox" data-gallery="reportsitephotos"
                                        class="col-sm-4">
                                         <img src="{{$image}}" class="img-responsive">
-                                        {{$report_site_photo->name}}
+                                        {{$report_site_photo->file()->first()->name}}
                                     </a>
 
                                 @endforeach
+
+
                             </div>
                             <div class="col-sm-6">
-                                @foreach($report_site_receipt_files as $report_site_receipt)
+
+                                @foreach($report->receipt as $report_site_receipt)
                                     <?php
-                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_receipt->path);
+                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_receipt->file()->first()->path);
                                     $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-                                    $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->name;
-                                    if (strpos($report_site_receipt->name, 'pdf') !== false) {
+                                    $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->file()->first()->name;
+                                    if (strpos($report_site_receipt->file()->first()->name, 'pdf') !== false) {
                                         $image = URL::to('/') . "/img/pdf.jpg";
-                                    } elseif (strpos($report_site_receipt->name, 'doc') !== false) {
+                                    } elseif (strpos($report_site_receipt->file()->first()->name, 'doc') !== false) {
                                         $image = URL::to('/') . "/img/word.png";
                                     }
                                     ?>
@@ -2020,9 +2000,10 @@ EOT;
                                        data-toggle="lightbox" data-gallery="reportsitereceipts"
                                        class="col-sm-4">
                                         <img src="{{$image}}" class="img-responsive">
-                                        {{$report_site_receipt->name}}
+                                        {{$report_site_receipt->file()->first()->name}}
                                     </a>
                                 @endforeach
+
                             </div>
                         </div>
 
@@ -2060,47 +2041,51 @@ EOT;
 
                         <div class="row">
                             <div class="col-sm-6">
-                                @foreach($site_photo_files as $site_photo)
-                                    <?php
-                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $site_photo->path);
-                                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-                                    $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $site_photo->name;
-                                    if (strpos($site_photo->name, 'pdf') !== false) {
-                                        $image = URL::to('/') . "/img/pdf.jpg";
-                                    } elseif (strpos($site_photo->name, 'doc') !== false) {
-                                        $image = URL::to('/') . "/img/word.png";
-                                    }
-                                    ?>
+                                @foreach($site_reports as $site_report)
+                                    @foreach($site_report->photo as $site_photo)
+                                        <?php
+                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $site_photo->file()->first()->path);
+                                        $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
+                                        $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $site_photo->file()->first()->name;
+                                        if (strpos($site_photo->file()->first()->name, 'pdf') !== false) {
+                                            $image = URL::to('/') . "/img/pdf.jpg";
+                                        } elseif (strpos($site_photo->file()->first()->name, 'doc') !== false) {
+                                            $image = URL::to('/') . "/img/word.png";
+                                        }
+                                        ?>
 
-                                    <a href="{{$image}}"
-                                       data-toggle="lightbox" data-gallery="reportsitephotos"
-                                       class="col-sm-4">
-                                        <img src="{{$image}}" class="img-responsive">
-                                        {{$site_photo->name}}
-                                    </a>
+                                        <a href="{{$image}}"
+                                           data-toggle="lightbox" data-gallery="reportsitephotos"
+                                           class="col-sm-4">
+                                            <img src="{{$image}}" class="img-responsive">
+                                            {{$site_photo->file()->first()->name}}
+                                        </a>
 
+                                    @endforeach
                                 @endforeach
                             </div>
                             <div class="col-sm-6">
-                                @foreach($site_receipt_files as $site_receipt)
-                                    <?php
-                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $site_receipt->path);
-                                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-                                    $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $site_receipt->name;
-                                    if (strpos($site_receipt->name, 'pdf') !== false) {
-                                        $image = URL::to('/') . "/img/pdf.jpg";
-                                    } elseif (strpos($site_receipt->name, 'doc') !== false) {
-                                        $image = URL::to('/') . "/img/word.png";
-                                    }
-                                    ?>
+                                @foreach($site_reports as $site_report)
+                                    @foreach($site_report->receipt as $site_receipt)
+                                        <?php
+                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $site_receipt->file()->first()->path);
+                                        $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
+                                        $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $site_receipt->file()->first()->name;
+                                        if (strpos($site_receipt->file()->first()->name, 'pdf') !== false) {
+                                            $image = URL::to('/') . "/img/pdf.jpg";
+                                        } elseif (strpos($site_receipt->file()->first()->name, 'doc') !== false) {
+                                            $image = URL::to('/') . "/img/word.png";
+                                        }
+                                        ?>
 
-                                    <a href="{{$image}}"
-                                       data-toggle="lightbox" data-gallery="reportsitereceipts"
-                                       class="col-sm-4">
-                                        <img src="{{$image}}" class="img-responsive">
-                                        {{$site_receipt->name}}
-                                    </a>
+                                        <a href="{{$image}}"
+                                           data-toggle="lightbox" data-gallery="reportsitereceipts"
+                                           class="col-sm-4">
+                                            <img src="{{$image}}" class="img-responsive">
+                                            {{$site_receipt->file()->first()->name}}
+                                        </a>
 
+                                    @endforeach
                                 @endforeach
                             </div>
                         </div>

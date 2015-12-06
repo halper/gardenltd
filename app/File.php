@@ -11,14 +11,9 @@ class File extends Model
 
     protected $fillable = ['name', 'path', 'type'];
 
-    public function rfile()
+    public function fileable()
     {
-        return $this->hasMany('App\Rfile');
-    }
-
-    public function sfile()
-    {
-        return $this->hasMany('App\Sfile');
+        return $this->morphTo();
     }
 
 

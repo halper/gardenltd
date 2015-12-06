@@ -1,28 +1,28 @@
 <?php
 $sites = \App\Site::getSites();
-$city_options = '';
-$phone_options = '';
-$mobile_options = '';
-$site_options = '';
+$city_options = '<option></option>';
+$phone_options = '<option></option>';
+$mobile_options = '<option></option>';
+$site_options = '<option></option>';
 $eq_json = json_encode(\App\Equipment::all());
 $staffs = \App\Staff::all();
 $staff_json = [];
 
 
 foreach (\App\City::all() as $city) {
-    $city_options .= "'<option value=\"$city->id\">" . \App\Library\TurkishChar::tr_up($city->name) . "</option>'+\n";
+    $city_options .= "<option value=\"$city->id\">" . \App\Library\TurkishChar::tr_up($city->name) . "</option>";
 }
 
 foreach (\App\AreaCode::all() as $area) {
-    $phone_options .= "'<option value=\"$area->id\">$area->code</option>'+\n";
+    $phone_options .= "<option value=\"$area->id\">$area->code</option>";
 }
 
 foreach (\App\MobileCode::all() as $mobile) {
-    $mobile_options .= "'<option value=\"$mobile->id\">$mobile->code</option>'+\n";
+    $mobile_options .= "<option value=\"$mobile->id\">$mobile->code</option>";
 }
 
 foreach ($sites as $site) {
-    $site_options .= "'<option value=\"$site->id\">" . \App\Library\TurkishChar::tr_up($site->job_name) . "</option>'+\n";
+    $site_options .= "<option value=\"$site->id\">" . \App\Library\TurkishChar::tr_up($site->job_name) . "</option>";
 }
 
 foreach ($staffs as $staff) {
@@ -30,6 +30,16 @@ foreach ($staffs as $staff) {
 }
 $staff_json = json_encode($staff_json);
 $dept_json = json_encode(\App\Department::all());
+
+$staff_options = '<option></option>';
+$management_depts = new \App\Department();
+
+foreach ($management_depts->management() as $dept) {
+    $staff_options .= "<optgroup label=\"$dept->department\">";
+    foreach ($dept->staff()->get() as $staff) {
+        $staff_options .= "<option value=\"$staff->id\">" . \App\Library\TurkishChar::tr_up($staff->staff) . "</option>";
+    }
+}
 
 ?>
 
@@ -48,6 +58,43 @@ $dept_json = json_encode(\App\Department::all());
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
     <script>
+
+        $("#add-personnel").on("click", function (e) {
+            e.preventDefault();
+            var tckInput = $('input[name=tck_no]');
+            var tck = tckInput.val();
+            if (tck.length != 11) {
+                tckInput.parent('div').parent().closest('div.row').append(
+                        '<div class="col-sm-4">' +
+                        '<span class="text-danger">TCK No giriniz!</span>' +
+                        '</div>'
+                );
+                tckInput.parent('div').parent().closest('div.row').addClass('has-error');
+                return;
+            }
+            var unique;
+            $.ajax({
+                type: 'POST',
+                url: '{{"/admin/check-tck"}}',
+                data: {
+                    "tck_no": tck
+                }
+            }).success(function (response) {
+                unique = (response.indexOf('unique') > -1);
+                if (!unique) {
+                    tckInput.parent('div').parent().closest('div.row').append(
+                            '<div class="col-sm-4">' +
+                            '<span class="text-danger">TCK No sistemde kayıtlı!</span>' +
+                            '</div>'
+                    );
+                    tckInput.parent('div').parent().closest('div.row').addClass('has-error');
+                }
+                else {
+                    $('#personnelInsertForm').submit();
+                }
+            });
+
+        });
         var addApp = angular.module('addApp', [], function ($interpolateProvider) {
             $interpolateProvider.startSymbol('<%');
             $interpolateProvider.endSymbol('%>');
@@ -115,7 +162,7 @@ $dept_json = json_encode(\App\Department::all());
                 $scope.error = '';
                 if (!$('input[name="staff"]').val() || !$('select[name="department"]').val()) {
                     if (!$('input[name="staff"]').val()) {
-                        $scope.error = 'Personel giriniz!';
+                        $scope.error = 'İş kolu giriniz!';
                     }
                     if (!$('select[name="department"]').val()) {
                         $scope.error = 'Departman seçiniz!';
@@ -131,7 +178,7 @@ $dept_json = json_encode(\App\Department::all());
                 }
 
                 if (!addToArray) {
-                    $scope.error = $scope.name + ' personeliniz arasında mevcut!';
+                    $scope.error = $scope.name + ' iş kollarınız arasında mevcut!';
                     $scope.name = '';
                     $scope.dept = '';
 
@@ -195,27 +242,30 @@ $dept_json = json_encode(\App\Department::all());
             };
         });
 
+        $(document).ready(function () {
+            $(".js-example-basic-multiple").select2({
+                placeholder: "Çoklu seçim yapabilirsiniz",
+                allowClear: true
+            });
+            $(".city-select").select2({
+                placeholder: "Şehir seçiniz",
+                allowClear: true
+            });
 
-        $(".js-example-basic-multiple").select2({
-            placeholder: "Çoklu seçim yapabilirsiniz",
-            allowClear: true
-        });
-        $(".city-select").select2({
-            placeholder: "Şehir seçiniz",
-            allowClear: true
-        });
-$(".mobile-select").select2({
-            placeholder: "Alan kodu",
-            allowClear: true
+            $(".mobile-select").select2({
+                placeholder: "Alan kodu",
+                allowClear: true
+            });
+            $('.dateRangePicker').datepicker({
+                language: 'tr'
+            });
         });
 
-        $(".js-example-basic-single").select2({
-            placeholder: "Taşeronun bağlı olduğu şantiyeyi seçiniz",
-            allowClear: true
-        });
-
-        $('.dateRangePicker').datepicker({
-            language: 'tr'
+        $('a[href=#tab_5]').on("shown.bs.tab", function(){
+            $(".staff-select").select2({
+                placeholder: "İş kolu seçiniz",
+                allowClear: true
+            });
         });
     </script>
 
@@ -228,8 +278,9 @@ $(".mobile-select").select2({
             <!-- Custom Tabs -->
             <div class="nav-tabs-custom" ng-app="addApp" ng-controller="StaffController">
                 <ul class="nav nav-tabs">
-                    <li class="active"><a href="#tab_1" data-toggle="tab">Taşeron</a></li>
-                    <li><a href="#tab_2" data-toggle="tab">Personel</a></li>
+                    <li class="active"><a href="#tab_1" data-toggle="tab">Alt Yüklenici</a></li>
+                    <li><a href="#tab_5" data-toggle="tab">Personel</a></li>
+                    <li><a href="#tab_2" data-toggle="tab">İş Kolu</a></li>
                     <li><a href="#tab_3" data-toggle="tab">Departman</a></li>
                     <li><a href="#tab_4" data-toggle="tab">İş Makinesi</a></li>
 
@@ -244,18 +295,17 @@ $(".mobile-select").select2({
                                 {!! Form::open([
                                                     'url' => "/admin/add-subcontractor",
                                                     'method' => 'POST',
-                                                    'class' => 'form .form-horizontal',
+                                                    'class' => 'form',
                                                     'id' => 'subcontractorInsertForm',
-                                                    'role' => 'form',
-                                                    'files' => true
+                                                    'role' => 'form'
                                                     ])!!}
                                 <div class="form-group {{ $errors->has('name') ? 'has-error' : '' }}">
                                     <div class="row">
                                         <div class="col-sm-2">
-                                            {!! Form::label('name', 'Taşeronun Adı:* ', ['class' => 'control-label']) !!}
+                                            {!! Form::label('name', 'Alt Yüklenicinin Adı:* ', ['class' => 'control-label']) !!}
                                         </div>
                                         <div class="col-sm-10">
-                                            {!! Form::text('name', null, ['class' => 'form-control', 'placeholder' => 'Taşeronun adını giriniz']) !!}
+                                            {!! Form::text('name', null, ['class' => 'form-control', 'placeholder' => 'Alt yüklenicinin adını giriniz']) !!}
 
                                         </div>
                                     </div>
@@ -268,7 +318,7 @@ $(".mobile-select").select2({
                                         </div>
                                         <div class="col-sm-10">
                                             {!! Form::textarea('address', null, ['class' => 'form-control',
-                                                                                'placeholder' => 'Taşeronun adresini giriniz',
+                                                                                'placeholder' => 'Alt yüklenicinin adresini giriniz',
                                                                                  'rows' => '2']) !!}
 
                                         </div>
@@ -420,9 +470,85 @@ $(".mobile-select").select2({
                                 </div>
 
 
+                                <div class="form-group pull-right">
+                                    <button type="submit" class="btn btn-flat btn-primary">Alt Yüklenici Ekle</button>
+
+                                    {!! Form::close() !!}
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="tab-pane" id="tab_5">
+                        <div class="row">
+                            <div class="col-sm-12">
+
+                                {!! Form::open([
+                                                    'url' => "/admin/add-personnel",
+                                                    'method' => 'POST',
+                                                    'class' => 'form',
+                                                    'id' => 'personnelInsertForm',
+                                                    'role' => 'form',
+                                                    'files' => true
+                                                    ])!!}
+                                <div class="form-group {{ $errors->has('tck_no') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('tck_no', 'TCK No:* ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-6">
+                                            {!! Form::number('tck_no', null, ['class' => 'form-control', 'placeholder' => 'TCK no.su giriniz']) !!}
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group {{ $errors->has('name') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('name', 'Personelin Adı:* ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-6">
+                                            {!! Form::text('name', null, ['class' => 'form-control', 'placeholder' => 'Ad soyad giriniz']) !!}
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group {{ $errors->has('is_subpersonnel') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('is_subpersonnel', 'Çalışan:* ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-10">
+                                            <label class="radio-inline"><input type="radio" name="is_subpersonnel"
+                                                                               value="0">Garden Çalışanı</label>
+                                            <label class="radio-inline"><input type="radio" name="is_subpersonnel"
+                                                                               value="1">Alt Yüklenici Çalışanı</label>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group {{ $errors->has('staff_id') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('staff_id', 'İş Kolu: ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <select name="staff_id" class="staff-select form-control">
+                                                {!! $staff_options !!}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 <div class="form-group pull-right">
-                                    <button type="submit" class="btn btn-flat btn-primary">Taşeron Ekle</button>
+                                    <button type="submit" class="btn btn-flat btn-primary" id="add-personnel">Personel
+                                        Ekle
+                                    </button>
 
                                     {!! Form::close() !!}
 
@@ -442,14 +568,14 @@ $(".mobile-select").select2({
 
 
                                             <div class="col-md-1">
-                                                <label for="name">Personel Adı: </label>
+                                                <label for="name">İş Kolu Adı: </label>
                                             </div>
                                             <div class="col-md-4">
 
                                                 <input type="text" class="form-control"
                                                        name="staff" ng-model="name"
                                                        value="" autocomplete="off"
-                                                       placeholder="Yeni personel giriniz"/>
+                                                       placeholder="Yeni iş kolu giriniz"/>
 
                                             </div>
 
@@ -471,7 +597,7 @@ $(".mobile-select").select2({
                                             </div>
 
                                             <div class="col-md-3" ng-show="newStaff != ''">
-                                                <span class="text-success"><%newStaff%> personeller arasına eklendi</span>
+                                                <span class="text-success"><%newStaff%> iş kolları arasına eklendi</span>
                                             </div>
 
                                         </div>
@@ -486,7 +612,7 @@ $(".mobile-select").select2({
 
                                 <div class="row">
                                     <div class="col-md-12">
-                                        <h3>Mevcut Personel</h3>
+                                        <h3>Mevcut İş Kolları</h3>
                                     </div>
                                 </div>
                                 <div class="row">

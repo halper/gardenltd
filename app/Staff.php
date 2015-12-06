@@ -24,4 +24,14 @@ class Staff extends Model
     {
         return $this->belongsToMany('App\Report')->withPivot('quantity', 'subcontractor_id')->join('subcontractors', 'subcontractor_id', '=', 'subcontractors.id');
     }
+
+    public function personnel()
+    {
+        return $this->hasMany('App\Personnel');
+    }
+
+    public function work()
+    {
+        return $this->morphMany('App\Work', 'workable');
+    }
 }

@@ -4,36 +4,81 @@
     <link href="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/css/select2.min.css" rel="stylesheet"/>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.min.css"/>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker3.min.css"/>
+    <link href="<?= URL::to('/'); ?>/css/dropzone.css" rel="stylesheet"/>
+    <link href="<?= URL::to('/'); ?>/css/lightbox.css" rel="stylesheet"/>
 
 @stop
 
 @section('page-specific-js')
     <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/select2.min.js"></script>
+    <script src="<?= URL::to('/'); ?>/js/dropzone.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
+    <script src="<?= URL::to('/'); ?>/js/lightbox.js" type="text/javascript"></script>
 
     <script>
+        function removeFiles(fid) {
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/delete-subcontractor-files"}}',
+                data: {
+                    "fileid": fid
+                }
+            }).success(function () {
+                var linkID = "lb-link-" + fid;
+                $('#' + linkID).remove();
+            });
+
+        }
+
+        $(document).delegate('*[data-toggle="lightbox"]', 'click', function (event) {
+            event.preventDefault();
+            $(this).ekkoLightbox();
+        });
+
+        Dropzone.options.fileInsertForm = {
+            addRemoveLinks: true,
+            init: function () {
+                this.on("success", function (file, response) {
+                    file.serverId = response.id;
+                });
+                this.on("removedfile", function (file) {
+                    var name = file.name;
+
+                    $.ajax({
+                        type: 'POST',
+                        url: '{{"/tekil/$site->slug/delete-subcontractor-files"}}',
+                        data: {
+                            "fileid": file.serverId
+                        }
+                    });
+                });
+            }
+        };
+
         $(".js-example-basic-multiple").select2({
             placeholder: "Çoklu seçim yapabilirsiniz",
             allowClear: true
         });
         $('.dateRangePicker').datepicker({
-            language: 'tr'
+            language: 'tr',
+            autoclose: true
         });
     </script>
 @stop
 
 @section('content')
-    <h2>{{$subcontractor->name}}</h2>
+    <h2>{{$subcontractor->subdetail->name}}</h2>
     <div class="row">
         <div class="col-md-12">
             <!-- Custom Tabs -->
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs">
-                    <li class="active"><a href="#tab_1" data-toggle="tab">Taşeron Sözleşme Bilgileri</a></li>
+                    <li class="active"><a href="#tab_1" data-toggle="tab">Alt Yüklenici Sözleşme Bilgileri</a></li>
                     <li><a href="#tab_2" data-toggle="tab">Ücretler ve Oranlar</a></li>
                     <li><a href="#tab_3" data-toggle="tab">Ek Ödemeler</a></li>
                     <li><a href="#tab_4" data-toggle="tab">Yemek Ücretleri</a></li>
+                    <li><a href="#tab_5" data-toggle="tab">Ek Belgeler</a></li>
 
                 </ul>
                 <div class="tab-content">
@@ -58,9 +103,9 @@
                                 $my_path = '';
                                 $file_name = '';
 
-                                if (!is_null($subcontractor->sfile)) {
-                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $subcontractor->sfile->file->path);
-                                    $file_name = $subcontractor->sfile->file->name;
+                                if (!empty($subcontractor->contract)) {
+                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $subcontractor->contract->first()->file->first()->path);
+                                    $file_name = $subcontractor->contract->first()->file->first()->name;
                                     $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
                                 }
                                 ?>
@@ -111,6 +156,15 @@
                         <div class="row">
                             <div class="col-xs-12">
                                 @include('tekil._subcontractor-meal-form')
+                            </div>
+                        </div>
+                    </div>
+
+<!-- /.tab-pane -->
+                    <div class="tab-pane" id="tab_5">
+                        <div class="row">
+                            <div class="col-xs-12">
+                                @include('tekil._subcontractor-files')
                             </div>
                         </div>
                     </div>

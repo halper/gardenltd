@@ -53,32 +53,12 @@ class Site extends Eloquent implements SluggableInterface
 
     public function hasSubcontractor($id)
     {
-        return !is_null($this->subcontractor()->where('subcontractor_id', $id)->first());
-    }
-
-    public function rfile()
-    {
-        return $this->hasMany('App\Rfile');
-    }
-
-    public function sfile()
-    {
-        return $this->hasMany('App\Sfile');
+        return !is_null($this->subcontractor()->where('subdetail_id', $id)->first());
     }
 
     public function subcontractor()
     {
-        return $this->belongsToMany('App\Subcontractor')->withPivot('contract_date', 'contract_start_date', 'contract_end_date', 'price')->withTimestamps();
-    }
-
-    public function fee()
-    {
-        return $this->hasMany('App\Fee');
-    }
-
-    public function cost()
-    {
-        return $this->hasMany('App\Cost');
+        return $this->hasMany('App\Subcontractor');
     }
 
     public static function getSites()
@@ -89,5 +69,15 @@ class Site extends Eloquent implements SluggableInterface
     public static function slugToId($slug)
     {
         return Site::where('slug', $slug)->first()->id;
+    }
+
+    public function contract()
+    {
+        return $this->morphMany('App\Contract', 'contractable');
+    }
+
+    public function personnel()
+    {
+        return $this->morphMany('App\Personnel', 'personalize');
     }
 }

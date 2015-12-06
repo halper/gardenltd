@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Account;
+use App\Contract;
 use App\Cost;
 use App\Demand;
 use App\Expense;
@@ -10,14 +11,15 @@ use App\Fee;
 use App\File;
 use App\Inmaterial;
 use App\Library\CarbonHelper;
+use App\Library\Weather;
 use App\Manufacturing;
 use App\Material;
 use App\Module;
 use App\Outmaterial;
+use App\Photo;
 use App\Pwunit;
+use App\Receipt;
 use App\Report;
-use App\Rfile;
-use App\Sfile;
 use App\Site;
 use App\Http\Requests;
 use App\Subcontractor;
@@ -50,6 +52,16 @@ class TekilController extends Controller
         }
         if (session()->has('report')) {
             $report = session()->get('report');
+        }
+        $yesterdays_report = $site->report()->where('created_at', Carbon::yesterday()->toDateString())->first();
+        if(is_null($yesterdays_report->weather)){
+            $wt = new Weather(1);
+            $yesterdays_report->weather = $wt->getDescription();
+            $yesterdays_report->temp_min = $wt->getMin();
+            $yesterdays_report->temp_max = $wt->getMax();
+            $yesterdays_report->wind = $wt->getWind();
+            $yesterdays_report->degree = $wt->getDirection();
+            $yesterdays_report->save();
         }
 
         return view('tekil/daily', compact('site', 'modules', 'report'));
@@ -452,31 +464,22 @@ class TekilController extends Controller
         return redirect()->back();
     }
 
-    public function postSaveFiles(Request $request, Site $site)
+    public function postSaveFiles(Request $request)
     {
-        $my_file_type = $request->get("type");
         $report = Report::find($request->get("report_id"));
-        $file = $request->file("file");
+        $db_file = $this->uploadFile($request->file("file"));
 
-        $directory = public_path() . '/uploads/' . uniqid(rand(), true);
-        $filename = $file->getClientOriginalName();
-
-        $upload_success = $file->move($directory, $filename);
-
-
-        $db_file = File::create([
-            "name" => $filename,
-            "path" => $directory,
-            "type" => $my_file_type,
-        ]);
-
-        $rfile = Rfile::create([
-            "site_id" => $site->id,
-            "file_id" => $db_file->id,
-            "report_id" => $report->id
-        ]);
-
-        if ($upload_success && $db_file && $rfile) {
+        if ($db_file) {
+            if($request->get("type") == 0) {
+                $photo = Photo::create();
+                $report->photo()->save($photo);
+                $photo->file()->save($db_file);
+            }
+            else{
+                $receipt = Receipt::create();
+                $report->receipt()->save($receipt);
+                $receipt->file()->save($db_file);
+            }
             return response()->json(['success' => 200,
                 'id' => $db_file->id,
                 'rid' => $report->id], 200);
@@ -490,10 +493,9 @@ class TekilController extends Controller
     {
         $db_file = File::find($request->get("fileid"));
 
-        $op_success = unlink($db_file->path . DIRECTORY_SEPARATOR . $db_file->name) && Report::find($request->get("reportid"))->rfile()->get()->where("file_id", $db_file->id)->first()->delete();
+        $op_success = $db_file->fileable()->delete() && unlink($db_file->path . DIRECTORY_SEPARATOR . $db_file->name) && $db_file->delete();
         if ($op_success) {
             return response()->json('success', 200);
-
         } else {
             return response()->json('error', 400);
         }
@@ -501,7 +503,6 @@ class TekilController extends Controller
 
     public function patchLockReport(Request $request)
     {
-
         $report = Report::find($request->get("report_id"));
         $report->is_locked = $request->get("lock");
         $report->save();
@@ -522,8 +523,8 @@ class TekilController extends Controller
         if (is_null($site->subcontractor()->find($id))) {
             return redirect()->back();
         }
-        $costs = Cost::additionalCosts($site->id, $id, 15);
-        $subcontractor = $site->subcontractor()->find($id);
+        $subcontractor = Subcontractor::find($id);
+        $costs = $subcontractor->cost()->additionalCosts(15);
         return view('tekil/subcontractor-edit', compact('subcontractor', 'site', 'modules', 'costs'));
     }
 
@@ -531,39 +532,48 @@ class TekilController extends Controller
     {
         $subcontractor_ids = $request->get("subcontractors");
         foreach ($subcontractor_ids as $subcontractor_id) {
-            if (!$site->hasSubcontractor($subcontractor_id)) {
-                $site->subcontractor()->attach($subcontractor_id);
+            if (!is_null($site->subcontractor()->onlyTrashed()->where('subcontractors.id', $subcontractor_id)->first())) {
+                $site->subcontractor()->onlyTrashed()->where('subcontractors.id', $subcontractor_id)->first()->restore();
+            } elseif (!$site->hasSubcontractor($subcontractor_id)) {
+                Subcontractor::create([
+                    'subdetail_id' => $subcontractor_id,
+                    'site_id' => $site->id]);
             }
         }
-        Session::flash('flash_message', "Taşeron seçimleri güncellendi");
+        Session::flash('flash_message', "Alt yüklenici seçimleri güncellendi");
         return redirect()->back();
 
     }
 
-    public function postUpdateSubcontractor(Site $site, Request $request)
+    public function patchDelSubcontractor(Site $site)
+    {
+        $site->subcontractor()->delete();
+        Session::flash('flash_message', "Taşeron kayıtları güncellendi");
+        return redirect()->back();
+    }
+
+    public function postUpdateSubcontractor(Request $request)
     {
         $has_error = false;
         $subcontractor = Subcontractor::find($request->get('sub-id'));
         $sub_name = $subcontractor->name;
-        $site->subcontractor()->detach($subcontractor->id);
-        foreach ($subcontractor->manufacturing()->where('site_id', $site->id)->get() as $man) {
-            $man->detachSubcontractor($subcontractor->id, $site->id);
-        }
+        $subcontractor->manufacturing()->detach();
         foreach ($request->get('manufacturings') as $man_id) {
-            $subcontractor->manufacturing()->attach($man_id, ['site_id' => $site->id]);
+            $subcontractor->manufacturing()->attach($man_id);
         }
-        $site->subcontractor()->attach($subcontractor->id,
-            ['contract_date' => CarbonHelper::getMySQLDate($request->get('contract_date')),
-                'contract_start_date' => CarbonHelper::getMySQLDate($request->get('contract_start_date')),
-                'contract_end_date' => CarbonHelper::getMySQLDate($request->get('contract_end_date')),
-            'price' => $request->get('price')]);
+        $subcontractor->price = $request->get('price');
+        $subcontractor->save();
+        $contract = Contract::firstOrCreate(['contract_date' => CarbonHelper::getMySQLDate($request->get('contract_date')),
+            'contract_start_date' => CarbonHelper::getMySQLDate($request->get('contract_start_date')),
+            'contract_end_date' => CarbonHelper::getMySQLDate($request->get('contract_end_date'))]);
+        $subcontractor->contract()->save($contract);
 
 
         if ($request->file("contractToUpload")) {
             $file = $request->file("contractToUpload");
 
-            if (!empty($subcontractor->sfile)) {
-                $db_file = $subcontractor->sfile->file;
+            if (!empty($contract->file)) {
+                $db_file = $contract->file;
 
                 if (unlink($db_file->path . DIRECTORY_SEPARATOR . $db_file->name)) {
 
@@ -589,15 +599,10 @@ class TekilController extends Controller
                 if ($upload_success) {
                     $db_file = File::create([
                         "name" => $filename,
-                        "path" => $directory,
-                        "type" => 2,
+                        "path" => $directory
                     ]);
 
-                    $sfile = Sfile::create([
-                        "file_id" => $db_file->id,
-                        "subcontractor_id" => $subcontractor->id
-
-                    ]);
+                    $contract->file()->save($db_file);
                 } else {
                     $has_error = true;
                 }
@@ -606,28 +611,16 @@ class TekilController extends Controller
         if ($has_error) {
             Session::flash('flash_message_error', "Dosya yüklenirken hata oluştu");
         } else {
-            Session::flash('flash_message', "Taşeron ($sub_name) kaydı güncellendi");
+            Session::flash('flash_message', "Alt yüklenici ($sub_name) kaydı güncellendi");
         }
         return redirect()->back();
     }
 
-    public function patchDelSubcontractor(Site $site, Request $request)
+    public function postUpdateFee(Request $request, Fee $fee)
     {
-        $site->subcontractor()->detach($request->get("subId"));
-        $subcontractor = Subcontractor::find($request->get("subId"));
-        $subcontractor->sfile()->delete();
-        (new Manufacturing())->detachSubcontractor($subcontractor->id, $site->id);
-
-        Session::flash('flash_message', "Taşeron kayıtları güncellendi");
-        return redirect()->back();
-    }
-
-    public function postUpdateFee(Site $site, Request $request, Fee $fee)
-    {
-        $my_arr = $request->all();
-        $my_arr["site_id"] = $site->id;
-        if (is_null($site->fee()->where('subcontractor_id', $request->get("subcontractor_id"))->first())) {
-            $fee->create($my_arr);
+        $subcontractor = Subcontractor::find($request->get("subcontractor_id"));
+        if (is_null($subcontractor->fee()->first())) {
+            $fee->create($request->all());
         } else {
             $fee->breakfast = $request->get("breakfast");
             $fee->lunch = $request->get("lunch");
@@ -653,7 +646,7 @@ class TekilController extends Controller
 
     }
 
-    public function postUpdateCost(Site $site, Request $request)
+    public function postUpdateCost(Request $request)
     {
         $explain = $request->get("explanation");
         if (isset($explain) && strlen($explain) == 0) {
@@ -663,7 +656,6 @@ class TekilController extends Controller
             ]);
         }
         $my_arr = $request->all();
-        $my_arr["site_id"] = $site->id;
         $my_arr["pay_date"] = CarbonHelper::getMySQLDate($request->get("pay_date"));
         Cost::create($my_arr);
         Session::flash('flash_message', 'Bilgiler eklendi');
@@ -671,8 +663,34 @@ class TekilController extends Controller
         return redirect()->back();
     }
 
+    public function postSaveSubcontractorFiles(Request $request)
+    {
+        $subcontractor = Subcontractor::find($request->get('sub_id'));
+        $db_file = $this->uploadFile($request->file("file"));
+
+        if (!empty($db_file)) {
+            $photo = Photo::create();
+            $photo->file()->save($db_file);
+            $subcontractor->photo()->save($photo);
+        }
+
+
+        if ($db_file && $photo) {
+            return response()->json(['id' => $photo->id], 200);
+        } else {
+            return response()->json('error', 400);
+        }
+    }
+
+    public function postDeleteSubcontractorFiles(Request $request)
+    {
+        Photo::find($request->get("fileid"))->delete();
+        return response('success', 200);
+    }
+
 
 //  END OF TAŞERON CARİ HESAP PAGE
+
 
     public function getIsMakineleri(Site $site, Module $modules)
     {
@@ -742,5 +760,20 @@ class TekilController extends Controller
     }
 
 //    END OF KASA PAGE
+
+    private function uploadFile($file)
+    {
+        $directory = public_path() . '/uploads/' . uniqid(rand(), true);
+        $filename = $file->getClientOriginalName();
+
+        if ($file->move($directory, $filename))
+
+            return File::create([
+                "name" => $filename,
+                "path" => $directory
+            ]);
+
+        return null;
+    }
 
 }

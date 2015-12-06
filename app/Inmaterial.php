@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Inmaterial extends Model
 {
-    //
-    protected $table = 'inmaterials';
 
     /**
      * The attributes that are mass assignable.

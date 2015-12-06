@@ -5,28 +5,24 @@ namespace App;
 use Cviebrock\EloquentSluggable\SluggableInterface;
 use Cviebrock\EloquentSluggable\SluggableTrait;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
-class Subcontractor extends Model implements SluggableInterface
+class Subcontractor extends Model
 {
-    use SluggableTrait;
+    use SoftDeletes;
 
-    protected $sluggable = [
-        'build_from' => 'name',
-        'save_to' => 'slug',
-    ];
+    protected $dates = ['deleted_at'];
+    protected $fillable = ['price', 'subdetail_id', 'site_id'];
 
-    protected $table = 'subcontractors';
-
-    protected $fillable = ['name', 'address',
-        'city_id', 'official', 'title', 'area_code_id', 'phone',
-        'fax_code_id', 'fax', 'mobile_code_id', 'mobile', 'email',
-        'web', 'tax_office', 'tax_number'];
-
+    public function subdetail()
+    {
+        return $this->belongsTo('App\Subdetail');
+    }
 
     public function site()
     {
-        return $this->belongsToMany('App\Site')->withPivot('contract_date', 'contract_start_date', 'contract_end_date', 'price')->withTimestamps();
+        return $this->belongsTo('app\Site');
     }
 
     public function report()
@@ -36,18 +32,42 @@ class Subcontractor extends Model implements SluggableInterface
 
     public function manufacturing()
     {
-        return $this->belongsToMany('App\Manufacturing')->withPivot('site_id')->join('sites', 'site_id', '=', 'sites.id');
+        return $this->belongsToMany('App\Manufacturing')->withTimestamps();
     }
 
-    public function hasManufacture($manufacture_id, $site_id)
+    public function hasManufacture($manufacture_id)
     {
-        return !is_null($this->manufacturing()->where('site_id', $site_id)->find($manufacture_id));
+        return !is_null($this->manufacturing()->find($manufacture_id));
     }
 
-    public function sfile()
+    public function work()
     {
-        return $this->hasOne('App\Sfile');
+        return $this->morphMany('App\Work', 'workable');
     }
 
+    public function contract()
+    {
+        return $this->morphMany('App\Contract', 'contractable');
+    }
+
+    public function photo()
+    {
+        return $this->morphMany('App\Photo', 'imageable');
+    }
+
+    public function personnel()
+    {
+        return $this->morphMany('App\Personnel', 'personalize');
+    }
+
+    public function cost()
+    {
+        return $this->hasOne('App\Cost');
+    }
+
+    public function fee()
+    {
+        return $this->hasMany('App\Fee');
+    }
 
 }

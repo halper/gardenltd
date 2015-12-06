@@ -24,8 +24,6 @@ class CreateCostsTable extends Migration
             $table->double('labour')->nullable();
             $table->date('pay_date');
             $table->text('explanation')->nullable();
-            $table->integer('site_id')->unsigned()->index();
-            $table->foreign('site_id')->references('id')->on('sites')->onDelete('cascade')->onUpdate('cascade');
             $table->integer('subcontractor_id')->unsigned()->index();
             $table->foreign('subcontractor_id')->references('id')->on('subcontractors')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();

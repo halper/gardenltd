@@ -3,7 +3,7 @@
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class AddContractDatesToSiteSubcontractor extends Migration
+class CreateContractsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -12,11 +12,14 @@ class AddContractDatesToSiteSubcontractor extends Migration
      */
     public function up()
     {
-        Schema::table('site_subcontractor', function (Blueprint $table) {
-            //
+        Schema::create('contracts', function (Blueprint $table) {
+            $table->increments('id');
             $table->date('contract_date');
             $table->date('contract_start_date');
             $table->date('contract_end_date');
+            $table->unsignedInteger('contractable_id');
+            $table->string('contractable_type');
+            $table->timestamps();
         });
     }
 
@@ -27,11 +30,6 @@ class AddContractDatesToSiteSubcontractor extends Migration
      */
     public function down()
     {
-        Schema::table('site_subcontractor', function (Blueprint $table) {
-            //
-            $table->dropColumn('contract_dropColumn');
-            $table->dropColumn('contract_start_dropColumn');
-            $table->dropColumn('contract_end_dropColumn');
-        });
+        Schema::drop('contracts');
     }
 }

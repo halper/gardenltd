@@ -14,13 +14,13 @@ class CreateSubcontractorsTable extends Migration
     {
         Schema::create('subcontractors', function (Blueprint $table) {
             $table->increments('id');
-            $table->string('name');
-            $table->date('contract_date');
-            $table->date('contract_start_date');
-            $table->date('contract_end_date');
-            $table->integer('manufacturing_id')->unsigned()->index();
-            $table->foreign('manufacturing_id')->references('id')->on('manufacturings')->onDelete('cascade')->onUpdate('cascade');
+            $table->double('price')->unsigned()->nullable();
+            $table->integer('subdetail_id')->unsigned()->index();
+            $table->foreign('subdetail_id')->references('id')->on('subdetails')->onDelete('cascade')->onUpdate('cascade');
+            $table->integer('site_id')->unsigned()->index();
+            $table->foreign('site_id')->references('id')->on('sites')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

@@ -35,25 +35,16 @@ foreach (\App\Manufacturing::all() as $manufacture) {
         });
 
         $(document).on("click", ".subcontractorDelBut", function (e) {
-
             e.preventDefault();
-            var mySubcontractorId = $(this).data('id');
             var mySubcontractorName = $(this).data('name');
-            var myForm = $('.modal-footer #subcontractorDeleteForm');
             var myP = $('.modal-body .userDel');
-            myP.html("<em>" + mySubcontractorName + "</em> adlı taşeronu silmek istediğinize emin misiniz?");
-            $('<input>').attr({
-                type: 'hidden',
-                name: 'subId',
-                value: mySubcontractorId
-            }).appendTo(myForm);
+            myP.html("<em>" + mySubcontractorName + "</em> adlı alt yükleniciyi silmek istediğinize emin misiniz?");
             $('#deleteSubcontractorConfirm').modal('show');
-
-
         });
 
         $('.dateRangePicker').datepicker({
-            language: 'tr'
+            language: 'tr',
+            autoclose: true
         });
 
 
@@ -67,9 +58,9 @@ foreach (\App\Manufacturing::all() as $manufacture) {
             <!-- Custom Tabs -->
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs">
-                    <li class="active"><a href="#tab_1" data-toggle="tab">Taşeron Bilgileri Düzenle</a></li>
-                    <li><a href="#tab_2" data-toggle="tab">Taşeron Cari Hesap</a></li>
-                    <li><a href="#tab_3" data-toggle="tab">Taşeron Ekle</a></li>
+                    <li class="active"><a href="#tab_1" data-toggle="tab">Alt Yüklenici Bilgileri Düzenle</a></li>
+                    <li><a href="#tab_2" data-toggle="tab">Alt Yüklenici Cari Hesap</a></li>
+                    <li><a href="#tab_3" data-toggle="tab">Alt Yüklenici Ekle</a></li>
 
                 </ul>
                 <div class="tab-content">
@@ -81,7 +72,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                                 <table class="table table-striped">
                                     <thead>
                                     <tr>
-                                        <th>Taşeron</th>
+                                        <th>Alt Yüklenici</th>
                                         <th>Sözleşme Tarihi</th>
                                         <th>Sözleşme Başlangıç</th>
                                         <th>Sözleşme Bitiş</th>
@@ -92,31 +83,44 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                                     <tbody>
 
                                     @foreach($site->subcontractor()->get() as $sub)
+                                        <?php
+                                        $contract_entry_exists = false;
+                                        if (!empty($sub->contract()->first()))
+                                            $contract_entry_exists = true;
+                                        ?>
                                         <tr>
-                                            <td>{{ $sub->name}}</td>
+                                            <td>{{ $sub->subdetail->name}}</td>
 
-                                            <td>{{ strpos($sub->pivot->contract_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->pivot->contract_date) }}</td>
+                                            @if($contract_entry_exists)
+                                                <td>{{(strpos($sub->contract->first()->contract_date,"0000-00-00") !== false) ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->first()->contract_date) }}</td>
 
+                                                <td>
+                                                    {{strpos($sub->contract->first()->contract_start_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->first()->contract_start_date)}}
+                                                </td>
+                                                <td>{{strpos($sub->contract->first()->contract_end_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->first()->contract_end_date)}}</td>
+                                                <td>
+                                                    <?php
+                                                    $my_path = '';
+                                                    $file_name = '';
+
+
+                                                    if (!is_null($sub->contract->first())) {
+                                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $sub->contract->first()->file->first()->path);
+                                                        $file_name = $sub->contract->first()->file->first()->name;
+                                                        $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
+                                                    }
+                                                    ?>
+                                                    <a href="{{!empty($my_path) ? $my_path : ""}}">
+                                                        {{!empty($file_name) ? $file_name : ""}}
+                                                    </a></td>
+                                            @else
+                                                <td>Girilmedi</td>
+                                                <td>Girilmedi</td>
+                                                <td>Girilmedi</td>
+                                                <td>Girilmedi</td>
+                                            @endif
                                             <td>
-                                                {{strpos($sub->pivot->contract_start_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->pivot->contract_start_date)}}
-                                            </td>
-                                            <td>{{strpos($sub->pivot->contract_end_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->pivot->contract_end_date)}}</td>
-                                            <td>
-                                                <?php
-                                                $my_path = '';
-                                                $file_name = '';
 
-
-                                                if (!is_null($sub->sfile)) {
-                                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $sub->sfile->file->path);
-                                                    $file_name = $sub->sfile->file->name;
-                                                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
-                                                }
-                                                ?>
-                                                <a href="{{!empty($my_path) ? $my_path : ""}}">
-                                                {{!empty($file_name) ? $file_name : ""}}
-                                            </a></td>
-                                            <td>
                                                 <div class="row">
                                                     <div class="col-sm-3">
                                                         <a href="{{"alt-yuklenici-duzenle/$sub->id"}}"
@@ -124,7 +128,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                                                     </div>
                                                     <div class="col-sm-2 col-sm-offset-1">
                                                         <?php
-                                                        echo '<button type="button" class="btn btn-flat btn-danger btn-sm subcontractorDelBut" data-id="' . $sub->id . '" data-name="' . $sub->name . '" data-toggle="modal" data-target="#deleteSubcontractorConfirm">Sil</button>';
+                                                        echo '<button type="button" class="btn btn-flat btn-danger btn-sm subcontractorDelBut" data-id="' . $sub->id . '" data-name="' . $sub->subdetail->name . '" data-toggle="modal" data-target="#deleteSubcontractorConfirm">Sil</button>';
                                                         ?>
                                                     </div>
                                                 </div>
@@ -280,23 +284,32 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                                     {!! Form::open([
                                                     'url' => "/tekil/$site->slug/add-subcontractor",
                                                     'method' => 'POST',
-                                                    'class' => 'form .form-horizontal',
+                                                    'class' => 'form form-horizontal',
                                                     'id' => 'subcontractorInsertForm',
                                                     'role' => 'form',
                                                     ])!!}
 
 
-                                    @foreach(App\Subcontractor::all() as $subcontractor)
+                                    @foreach(App\Subdetail::all() as $subcontractor)
 
-                                        @if(!$site->hasSubcontractor($subcontractor->id))
-                                        <div class="col-md-4 col-xs-6">
-                                            <label class="checkbox-inline">
-                                                {!! Form::checkbox('subcontractors[]', $subcontractor->id, $site->hasSubcontractor($subcontractor->id),
-                                                [
-                                                'id'=>$subcontractor->id
-                                                ])
-                                                !!}{{ $subcontractor->name}}</label>
-                                        </div>
+                                        @if(!is_null($site->subcontractor()->onlyTrashed()->where('subdetail_id', $subcontractor->id)->first()))
+                                            <div class="col-md-4 col-xs-6">
+                                                <label class="checkbox-inline">
+                                                    {!! Form::checkbox('subcontractors[]', $site->subcontractor()->onlyTrashed()->where('subdetail_id', $subcontractor->id)->first()->id, null,
+                                                    [
+                                                    'id'=>$site->subcontractor()->onlyTrashed()->where('subdetail_id', $subcontractor->id)->first()->id
+                                                    ])
+                                                    !!}{{ $subcontractor->name}}</label>
+                                            </div>
+                                        @elseif(!$site->hasSubcontractor($subcontractor->id))
+                                            <div class="col-md-4 col-xs-6">
+                                                <label class="checkbox-inline">
+                                                    {!! Form::checkbox('subcontractors[]', $subcontractor->id, $site->hasSubcontractor($subcontractor->id),
+                                                    [
+                                                    'id'=>$subcontractor->id
+                                                    ])
+                                                    !!}{{ $subcontractor->name}}</label>
+                                            </div>
                                         @endif
 
                                     @endforeach
@@ -336,7 +349,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">Taşeron Sil</h4>
+                    <h4 class="modal-title">Alt Yüklenici Sil</h4>
                 </div>
                 <div class="modal-body">
                     <p class="userDel"></p>
@@ -349,7 +362,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                     'id' => 'subcontractorDeleteForm',
                     'role' => 'form'
                     ]) !!}
-                    <button type="submit" class="btn btn-warning btn-flat">Sil</button>
+                    <button type="submit" class="btn btn-danger btn-flat">Sil</button>
                     <button type="button" class="btn btn-default btn-flat" data-dismiss="modal">İptal</button>
                     {!! Form::close() !!}
                 </div>

@@ -7,8 +7,10 @@ use App\Equipment;
 use App\File;
 use App\Library\CarbonHelper;
 use App\Manufacturing;
+use App\Material;
 use App\Module;
 use App\Personnel;
+use App\Photo;
 use App\Sfile;
 use App\Site;
 use App\Staff;
@@ -159,9 +161,9 @@ class AdminController extends Controller
 
     public function postCheckTck(Request $request)
     {
-        if(is_null(Personnel::where('tck_no', $request->get('tck_no'))->first())){
+        if (is_null(Personnel::where('tck_no', $request->get('tck_no'))->first())) {
             return response()->json('unique', 200);
-        }else{
+        } else {
             return response()->json('found!', 200);
         }
 
@@ -174,7 +176,28 @@ class AdminController extends Controller
             'name' => 'required',
             'is_subpersonnel' => 'required'
         ]);
-        Personnel::create($request->all());
+        $personnel = Personnel::create([
+            'tck_no' => $request->get('tck_no'),
+            'name' => $request->get('name'),
+            'staff_id' => $request->get('staff_id')]);
+
+        if (!empty($request->file("documents"))) {
+            foreach ($request->file("documents") as $file) {
+                $db_file = $this->uploadFile($file);
+
+                if ($db_file) {
+                    $photo = Photo::create();
+                    $photo->file()->save($db_file);
+                    $personnel->photo()->save($photo);
+                }
+            }
+        }
+        if ($request->get('is_subpersonnel') == '0') {
+            (new Site)->personnel()->save($personnel);
+        } else {
+            (new Subcontractor())->personnel()->save($personnel);
+        }
+
         Session::flash('flash_message', 'Personel eklendi');
         return redirect()->back();
     }
@@ -223,6 +246,27 @@ class AdminController extends Controller
     {
         $dt = Department::create($request->all());
         return !empty($dt) ? response()->json($dt, 200) : response()->json('error', 400);
+    }
+
+    public function postAddMaterial(Request $request)
+    {
+        $mt = Material::create($request->all());
+        return !empty($mt) ? response()->json($mt, 200) : response()->json('error', 400);
+    }
+
+    private function uploadFile($file)
+    {
+        $directory = public_path() . '/uploads/' . uniqid(rand(), true);
+        $filename = $file->getClientOriginalName();
+
+        if ($file->move($directory, $filename))
+
+            return File::create([
+                "name" => $filename,
+                "path" => $directory
+            ]);
+
+        return null;
     }
 
 }

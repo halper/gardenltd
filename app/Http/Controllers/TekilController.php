@@ -509,6 +509,11 @@ class TekilController extends Controller
         return redirect()->back();
     }
 
+    public function postSaveShiftsMeals(Site $site, Request $request)
+    {
+        dd($request->all());
+    }
+
 //    END OF GUNLUK RAPOR PAGE
 
 

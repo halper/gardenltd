@@ -30,6 +30,7 @@ foreach ($staffs as $staff) {
 }
 $staff_json = json_encode($staff_json);
 $dept_json = json_encode(\App\Department::all());
+        $mat_json = json_encode(\App\Material::all());
 
 $staff_options = '<option></option>';
 $management_depts = new \App\Department();
@@ -149,13 +150,18 @@ foreach ($management_depts->management() as $dept) {
         }).controller('StaffController', function ($scope, $http, $filter) {
             $scope.staffs = {!! $staff_json!!};
             $scope.departments = {!! $dept_json !!};
+            $scope.materials = {!! $mat_json !!};
 
             $scope.name = '';
             $scope.department_name = '';
+            $scope.material_name = '';
             $scope.dept = '';
+            $scope.mat = '';
             $scope.deptError = '';
+            $scope.matError = '';
             $scope.newStaff = '';
             $scope.newDept = '';
+            $scope.newMat = '';
 
             $scope.addStaff = function () {
                 $scope.newStaff = '';
@@ -240,6 +246,43 @@ foreach ($management_depts->management() as $dept) {
                     $scope.deptError = '';
                 });
             };
+        $scope.addMaterial = function () {
+                $scope.newMat = '';
+                $scope.matError = '';
+                if (!$('input[name="material"]').val()) {
+                    if (!$('input[name="material"]').val()) {
+                        $scope.matError = 'Malzeme giriniz!';
+                    }
+
+                    return;
+                }
+                $scope.material_name = $filter('trUp')($scope.material_name);
+                var addToArray = true;
+                for (var i = 0; i < $scope.materials.length; i++) {
+                    if ($scope.materials[i].material === $scope.material_name) {
+                        addToArray = false;
+                    }
+                }
+
+                if (!addToArray) {
+                    $scope.error = $scope.material_name + ' malzemeleriniz arasında mevcut!';
+                    $scope.material_name = '';
+                    return;
+                }
+                $http.post("<?=URL::to('/');?>/admin/add-material", {
+                    material: $scope.material_name
+                }).success(function (response) {
+
+
+                    $scope.newMat = $scope.material_name;
+                    $scope.materials.push(
+                            response
+                    );
+
+                    $scope.material_name = '';
+                    $scope.matError = '';
+                });
+            };
         });
 
         $(document).ready(function () {
@@ -247,13 +290,8 @@ foreach ($management_depts->management() as $dept) {
                 placeholder: "Çoklu seçim yapabilirsiniz",
                 allowClear: true
             });
-            $(".city-select").select2({
-                placeholder: "Şehir seçiniz",
-                allowClear: true
-            });
-
-            $(".mobile-select").select2({
-                placeholder: "Alan kodu",
+            $(".staff-select").select2({
+                placeholder: "İş kolu seçiniz",
                 allowClear: true
             });
             $('.dateRangePicker').datepicker({
@@ -261,11 +299,16 @@ foreach ($management_depts->management() as $dept) {
             });
         });
 
-        $('a[href=#tab_5]').on("shown.bs.tab", function(){
-            $(".staff-select").select2({
-                placeholder: "İş kolu seçiniz",
+        $('a[href=#tab_1]').on("shown.bs.tab", function(){
+            $(".city-select").select2({
+                placeholder: "Şehir seçiniz",
                 allowClear: true
             });
+            $(".mobile-select").select2({
+                placeholder: "Alan kodu",
+                allowClear: true
+            });
+
         });
     </script>
 
@@ -278,17 +321,105 @@ foreach ($management_depts->management() as $dept) {
             <!-- Custom Tabs -->
             <div class="nav-tabs-custom" ng-app="addApp" ng-controller="StaffController">
                 <ul class="nav nav-tabs">
-                    <li class="active"><a href="#tab_1" data-toggle="tab">Alt Yüklenici</a></li>
-                    <li><a href="#tab_5" data-toggle="tab">Personel</a></li>
+                    <li class="active"><a href="#tab_5" data-toggle="tab">Personel</a></li>
+                    <li><a href="#tab_1" data-toggle="tab">Alt Yüklenici</a></li>
                     <li><a href="#tab_2" data-toggle="tab">İş Kolu</a></li>
                     <li><a href="#tab_3" data-toggle="tab">Departman</a></li>
+                    <li><a href="#tab_mat" data-toggle="tab">Malzeme</a></li>
                     <li><a href="#tab_4" data-toggle="tab">İş Makinesi</a></li>
 
                 </ul>
 
                 <!-- /.tab-content -->
                 <div class="tab-content">
-                    <div class="tab-pane active" id="tab_1">
+                    <div class="tab-pane active" id="tab_5">
+                        <div class="row">
+                            <div class="col-sm-12">
+
+                                {!! Form::open([
+                                                    'url' => "/admin/add-personnel",
+                                                    'method' => 'POST',
+                                                    'class' => 'form',
+                                                    'id' => 'personnelInsertForm',
+                                                    'role' => 'form',
+                                                    'files' => true
+                                                    ])!!}
+                                <div class="form-group {{ $errors->has('tck_no') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('tck_no', 'TCK No:* ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-6">
+                                            {!! Form::number('tck_no', null, ['class' => 'form-control', 'placeholder' => 'TCK no.su giriniz']) !!}
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group {{ $errors->has('name') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('name', 'Personelin Adı:* ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-6">
+                                            {!! Form::text('name', null, ['class' => 'form-control', 'placeholder' => 'Ad soyad giriniz']) !!}
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group {{ $errors->has('is_subpersonnel') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('is_subpersonnel', 'Çalışan:* ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-10">
+                                            <label class="radio-inline"><input type="radio" name="is_subpersonnel"
+                                                                               value="0">Garden Çalışanı</label>
+                                            <label class="radio-inline"><input type="radio" name="is_subpersonnel"
+                                                                               value="1">Alt Yüklenici Çalışanı</label>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group {{ $errors->has('staff_id') ? 'has-error' : '' }}">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('staff_id', 'İş Kolu: ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <select name="staff_id" class="staff-select form-control">
+                                                {!! $staff_options !!}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-2">
+                                            {!! Form::label('documents', 'Ek Dosyalar: ', ['class' => 'control-label']) !!}
+                                        </div>
+                                        <div class="col-sm-10">
+                                            <input type="file" name="documents" id="documentsToUpload" multiple>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group pull-right">
+                                    <button type="submit" class="btn btn-flat btn-primary" id="add-personnel">Personel
+                                        Ekle
+                                    </button>
+
+                                    {!! Form::close() !!}
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="tab_1">
                         <div class="row">
                             <div class="col-sm-12">
 
@@ -480,83 +611,6 @@ foreach ($management_depts->management() as $dept) {
                         </div>
                     </div>
 
-
-                    <div class="tab-pane" id="tab_5">
-                        <div class="row">
-                            <div class="col-sm-12">
-
-                                {!! Form::open([
-                                                    'url' => "/admin/add-personnel",
-                                                    'method' => 'POST',
-                                                    'class' => 'form',
-                                                    'id' => 'personnelInsertForm',
-                                                    'role' => 'form',
-                                                    'files' => true
-                                                    ])!!}
-                                <div class="form-group {{ $errors->has('tck_no') ? 'has-error' : '' }}">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('tck_no', 'TCK No:* ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-6">
-                                            {!! Form::number('tck_no', null, ['class' => 'form-control', 'placeholder' => 'TCK no.su giriniz']) !!}
-
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group {{ $errors->has('name') ? 'has-error' : '' }}">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('name', 'Personelin Adı:* ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-6">
-                                            {!! Form::text('name', null, ['class' => 'form-control', 'placeholder' => 'Ad soyad giriniz']) !!}
-
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group {{ $errors->has('is_subpersonnel') ? 'has-error' : '' }}">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('is_subpersonnel', 'Çalışan:* ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-10">
-                                            <label class="radio-inline"><input type="radio" name="is_subpersonnel"
-                                                                               value="0">Garden Çalışanı</label>
-                                            <label class="radio-inline"><input type="radio" name="is_subpersonnel"
-                                                                               value="1">Alt Yüklenici Çalışanı</label>
-
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group {{ $errors->has('staff_id') ? 'has-error' : '' }}">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('staff_id', 'İş Kolu: ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <select name="staff_id" class="staff-select form-control">
-                                                {!! $staff_options !!}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group pull-right">
-                                    <button type="submit" class="btn btn-flat btn-primary" id="add-personnel">Personel
-                                        Ekle
-                                    </button>
-
-                                    {!! Form::close() !!}
-
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     {{--tab pane--}}
                     <div class="tab-pane" id="tab_2">
                         <div class="row">
@@ -675,6 +729,65 @@ foreach ($management_depts->management() as $dept) {
                                     <div class="col-md-3"
                                          ng-repeat="dept in departments | filter:(department_name | trUp) track by $index">
                                         <span><% dept.department | trUp %></span>
+                                    </div>
+                                </div>
+
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- /.tab-pane -->
+                    <div class="tab-pane" id="tab_mat">
+                        <div class="row">
+                            <div class="col-xs-12 col-md-12">
+
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="row">
+
+
+                                            <div class="col-md-1">
+                                                <label for="name">Malzeme Adı: </label>
+                                            </div>
+                                            <div class="col-md-4">
+
+                                                <input type="text" class="form-control"
+                                                       name="material" ng-model="material_name"
+                                                       value="" autocomplete="off"
+                                                       placeholder="Yeni malzeme giriniz"/>
+
+                                            </div>
+
+
+                                            <div class="col-xs-12 col-md-2 ">
+                                                <button type="button" ng-click="addMaterial()"
+                                                        class="btn btn-primary btn-flat btn-block">Ekle
+                                                </button>
+                                            </div>
+                                            <div class="col-md-3" ng-show="newMat != ''">
+                                                <span class="text-success"><%newMat%> malzemeleriniz arasına eklendi</span>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-3" ng-show="matError != ''">
+                                        <span class="text-danger"><%matError%></span>
+                                    </div>
+                                </div>
+                                <br>
+
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <h3>Mevcut Malzemeler</h3>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-3"
+                                         ng-repeat="mat in materials | filter:(material_name | trUp) track by $index">
+                                        <span><% mat.material | trUp %></span>
                                     </div>
                                 </div>
 

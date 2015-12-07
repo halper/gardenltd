@@ -80,4 +80,14 @@ class Site extends Eloquent implements SluggableInterface
     {
         return $this->morphMany('App\Personnel', 'personalize');
     }
+
+    public function meal()
+    {
+        return $this->hasMany('App\Meal');
+    }
+
+    public function shift()
+    {
+        return $this->hasMany('App\Shift');
+    }
 }

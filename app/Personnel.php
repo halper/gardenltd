@@ -30,6 +30,14 @@ class Personnel extends Model
         return $this->morphMany('App\Report', 'imageable');
     }
 
+    public function meal()
+    {
+        return $this->hasMany('App\Meal');
+    }
 
+    public function shift()
+    {
+        return $this->hasMany('App\Shift');
+    }
 
 }

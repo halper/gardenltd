@@ -76,6 +76,29 @@ foreach ($all_subcontractors as $subcontractor) {
 $subcontractor_staffs = \App\Staff::all();
 $subcontractor_staff_total = 0;
 
+$personnel_arr = [];
+$personnel_options = "<option></option>";
+$personnel_options_js = "";
+$all_personnel = \App\Personnel::all();
+foreach ($all_personnel as $per) {
+    if (!in_array($per, $personnel_arr)) {
+        array_push($personnel_arr, $per);
+    }
+
+    $personnel_options_js .= "'<option value=\"$per->id\">" . TurkishChar::tr_up($per->name) . " (" . TurkishChar::tr_up($per->staff->staff) . ")</option>'+\n";
+    if (isset($report_personnel_arr)) {
+        if (!in_array($per->id, $report_personnel_arr)) {
+            $personnel_options .= "<option value=\"$per->id\">" . TurkishChar::tr_up($per->name) . " (" . TurkishChar::tr_up($per->staff->staff) . ")</option>";
+        }
+    } else {
+        $personnel_options .= "<option value=\"$per->id\">" . TurkishChar::tr_up($per->name) . " (" . TurkishChar::tr_up($per->staff->staff) . ")</option>";
+    }
+}
+
+
+
+
+
 $site_reports = $site->report()->get();
 $report_no = 1;
 foreach ($site_reports as $site_report) {
@@ -84,41 +107,40 @@ foreach ($site_reports as $site_report) {
         break;
     }
 }
-        
-        if(!is_null($report->weather)){
-            if (strpos($report->weather, 'Kapalı') !== false) {
-                $weather_symbol = '<i class="wi wi-day-cloudy"></i>';
-            } else if (strpos($report->weather, 'Az bulutlu') !== false) {
-                $weather_symbol = '<i class="wi wi-day-cloudy"></i>';
-            } else if (strpos($report->weather, 'Hafif kar yağışlı') !== false) {
-                $weather_symbol = '<i class="wi wi-day-snow"></i>';
-            } else if (strpos($report->weather, 'Hafif yağmur') !== false) {
-                $weather_symbol = '<i class="wi wi-day-sprinkle"></i>';
-            } else if (strpos($report->weather, 'Şiddetli yağmur') !== false) {
-                $weather_symbol = '<i class="wi wi-day-thunderstorm"></i>';
-            } else if (strpos($report->weather, 'Orta şiddetli yağmur') !== false) {
-                $weather_symbol = '<i class="wi wi-day-hail"></i>';
-            } else if (strpos($report->weather, 'Açık') !== false) {
-                $weather_symbol = '<i class="wi wi-day-sunny"></i>';
-            }
-        }
-        else{
-            if (strpos($my_weather->getDescription(), 'Kapalı') !== false) {
-                $weather_symbol = '<i class="wi wi-day-cloudy"></i>';
-            } else if (strpos($my_weather->getDescription(), 'Az bulutlu') !== false) {
-                $weather_symbol = '<i class="wi wi-day-cloudy"></i>';
-            } else if (strpos($my_weather->getDescription(), 'Hafif kar yağışlı') !== false) {
-                $weather_symbol = '<i class="wi wi-day-snow"></i>';
-            } else if (strpos($my_weather->getDescription(), 'Hafif yağmur') !== false) {
-                $weather_symbol = '<i class="wi wi-day-sprinkle"></i>';
-            } else if (strpos($my_weather->getDescription(), 'Şiddetli yağmur') !== false) {
-                $weather_symbol = '<i class="wi wi-day-thunderstorm"></i>';
-            } else if (strpos($my_weather->getDescription(), 'Orta şiddetli yağmur') !== false) {
-                $weather_symbol = '<i class="wi wi-day-hail"></i>';
-            } else if (strpos($my_weather->getDescription(), 'Açık') !== false) {
-                $weather_symbol = '<i class="wi wi-day-sunny"></i>';
-            }
-        }
+
+if (!is_null($report->weather)) {
+    if (strpos($report->weather, 'Kapalı') !== false) {
+        $weather_symbol = '<i class="wi wi-day-cloudy"></i>';
+    } else if (strpos($report->weather, 'Az bulutlu') !== false) {
+        $weather_symbol = '<i class="wi wi-day-cloudy"></i>';
+    } else if (strpos($report->weather, 'Hafif kar yağışlı') !== false) {
+        $weather_symbol = '<i class="wi wi-day-snow"></i>';
+    } else if (strpos($report->weather, 'Hafif yağmur') !== false) {
+        $weather_symbol = '<i class="wi wi-day-sprinkle"></i>';
+    } else if (strpos($report->weather, 'Şiddetli yağmur') !== false) {
+        $weather_symbol = '<i class="wi wi-day-thunderstorm"></i>';
+    } else if (strpos($report->weather, 'Orta şiddetli yağmur') !== false) {
+        $weather_symbol = '<i class="wi wi-day-hail"></i>';
+    } else if (strpos($report->weather, 'Açık') !== false) {
+        $weather_symbol = '<i class="wi wi-day-sunny"></i>';
+    }
+} else {
+    if (strpos($my_weather->getDescription(), 'Kapalı') !== false) {
+        $weather_symbol = '<i class="wi wi-day-cloudy"></i>';
+    } else if (strpos($my_weather->getDescription(), 'Az bulutlu') !== false) {
+        $weather_symbol = '<i class="wi wi-day-cloudy"></i>';
+    } else if (strpos($my_weather->getDescription(), 'Hafif kar yağışlı') !== false) {
+        $weather_symbol = '<i class="wi wi-day-snow"></i>';
+    } else if (strpos($my_weather->getDescription(), 'Hafif yağmur') !== false) {
+        $weather_symbol = '<i class="wi wi-day-sprinkle"></i>';
+    } else if (strpos($my_weather->getDescription(), 'Şiddetli yağmur') !== false) {
+        $weather_symbol = '<i class="wi wi-day-thunderstorm"></i>';
+    } else if (strpos($my_weather->getDescription(), 'Orta şiddetli yağmur') !== false) {
+        $weather_symbol = '<i class="wi wi-day-hail"></i>';
+    } else if (strpos($my_weather->getDescription(), 'Açık') !== false) {
+        $weather_symbol = '<i class="wi wi-day-sunny"></i>';
+    }
+}
 
 ?>
 @extends('tekil/layout')
@@ -369,7 +391,7 @@ foreach ($site_reports as $site_report) {
                 data: data
             });
 
-            $(".radio-inline").on("click", function () {
+            $("input[name='is_working']").on("click", function () {
                 $("#selectIsWorkingForm").submit();
             });
             $(".js-example-basic-single").select2();
@@ -648,11 +670,69 @@ $subcontractor_staff_options_js
         });
 </script>
 EOT;
+
+    echo <<<EOT
+            <script>
+$(document).ready(function() {
+            var personnel_wrapper         = $("#personnel-insert"); //Fields wrapper
+            var add_personnel_button      = $(".add-personnel-row"); //Add button ID
+
+            $(add_personnel_button).click(function(e){ //on add input button click
+                $(personnel_wrapper).append('<div class="form-group"><div class="row">' +
+                '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>'+
+                '<div class="col-sm-7">' +
+                    '<select name="personnel[]" class="js-additional-personnel form-control">' +
+$personnel_options_js
+            '</select></div>' +
+                '<div class="col-sm-4"><input type="number" placeholder="Personel sayısı giriniz" class="form-control" name="substaff-quantity[]"/></div>'+
+                '</div></div>'); //add input box
+                $(".js-additional-personnel").select2();
+
+            });
+
+            $(personnel_wrapper).on("click",".remove_field", function(e){ //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
+            })
+        });
+</script>
+EOT;
     ?>
 
     <script>
         $(document).ready(function () {
+            var setCbHidden = function () {
+                var myVal = parseInt($(this).val());
+                var hiddenEl = $(this).parent().closest("label").parent().closest("div").parent().find('.meals_arr');
+                var hiddenVal = parseInt(hiddenEl.val());
+                if ($(this).is(':checked')) {
+                    hiddenEl.val(myVal + hiddenVal);
+                }
+                else {
+                    hiddenEl.val(hiddenVal - myVal);
+                }
+            };
+            $("input[name='meals[]']").on("click", setCbHidden);
 
+
+            var setRdHidden = function () {
+                var myVal = parseInt($(this).val());
+                var hiddenEl = $(this).parent().closest("label").parent().closest("div").parent().find('.overtime');
+                if ($(this).is(':checked') && myVal != 0) {
+                    hiddenEl.val(myVal);
+                    $(this).parent().parent().parent().find('.overtime_input').prop('disabled', true);
+                }
+
+                if (myVal == 0) {
+                    $(this).parent().parent().next("div").find('.overtime_input').prop('disabled', false);
+                }
+            };
+            $("input[name='overtime']").on("click", setRdHidden);
+            $('.overtime_input').keyup(function () {
+                $(this).parent().parent().parent().parent().find('.overtime').val($(this).val());
+            });
+
+            $(".js-additional-personnel").select2();
             var subcontractorStaffWrapper = $("#subcontractor-to-work-insert"); //Fields wrapper
             var addSubcontractorStaffButton = $(".add-subcontractor-to-work-done-row"); //Add button ID
 
@@ -1825,8 +1905,193 @@ EOT;
             </div>
         </div>
         {{--END OF GİDEN MALZEMELER TABLOSU--}}
+
+        {{--PUANTAJ AND YEMEK TABLE--}}
+        <div class="row">
+            <div class="col-xs-12 col-md-12">
+                <div class="box box-success box-solid">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Puantaj ve Yemek Tablosu
+                        </h3>
+
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                        class="fa fa-minus"></i>
+                            </button>
+                        </div>
+                        <!-- /.box-tools -->
+                    </div>
+                    <!-- /.box-header -->
+                    <div class="box-body">
+                        <div class="row">
+                            <div class="col-sm-2 text-center"><strong>PERSONEL</strong></div>
+                            <div class="col-sm-5 text-center"><strong>PUANTAJ</strong></div>
+                            <div class="col-sm-5 text-center"><strong>YEMEK</strong></div>
+                        </div>
+
+                        {!! Form::open([
+                                                                        'url' => "/tekil/$site->slug/save-shifts-meals",
+                                                                        'method' => 'POST',
+                                                                        'class' => 'form',
+                                                                        'id' => 'shiftsMealsForm',
+                                                                        'role' => 'form'
+                                                                        ]) !!}
+                        {!! Form::hidden('report_id', $report->id) !!}
+                        <div id="personnel-insert">
+
+                            <div class="row">
+                                <div class="col-sm-2">
+                                    <div class="row">
+                                        <div class="form-group">
+                                            <div class="col-sm-2"><a href="#" class="remove_field"><i
+                                                            class="fa fa-close"></i></a></div>
+                                            <div class="col-sm-10">
+                                                <select name="personnel[]" class="js-additional-personnel form-control">
+                                                    {!! $personnel_options!!}
+                                                </select></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-5">
+                                    <div class="row col-sm-offset-1">
+                                        <div class="col-sm-2">
+                                            <label class="radio-inline"><input type="radio" name="overtime"
+                                                                               value="999">Tam</label>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <label class="radio-inline"><input type="radio" name="overtime"
+                                                                               value="998">Yarım</label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="row">
+                                                <div class="col-sm-4">
+                                                    <label class="radio-inline"><input type="radio" name="overtime"
+                                                                                       value="0">Fazla Mesai</label>
+                                                </div>
+                                                <div class="col-sm-8">
+                                                    {!! Form::number('overtime', null, ['class' => 'form-control overtime_input',
+                                                                                        'placeholder' => 'Mesaiyi saat olarak giriniz',
+                                                                                         'disabled']) !!}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {!! Form::hidden('overtime[]', null, ['class' => 'overtime']) !!}
+                                    </div>
+                                </div>
+                                <div class="col-sm-5">
+                                    <div class="row col-sm-offset-3">
+                                        <div class="col-sm-2">
+                                            <label class="checkbox-inline">
+                                                {!! Form::checkbox('meals[]', '1', null) !!}
+                                                Kahvaltı
+                                            </label>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <label class="checkbox-inline">
+                                                {!! Form::checkbox('meals[]', '2', null) !!}
+                                                Öğle
+                                            </label>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <label class="checkbox-inline">
+                                                {!! Form::checkbox('meals[]', '4', null) !!}
+                                                Akşam
+                                            </label>
+                                        </div>
+                                        {!! Form::hidden('meals_arr[]', "0", ['class' => 'meals_arr']) !!}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-2">
+                                    <div class="row">
+                                        <div class="form-group">
+                                            <div class="col-sm-2"><a href="#" class="remove_field"><i
+                                                            class="fa fa-close"></i></a></div>
+                                            <div class="col-sm-10">
+                                                <select name="personnel[]" class="js-additional-personnel form-control">
+                                                    {!! $personnel_options!!}
+                                                </select></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-5">
+                                    <div class="row col-sm-offset-1">
+                                        <div class="col-sm-2">
+                                            <label class="radio-inline"><input type="radio" name="overtime"
+                                                                               value="999">Tam</label>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <label class="radio-inline"><input type="radio" name="overtime"
+                                                                               value="998">Yarım</label>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="row">
+                                                <div class="col-sm-4">
+                                                    <label class="radio-inline"><input type="radio" name="overtime"
+                                                                                       value="0">Fazla Mesai</label>
+                                                </div>
+                                                <div class="col-sm-8">
+                                                    {!! Form::number('overtime', null, ['class' => 'form-control overtime_input',
+                                                                                        'placeholder' => 'Mesaiyi saat olarak giriniz',
+                                                                                         'disabled']) !!}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {!! Form::hidden('overtime[]', null, ['class' => 'overtime']) !!}
+                                    </div>
+                                </div>
+                                <div class="col-sm-5">
+                                    <div class="row col-sm-offset-3">
+                                        <div class="col-sm-2">
+                                            <label class="checkbox-inline">
+                                                {!! Form::checkbox('meals[]', '1', null) !!}
+                                                Kahvaltı
+                                            </label>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <label class="checkbox-inline">
+                                                {!! Form::checkbox('meals[]', '2', null) !!}
+                                                Öğle
+                                            </label>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <label class="checkbox-inline">
+                                                {!! Form::checkbox('meals[]', '4', null) !!}
+                                                Akşam
+                                            </label>
+                                        </div>
+                                        {!! Form::hidden('meals_arr[]', "0", ['class' => 'meals_arr']) !!}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="form-group pull-right">
+                                    <a href="#" class="btn btn-primary btn-flat add-personnel-row">
+                                        Satır Ekle
+                                    </a>
+
+                                    <button type="submit" class="btn btn-success btn-flat ">
+                                        Kaydet
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                        {!! Form::close() !!}
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{--END OF GİDEN MALZEMELER TABLOSU--}}
+
     @else
+
         @include('tekil._locked')
+
     @endif
 
     <div class="row hidden-print">

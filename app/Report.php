@@ -88,4 +88,14 @@ class Report extends Model
         return $this->morphMany('App\Photo', 'imageable');
     }
 
+    public function shift()
+    {
+        return $this->hasMany('App\Shift');
+    }
+
+    public function meal()
+    {
+        return $this->hasMany('App\Meal');
+    }
+
 }

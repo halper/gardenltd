@@ -30,7 +30,7 @@ foreach ($staffs as $staff) {
 }
 $staff_json = json_encode($staff_json);
 $dept_json = json_encode(\App\Department::all());
-        $mat_json = json_encode(\App\Material::all());
+$mat_json = json_encode(\App\Material::all());
 
 $staff_options = '<option></option>';
 $management_depts = new \App\Department();
@@ -246,7 +246,7 @@ foreach ($management_depts->management() as $dept) {
                     $scope.deptError = '';
                 });
             };
-        $scope.addMaterial = function () {
+            $scope.addMaterial = function () {
                 $scope.newMat = '';
                 $scope.matError = '';
                 if (!$('input[name="material"]').val()) {
@@ -299,7 +299,7 @@ foreach ($management_depts->management() as $dept) {
             });
         });
 
-        $('a[href=#tab_1]').on("shown.bs.tab", function(){
+        $('a[href=#tab_1]').on("shown.bs.tab", function () {
             $(".city-select").select2({
                 placeholder: "Şehir seçiniz",
                 allowClear: true
@@ -344,77 +344,9 @@ foreach ($management_depts->management() as $dept) {
                                                     'role' => 'form',
                                                     'files' => true
                                                     ])!!}
-                                <div class="form-group {{ $errors->has('tck_no') ? 'has-error' : '' }}">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('tck_no', 'TCK No:* ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-6">
-                                            {!! Form::number('tck_no', null, ['class' => 'form-control', 'placeholder' => 'TCK no.su giriniz']) !!}
+                                @include('landing._personnel-insert-form')
 
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group {{ $errors->has('name') ? 'has-error' : '' }}">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('name', 'Personelin Adı:* ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-6">
-                                            {!! Form::text('name', null, ['class' => 'form-control', 'placeholder' => 'Ad soyad giriniz']) !!}
-
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group {{ $errors->has('is_subpersonnel') ? 'has-error' : '' }}">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('is_subpersonnel', 'Çalışan:* ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-10">
-                                            <label class="radio-inline"><input type="radio" name="is_subpersonnel"
-                                                                               value="0">Garden Çalışanı</label>
-                                            <label class="radio-inline"><input type="radio" name="is_subpersonnel"
-                                                                               value="1">Alt Yüklenici Çalışanı</label>
-
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group {{ $errors->has('staff_id') ? 'has-error' : '' }}">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('staff_id', 'İş Kolu: ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <select name="staff_id" class="staff-select form-control">
-                                                {!! $staff_options !!}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <div class="row">
-                                        <div class="col-sm-2">
-                                            {!! Form::label('documents', 'Ek Dosyalar: ', ['class' => 'control-label']) !!}
-                                        </div>
-                                        <div class="col-sm-10">
-                                            <input type="file" name="documents" id="documentsToUpload" multiple>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="form-group pull-right">
-                                    <button type="submit" class="btn btn-flat btn-primary" id="add-personnel">Personel
-                                        Ekle
-                                    </button>
-
-                                    {!! Form::close() !!}
-
-                                </div>
+                                {!! Form::close() !!}
                             </div>
                         </div>
                     </div>

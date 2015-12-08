@@ -1,6 +1,6 @@
 <?php
 use App\Library\TurkishChar;use App\Library\Weather;
-use App\Material;use Carbon\Carbon;
+use App\Material;use App\Personnel;use Carbon\Carbon;
 use App\Staff;
 use Illuminate\Support\Facades\Session;
 $my_weather = new Weather;
@@ -77,24 +77,91 @@ $subcontractor_staffs = \App\Staff::all();
 $subcontractor_staff_total = 0;
 
 $personnel_arr = [];
+$report_personnel_id_arr = [];
+foreach ($report->shift()->get() as $shift) {
+    array_push($report_personnel_id_arr, $shift->personnel_id);
+}
+
 $personnel_options = "<option></option>";
 $personnel_options_js = "";
-$all_personnel = \App\Personnel::all();
+$all_personnel = Personnel::all();
 foreach ($all_personnel as $per) {
     if (!in_array($per, $personnel_arr)) {
         array_push($personnel_arr, $per);
     }
 
     $personnel_options_js .= "'<option value=\"$per->id\">" . TurkishChar::tr_up($per->name) . " (" . TurkishChar::tr_up($per->staff->staff) . ")</option>'+\n";
-    if (isset($report_personnel_arr)) {
-        if (!in_array($per->id, $report_personnel_arr)) {
+    if (isset($report_personnel_id_arr)) {
+        if (!in_array($per->id, $report_personnel_id_arr)) {
             $personnel_options .= "<option value=\"$per->id\">" . TurkishChar::tr_up($per->name) . " (" . TurkishChar::tr_up($per->staff->staff) . ")</option>";
         }
     } else {
         $personnel_options .= "<option value=\"$per->id\">" . TurkishChar::tr_up($per->name) . " (" . TurkishChar::tr_up($per->staff->staff) . ")</option>";
     }
 }
+$personnel_left = !(sizeof($all_personnel) == sizeof($report_personnel_id_arr));
 
+$staff_options = '';
+$staff_options_js = '';
+$staff_options_js_all = '';
+$staff_options_all = '';
+$management_depts = new \App\Department();
+
+foreach ($management_depts->management() as $dept) {
+    $staff_options .= "<optgroup label=\"$dept->department\">";
+    $staff_options_js .= "'<optgroup label=\"$dept->department\">'+\n";
+    foreach ($dept->staff()->get() as $staff) {
+        $staff_options_js_all .= "'<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>'+\n";
+        $staff_options_all .= "<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>";
+        if (isset($report_staff_arr)) {
+            if (!in_array($staff->id, $report_staff_arr)) {
+                $staff_options .= "<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>";
+                $staff_options_js .= "'<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>'+\n";
+            }
+        } else {
+            $staff_options .= "<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>";
+            $staff_options_js .= "'<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>'+\n";
+        }
+    }
+
+}
+
+$equipment_options = '';
+$equipment_options_js = '';
+
+
+foreach ($site->equipment()->get() as $equipment) {
+    if (isset($report_equipment_arr)) {
+        if (!in_array($equipment->id, $report_equipment_arr)) {
+            $equipment_options .= "<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>";
+            $equipment_options_js .= "'<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>'+\n";
+        }
+    } else {
+        $equipment_options .= "<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>";
+        $equipment_options_js .= "'<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>'+\n";
+    }
+}
+
+$inmaterial_options = "";
+$inmaterial_options_js = "";
+
+
+foreach (Material::all() as $inmaterial) {
+    $inmaterial_options .= "<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>";
+    $inmaterial_options_js .= "'<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>'+\n";
+}
+
+$outmaterial_options = "";
+$outmaterial_options_js = "";
+
+
+foreach (Material::all() as $outmaterial) {
+    $outmaterial_options .= "<option value=\"$outmaterial->id\">" . TurkishChar::tr_up($outmaterial->material) . "</option>";
+    $outmaterial_options_js .= "'<option value=\"$outmaterial->id\">" . TurkishChar::tr_up($outmaterial->material) . "</option>'+\n";
+}
+
+$subcontractor_staff_options = $staff_options_all;
+$subcontractor_staff_options_js = $staff_options_js_all;
 
 
 
@@ -161,7 +228,381 @@ if (!is_null($report->weather)) {
     <script src="<?= URL::to('/'); ?>/js/lightbox.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
+
+    <?php
+
+    if ($locked) {
+        echo <<<EOT
     <script>
+    $('body').addClass('sidebar-collapse');
+        $('aside.right-side').addClass('strech');
+        $('aside.left-side').addClass('collapse-left');
+    </script>
+
+EOT;
+
+    }
+
+    echo <<<EOT
+<script>
+    $(document).ready(function() {
+            var wrapper         = $("#staff-insert"); //Fields wrapper
+            var add_button      = $(".add-staff-row"); //Add button ID
+
+            $(add_button).click(function(e){ //on add input button click
+                e.preventDefault();
+
+                    $(wrapper).append('<div class="row"><div class="col-sm-8"><div class="form-group">' +
+                    '<select name="staffs[]" class="js-additional-staff form-control">' +
+$staff_options_js
+            '</select></div></div>' +
+                '<div class="col-sm-3"><input type="number" class="form-control" name="contractor-quantity[]"/></div>'+
+                '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div></div>'); //add input box
+                $(".js-additional-staff").select2();
+
+            });
+
+            $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('div.row').remove();
+            })
+        });
+</script>
+EOT;
+
+
+    echo <<<EOT
+<script>
+
+    $(document).ready(function() {
+            var equipment_wrapper         = $("#equipment-insert"); //Fields wrapper
+            var add_equipment_button      = $(".add-equipment-row"); //Add button ID
+
+            $(add_equipment_button).click(function(e){ //on add input button click
+                e.preventDefault();
+
+                    $(equipment_wrapper).append('<div class="row"><div class="col-sm-5"><div class="form-group">' +
+                    '<div class="row"><div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                    '<div class="col-sm-10"><select name="equipments[]" class="js-additional-equipment form-control">' +
+$equipment_options_js
+            '</select></div></div></div></div>' +
+                '<div class="col-sm-7"><div class="row">'+
+                '<div class="col-sm-4"><input type="number" class="form-control" name="equipment-present[]"/></div>'+
+                '<div class="col-sm-4"><input type="number" class="form-control" name="equipment-working[]"/></div>'+
+                '<div class="col-sm-4"><input type="number" class="form-control" name="equipment-broken[]"/></div></div></div></div>'); //add input box
+                $(".js-additional-equipment").select2();
+
+            });
+
+            $(equipment_wrapper).on("click",".remove_field", function(e){ //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('div.row').parent().closest('div.row').remove();
+            })
+        });
+</script>
+EOT;
+
+
+
+    echo <<<EOT
+            <script>
+$(document).ready(function() {
+            var inmaterial_wrapper         = $("#inmaterial-insert"); //Fields wrapper
+            var add_inmaterial_button      = $(".add-inmaterial-row"); //Add button ID
+
+            $(add_inmaterial_button).click(function(e){ //on add input button click
+                e.preventDefault();
+
+                    $(inmaterial_wrapper).append('<div class="row"><div class="col-sm-2"><div class="form-group">' +
+                    '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                    '<div class="col-sm-10"><select name="inmaterials[]" class="js-additional-inmaterial form-control">' +
+$inmaterial_options_js
+            '</select></div></div></div></div>' +
+                '<div class="col-sm-2"><input type="text" class="form-control" name="inmaterial-from[]"/></div>'+
+                '<div class="col-sm-1"><input type="text" class="form-control" name="inmaterial-unit[]"/></div>'+
+                '<div class="col-sm-1"><input type="number" class="form-control" name="inmaterial-quantity[]"/></div>'+
+                '<div class="col-sm-6"><input type="text" class="form-control" name="inmaterial-explanation[]"/></div></div>'); //add input box
+                $(".js-additional-inmaterial").select2();
+
+            });
+
+            $(inmaterial_wrapper).on("click",".remove_field", function(e){ //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('div.row').parent().closest('div.row').remove();
+            })
+        });
+</script>
+EOT;
+
+
+    echo <<<EOT
+            <script>
+$(document).ready(function() {
+            var outmaterial_wrapper         = $("#outmaterial-insert"); //Fields wrapper
+            var add_outmaterial_button      = $(".add-outmaterial-row"); //Add button ID
+
+            $(add_outmaterial_button).click(function(e){ //on add input button click
+                e.preventDefault();
+
+                    $(outmaterial_wrapper).append('<div class="row"><div class="col-sm-2"><div class="form-group">' +
+                    '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                    '<div class="col-sm-10"><select name="outmaterials[]" class="js-additional-outmaterial form-control">' +
+$outmaterial_options_js
+            '</select></div></div></div></div>' +
+                '<div class="col-sm-2"><input type="text" class="form-control" name="outmaterial-from[]"/></div>'+
+                '<div class="col-sm-1"><input type="text" class="form-control" name="outmaterial-unit[]"/></div>'+
+                '<div class="col-sm-1"><input type="number" class="form-control" name="outmaterial-quantity[]"/></div>'+
+                '<div class="col-sm-6"><input type="text" class="form-control" name="outmaterial-explanation[]"/></div></div>'); //add input box
+                $(".js-additional-outmaterial").select2();
+
+            });
+
+            $(outmaterial_wrapper).on("click",".remove_field", function(e){ //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('div.row').parent().closest('div.row').remove();
+            })
+        });
+</script>
+EOT;
+
+
+    echo <<<EOT
+            <script>
+$(document).ready(function() {
+            var subcontractor_staff_wrapper         = $("#subcontractor_staff-insert"); //Fields wrapper
+            var add_subcontractor_staff_button      = $(".add-subcontractor_staff-row"); //Add button ID
+
+            $(add_subcontractor_staff_button).click(function(e){ //on add input button click
+                $(subcontractor_staff_wrapper).append('<div class="form-group"><div class="row">' +
+                '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>'+
+                '<div class="col-sm-7">' +
+                    '<select name="subcontractor_staffs[]" class="js-additional-subcontractor_staff form-control">' +
+$subcontractor_staff_options_js
+            '</select></div>' +
+                '<div class="col-sm-4"><input type="number" placeholder="Personel sayısı giriniz" class="form-control" name="substaff-quantity[]"/></div>'+
+                '</div></div>'); //add input box
+                $(".js-additional-subcontractor_staff").select2();
+
+            });
+
+            $(subcontractor_staff_wrapper).on("click",".remove_field", function(e){ //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
+            })
+        });
+</script>
+EOT;
+
+    ?>
+
+    <script>
+        $(document).ready(function () {
+            var data = [{id: 0, text: 'İşveren ({!! $site->employer!!})'}, {
+                id: 1,
+                text: 'İdare({!! $site->management_name!!})'
+            },
+                {id: 2, text: 'Yapı Denetim({!! $site->building_control !!})'}, {id: 3, text: 'İSG ({!! $site->isg!!})'}
+            ];
+
+            $(".js-example-data-array").select2({
+                data: data
+            });
+            $("#dateRangePicker > input").val("{{isset($report_date) ? $report_date : App\Library\CarbonHelper::getTurkishDate($today)}}");
+            var subcontractorStaffWrapper = $("#subcontractor-to-work-insert"); //Fields wrapper
+            var addSubcontractorStaffButton = $(".add-subcontractor-to-work-done-row"); //Add button ID
+
+            $(addSubcontractorStaffButton).click(function (e) { //on add input button click
+                $(subcontractorStaffWrapper).append('<div class="form-group"><div class="row"><div class="col-sm-2">' +
+                        '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                        '<div class="col-sm-10">' +
+                        '<select name="subcontractors[]" class="js-additional-subcontractor_staff form-control">' +
+                        {!! $subcontractor_options_js !!}
+                '</select></div></div></div>' +
+                        '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_quantity[]"/></div>' +
+                        '<div class="col-sm-1"><input type="text" class="form-control" name="subcontractor_unit[]"/></div>' +
+                        '<div class="col-sm-6"><textarea class="form-control" name="subcontractor_work_done[]" rows="3"/></div>' +
+                        '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_planned[]"/></div>' +
+                        '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_done[]"/></div>' +
+                        '</div></div>'); //add input box
+                $(".js-additional-subcontractor_staff").select2();
+
+            });
+
+            $(subcontractorStaffWrapper).on("click", ".remove_field", function (e) { //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
+            });
+        });
+
+
+        var staffToWorkDoneWrapper = $("#staff-to-work-insert"); //Fields wrapper
+        var addStaffToWorkDone = $(".add-staff-to-work-done-row"); //Add button ID
+
+        $(addStaffToWorkDone).click(function (e) { //on add input button click
+            $(staffToWorkDoneWrapper).append('<div class="form-group"><div class="row"><div class="col-sm-2">' +
+                    '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                    '<div class="col-sm-10">' +
+                    '<select name="staffs[]" class="js-additional-staff form-control">' +
+                    {!! $staff_options_js_all !!}
+            '</select></div></div></div>' +
+                    '<div class="col-sm-1"><input type="number" class="form-control" name="staff_quantity[]"/></div>' +
+                    '<div class="col-sm-1"><input type="text" class="form-control" name="staff_unit[]"/></div>' +
+                    '<div class="col-sm-6"><textarea class="form-control" name="staff_work_done[]" rows="3"/></div>' +
+                    '<div class="col-sm-1"><input type="number" class="form-control" name="staff_planned[]"/></div>' +
+                    '<div class="col-sm-1"><input type="number" class="form-control" name="staff_done[]"/></div>' +
+                    '</div></div>'); //add input box
+            $(".js-additional-staff").select2();
+
+        });
+
+        $(staffToWorkDoneWrapper).on("click", ".remove_field", function (e) { //user click on remove text
+            e.preventDefault();
+            $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
+        });
+
+        var mainStaffWrapper = $("#main-staff-insert"); //Fields wrapper
+        var addMainStaff = $(".add-main-staff-row"); //Add button ID
+
+        $(addMainStaff).click(function (e) { //on add input button click
+            $(mainStaffWrapper).append('<div class="row">' +
+                    '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                    '<div class="col-sm-7">' +
+                    '<div class="form-group"><select name="main-staffs[]" class="js-example-data-array form-control"></select>' +
+                    '</div></div>' +
+                    '<div class="col-sm-4"><input type="number" class="form-control" name="main-staff-quantity[]"/>' +
+                    '</div></div>'); //add input box
+            var data = [{id: 0, text: 'İşveren ({!! $site->employer!!})'}, {
+                id: 1,
+                text: 'İdare({!! $site->management_name!!})'
+            },
+                {id: 2, text: 'Yapı Denetim({!! $site->building_control !!})'}, {id: 3, text: 'İSG ({!! $site->isg!!})'}
+            ];
+            $(".js-example-data-array").select2({
+                data: data
+            });
+
+        });
+
+        $(mainStaffWrapper).on("click", ".remove_field", function (e) { //user click on remove text
+            e.preventDefault();
+            $(this).parent().closest('div.row').remove();
+        });
+
+        //MEALS
+        var setCbHidden = function () {
+            var myVal = parseInt($(this).val());
+            var hiddenEl = $(this).parent().closest("label").parent().closest("div").parent().find('.meals_arr');
+            var hiddenVal = parseInt($(hiddenEl).val());
+            if ($(this).is(':checked')) {
+                hiddenEl.val(myVal + hiddenVal);
+            }
+            else {
+                hiddenEl.val(hiddenVal - myVal);
+            }
+        };
+        $("input[name='meals[]']").on("click", setCbHidden);
+        $("input.personnel-row-cb").on("click", setCbHidden);
+        //END MEALS
+
+
+        //PUANTAJ
+        var setRdHidden = function () {
+            var myVal = parseInt($(this).val());
+            var hiddenEl = $(this).parent().closest("label").parent().closest("div").parent().find('.overtime-hidden');
+            var overtimeIn = $(this).parent().parent().parent().find('.overtime_input');
+            if ($(this).is(':checked') && myVal != 0) {
+                hiddenEl.val(myVal);
+                overtimeIn.val('');
+                overtimeIn.prop('disabled', true);
+            }
+
+            if (myVal == 0) {
+                overtimeIn.prop('disabled', false);
+            }
+        };
+        $("input.overtime-radio").on("click", setRdHidden);
+        $('.overtime_input').keyup(function () {
+            $(this).parent().parent().parent().parent().find('.overtime-hidden').val($(this).val());
+        });
+        //END PUANTAJ
+
+        var personnelWrapper = $("#personnel-insert"); //Fields wrapper
+        var addpersonnel = $(".add-personnel-row"); //Add button ID
+
+        $(addpersonnel).click(function (e) { //on add input button click
+            var overtimesLength = $(".overtimes-meals-div").length + 1;
+            $(personnelWrapper).append('<div class="row overtimes-meals-div"><div class="col-sm-3">' +
+                    '<div class="form-group"><div class="row"><div class="col-sm-2">' +
+                    '<a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                    '<div class="col-sm-10"><select name="personnel[]" class="js-additional-personnel form-control">' +
+                    {!! $personnel_options_js!!}
+                    '</select></div></div></div></div>' +
+                    '<div class="col-sm-5"><div class="row"><div class="col-sm-2">' +
+                    '<label class="radio-inline"><input type="radio" class="overtime-radio" name="overtime-' + overtimesLength +
+                    '" value="999">Tam</label></div>' +
+                    '<div class="col-sm-2">' +
+                    '<label class="radio-inline"><input type="radio" class="overtime-radio" name="overtime-' + overtimesLength +
+                    '" value="998">Yarım</label></div>' +
+                    '<div class="col-sm-8"><div class="row"><div class="col-sm-5">' +
+                    '<label class="radio-inline"><input type="radio" class="overtime-radio" name="overtime-' + overtimesLength +
+                    '" value="0">Fazla Mesai</label></div>' +
+                    '<div class="col-sm-6 overtime-input-div">' +
+                    '<input class="form-control overtime_input" placeholder="Mesai (Saat)" disabled="disabled" name="overtime" type="number">' +
+                    '</div></div></div>' +
+                    '<input class="overtime-hidden" name="overtime_arr[]" type="hidden"></div></div>' +
+                    '<div class="col-sm-4"><div class="row col-sm-offset-1"><div class="col-sm-3">' +
+                    '<label class="checkbox-inline"><input name="meals-' + overtimesLength + '[]" type="checkbox" value="1">Kahvaltı</label></div>' +
+                    '<div class="col-sm-3"><label class="checkbox-inline"><input name="meals-' + overtimesLength + '[]" type="checkbox" value="2">Öğle</label></div>' +
+                    '<div class="col-sm-3"><label class="checkbox-inline"><input name="meals-' + overtimesLength + '[]" type="checkbox" value="4">Akşam</label></div>' +
+                    '<input class="meals_arr" name="meals_arr[]" type="hidden" value="0"></div></div></div>');
+
+            $(".js-additional-personnel").select2();
+            $("input[name='meals-" + overtimesLength + "[]']").on("click", setCbHidden);
+            $("input.overtime-radio").on("click", setRdHidden);
+            $('.overtime_input').keyup(function () {
+                $(this).parent().parent().parent().parent().find('.overtime-hidden').val($(this).val());
+            });
+        });
+
+        $(personnelWrapper).on("click", ".remove_field", function (e) { //user click on remove text
+            e.preventDefault();
+            $(this).parent().parent().parent().parent().parent().closest('div.row').remove();
+        });
+
+        $('#shiftsMealsForm').on("submit", function (e) {
+            var overtimes = $("input[name='overtime_arr[]']");
+            var personnelHelper = $('#personnel-helper-block');
+            var personnel = $("select[name='personnel[]']");
+            var personnelList = new Array();
+            $(personnelHelper).html();
+            $.each(overtimes, function (index, object) {
+                if ($(object).val().length == 0) {
+                    e.preventDefault();
+                    $(personnelHelper).html('<span class="text-danger">Puantajlar tüm personel için seçili olmalı veya fazla mesailer doldurulmalı!</span>');
+                    return;
+                }
+
+            });
+            $.each(personnel, function (index, object) {
+                var personnelId = parseInt($(object).val());
+                if ($(object).val().length == 0) {
+                    e.preventDefault();
+                    $(personnelHelper).html('<span class="text-danger">Seçili olmayan personel bulunmaktadır!</span>');
+                    return;
+                }
+                if ($.inArray($(personnelId), personnelList) !== -1 !== -1) {
+                    personnelList.push($(personnelId));
+                }
+                else {
+                    e.preventDefault();
+                    $(personnelHelper).html('<span class="text-danger">Aynı personeli iki kere ekleyemezsiniz!</span>');
+                    return;
+                }
+
+
+            });
+
+        });
 
         function removeFiles(fid, rid) {
 
@@ -176,6 +617,21 @@ if (!is_null($report->weather)) {
                 }
             }).success(function () {
                 var linkID = "lb-link-" + fid;
+                $('#' + linkID).remove();
+            });
+
+        }
+
+        function removeShiftsMeals(pid) {
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/delete-shifts-meals"}}',
+                data: {
+                    "pid": pid,
+                    "reportid": '{{$report->id}}'
+                }
+            }).success(function () {
+                var linkID = "personnel-div-" + pid;
                 $('#' + linkID).remove();
             });
 
@@ -380,17 +836,6 @@ if (!is_null($report->weather)) {
             $('#gen-tot-res').text(managementTotal + mainContractorTotal + subcontractorStaffTotal);
 
 
-            var data = [{id: 0, text: 'İşveren ({!! $site->employer!!})'}, {
-                id: 1,
-                text: 'İdare({!! $site->management_name!!})'
-            },
-                {id: 2, text: 'Yapı Denetim({!! $site->building_control !!})'}, {id: 3, text: 'İSG ({!! $site->isg!!})'}
-            ];
-
-            $(".js-example-data-array").select2({
-                data: data
-            });
-
             $("input[name='is_working']").on("click", function () {
                 $("#selectIsWorkingForm").submit();
             });
@@ -431,388 +876,20 @@ if (!is_null($report->weather)) {
                 $('#dateRangeForm').submit();
             });
 
-            $("#dateRangePicker > input").val("{{isset($report_date) ? $report_date : App\Library\CarbonHelper::getTurkishDate($today)}}")
-
             $(".remove_row").on("click", function (e) { //user click on remove text
                 e.preventDefault();
                 $(this).parent().closest('td').parent().closest('tr').remove();
-            })
+            });
+
+
+            $(".js-additional-personnel").select2({
+                placeholder: 'Personel seçiniz',
+                allowclear: true
+            });
         });
 
     </script>
-    <?php
-    if ($locked) {
-        echo <<<EOT
-    <script>
-    $('body').addClass('sidebar-collapse');
-        $('aside.right-side').addClass('strech');
-        $('aside.left-side').addClass('collapse-left');
-    </script>
 
-EOT;
-
-    }
-    $staff_options = '';
-    $staff_options_js = '';
-    $staff_options_js_all = '';
-    $staff_options_all = '';
-    $management_depts = new \App\Department();
-
-    foreach ($management_depts->management() as $dept) {
-        $staff_options .= "<optgroup label=\"$dept->department\">";
-        $staff_options_js .= "'<optgroup label=\"$dept->department\">'+\n";
-        foreach ($dept->staff()->get() as $staff) {
-            $staff_options_js_all .= "'<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>'+\n";
-            $staff_options_all .= "<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>";
-            if (isset($report_staff_arr)) {
-                if (!in_array($staff->id, $report_staff_arr)) {
-                    $staff_options .= "<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>";
-                    $staff_options_js .= "'<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>'+\n";
-                }
-            } else {
-                $staff_options .= "<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>";
-                $staff_options_js .= "'<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>'+\n";
-            }
-        }
-
-    }
-
-
-
-    echo <<<EOT
-<script>
-
-
-
-    $(document).ready(function() {
-            var wrapper         = $("#staff-insert"); //Fields wrapper
-            var add_button      = $(".add-staff-row"); //Add button ID
-
-            $(add_button).click(function(e){ //on add input button click
-                e.preventDefault();
-
-                    $(wrapper).append('<div class="row"><div class="col-sm-8"><div class="form-group">' +
-                    '<select name="staffs[]" class="js-additional-staff form-control">' +
-$staff_options_js
-            '</select></div></div>' +
-                '<div class="col-sm-3"><input type="number" class="form-control" name="contractor-quantity[]"/></div>'+
-                '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div></div>'); //add input box
-                $(".js-additional-staff").select2();
-
-            });
-
-            $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
-                e.preventDefault();
-                $(this).parent().closest('div.row').remove();
-            })
-        });
-</script>
-EOT;
-
-
-
-
-    $equipment_options = '';
-    $equipment_options_js = '';
-
-
-    foreach ($site->equipment()->get() as $equipment) {
-        if (isset($report_equipment_arr)) {
-            if (!in_array($equipment->id, $report_equipment_arr)) {
-                $equipment_options .= "<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>";
-                $equipment_options_js .= "'<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>'+\n";
-            }
-        } else {
-            $equipment_options .= "<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>";
-            $equipment_options_js .= "'<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>'+\n";
-        }
-    }
-
-    echo <<<EOT
-<script>
-
-
-
-    $(document).ready(function() {
-            var equipment_wrapper         = $("#equipment-insert"); //Fields wrapper
-            var add_equipment_button      = $(".add-equipment-row"); //Add button ID
-
-            $(add_equipment_button).click(function(e){ //on add input button click
-                e.preventDefault();
-
-                    $(equipment_wrapper).append('<div class="row"><div class="col-sm-4"><div class="form-group">' +
-                    '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
-                    '<div class="col-sm-10"><select name="equipments[]" class="js-additional-equipment form-control">' +
-$equipment_options_js
-            '</select></div></div></div></div>' +
-                '<div class="col-sm-8"><div class="row">'+
-                '<div class="col-sm-4"><input type="number" class="form-control" name="equipment-present[]"/></div>'+
-                '<div class="col-sm-4"><input type="number" class="form-control" name="equipment-working[]"/></div>'+
-                '<div class="col-sm-4"><input type="number" class="form-control" name="equipment-broken[]"/></div></div></div></div>'); //add input box
-                $(".js-additional-equipment").select2();
-
-            });
-
-            $(equipment_wrapper).on("click",".remove_field", function(e){ //user click on remove text
-                e.preventDefault();
-                $(this).parent().closest('div.row').parent().closest('div.row').remove();
-            })
-        });
-</script>
-EOT;
-
-    $inmaterial_options = "";
-    $inmaterial_options_js = "";
-
-
-    foreach (Material::all() as $inmaterial) {
-        $inmaterial_options .= "<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>";
-        $inmaterial_options_js .= "'<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>'+\n";
-    }
-
-
-    echo <<<EOT
-            <script>
-$(document).ready(function() {
-            var inmaterial_wrapper         = $("#inmaterial-insert"); //Fields wrapper
-            var add_inmaterial_button      = $(".add-inmaterial-row"); //Add button ID
-
-            $(add_inmaterial_button).click(function(e){ //on add input button click
-                e.preventDefault();
-
-                    $(inmaterial_wrapper).append('<div class="row"><div class="col-sm-2"><div class="form-group">' +
-                    '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
-                    '<div class="col-sm-10"><select name="inmaterials[]" class="js-additional-inmaterial form-control">' +
-$inmaterial_options_js
-            '</select></div></div></div></div>' +
-                '<div class="col-sm-2"><input type="text" class="form-control" name="inmaterial-from[]"/></div>'+
-                '<div class="col-sm-1"><input type="text" class="form-control" name="inmaterial-unit[]"/></div>'+
-                '<div class="col-sm-1"><input type="number" class="form-control" name="inmaterial-quantity[]"/></div>'+
-                '<div class="col-sm-6"><input type="text" class="form-control" name="inmaterial-explanation[]"/></div></div>'); //add input box
-                $(".js-additional-inmaterial").select2();
-
-            });
-
-            $(inmaterial_wrapper).on("click",".remove_field", function(e){ //user click on remove text
-                e.preventDefault();
-                $(this).parent().closest('div.row').parent().closest('div.row').remove();
-            })
-        });
-</script>
-EOT;
-
-    $outmaterial_options = "";
-    $outmaterial_options_js = "";
-
-
-    foreach (Material::all() as $outmaterial) {
-        $outmaterial_options .= "<option value=\"$outmaterial->id\">" . TurkishChar::tr_up($outmaterial->material) . "</option>";
-        $outmaterial_options_js .= "'<option value=\"$outmaterial->id\">" . TurkishChar::tr_up($outmaterial->material) . "</option>'+\n";
-    }
-
-
-    echo <<<EOT
-            <script>
-$(document).ready(function() {
-            var outmaterial_wrapper         = $("#outmaterial-insert"); //Fields wrapper
-            var add_outmaterial_button      = $(".add-outmaterial-row"); //Add button ID
-
-            $(add_outmaterial_button).click(function(e){ //on add input button click
-                e.preventDefault();
-
-                    $(outmaterial_wrapper).append('<div class="row"><div class="col-sm-2"><div class="form-group">' +
-                    '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
-                    '<div class="col-sm-10"><select name="outmaterials[]" class="js-additional-outmaterial form-control">' +
-$outmaterial_options_js
-            '</select></div></div></div></div>' +
-                '<div class="col-sm-2"><input type="text" class="form-control" name="outmaterial-from[]"/></div>'+
-                '<div class="col-sm-1"><input type="text" class="form-control" name="outmaterial-unit[]"/></div>'+
-                '<div class="col-sm-1"><input type="number" class="form-control" name="outmaterial-quantity[]"/></div>'+
-                '<div class="col-sm-6"><input type="text" class="form-control" name="outmaterial-explanation[]"/></div></div>'); //add input box
-                $(".js-additional-outmaterial").select2();
-
-            });
-
-            $(outmaterial_wrapper).on("click",".remove_field", function(e){ //user click on remove text
-                e.preventDefault();
-                $(this).parent().closest('div.row').parent().closest('div.row').remove();
-            })
-        });
-</script>
-EOT;
-
-    $subcontractor_staff_options = $staff_options_all;
-    $subcontractor_staff_options_js = $staff_options_js_all;
-
-    echo <<<EOT
-            <script>
-$(document).ready(function() {
-            var subcontractor_staff_wrapper         = $("#subcontractor_staff-insert"); //Fields wrapper
-            var add_subcontractor_staff_button      = $(".add-subcontractor_staff-row"); //Add button ID
-
-            $(add_subcontractor_staff_button).click(function(e){ //on add input button click
-                $(subcontractor_staff_wrapper).append('<div class="form-group"><div class="row">' +
-                '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>'+
-                '<div class="col-sm-7">' +
-                    '<select name="subcontractor_staffs[]" class="js-additional-subcontractor_staff form-control">' +
-$subcontractor_staff_options_js
-            '</select></div>' +
-                '<div class="col-sm-4"><input type="number" placeholder="Personel sayısı giriniz" class="form-control" name="substaff-quantity[]"/></div>'+
-                '</div></div>'); //add input box
-                $(".js-additional-subcontractor_staff").select2();
-
-            });
-
-            $(subcontractor_staff_wrapper).on("click",".remove_field", function(e){ //user click on remove text
-                e.preventDefault();
-                $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
-            })
-        });
-</script>
-EOT;
-
-    echo <<<EOT
-            <script>
-$(document).ready(function() {
-            var personnel_wrapper         = $("#personnel-insert"); //Fields wrapper
-            var add_personnel_button      = $(".add-personnel-row"); //Add button ID
-
-            $(add_personnel_button).click(function(e){ //on add input button click
-                $(personnel_wrapper).append('<div class="form-group"><div class="row">' +
-                '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>'+
-                '<div class="col-sm-7">' +
-                    '<select name="personnel[]" class="js-additional-personnel form-control">' +
-$personnel_options_js
-            '</select></div>' +
-                '<div class="col-sm-4"><input type="number" placeholder="Personel sayısı giriniz" class="form-control" name="substaff-quantity[]"/></div>'+
-                '</div></div>'); //add input box
-                $(".js-additional-personnel").select2();
-
-            });
-
-            $(personnel_wrapper).on("click",".remove_field", function(e){ //user click on remove text
-                e.preventDefault();
-                $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
-            })
-        });
-</script>
-EOT;
-    ?>
-
-    <script>
-        $(document).ready(function () {
-            var setCbHidden = function () {
-                var myVal = parseInt($(this).val());
-                var hiddenEl = $(this).parent().closest("label").parent().closest("div").parent().find('.meals_arr');
-                var hiddenVal = parseInt(hiddenEl.val());
-                if ($(this).is(':checked')) {
-                    hiddenEl.val(myVal + hiddenVal);
-                }
-                else {
-                    hiddenEl.val(hiddenVal - myVal);
-                }
-            };
-            $("input[name='meals[]']").on("click", setCbHidden);
-
-
-            var setRdHidden = function () {
-                var myVal = parseInt($(this).val());
-                var hiddenEl = $(this).parent().closest("label").parent().closest("div").parent().find('.overtime');
-                if ($(this).is(':checked') && myVal != 0) {
-                    hiddenEl.val(myVal);
-                    $(this).parent().parent().parent().find('.overtime_input').prop('disabled', true);
-                }
-
-                if (myVal == 0) {
-                    $(this).parent().parent().next("div").find('.overtime_input').prop('disabled', false);
-                }
-            };
-            $("input[name='overtime']").on("click", setRdHidden);
-            $('.overtime_input').keyup(function () {
-                $(this).parent().parent().parent().parent().find('.overtime').val($(this).val());
-            });
-
-            $(".js-additional-personnel").select2();
-            var subcontractorStaffWrapper = $("#subcontractor-to-work-insert"); //Fields wrapper
-            var addSubcontractorStaffButton = $(".add-subcontractor-to-work-done-row"); //Add button ID
-
-            $(addSubcontractorStaffButton).click(function (e) { //on add input button click
-                $(subcontractorStaffWrapper).append('<div class="form-group"><div class="row"><div class="col-sm-2">' +
-                        '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
-                        '<div class="col-sm-10">' +
-                        '<select name="subcontractors[]" class="js-additional-subcontractor_staff form-control">' +
-                        {!! $subcontractor_options_js !!}
-                '</select></div></div></div>' +
-                        '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_quantity[]"/></div>' +
-                        '<div class="col-sm-1"><input type="text" class="form-control" name="subcontractor_unit[]"/></div>' +
-                        '<div class="col-sm-6"><textarea class="form-control" name="subcontractor_work_done[]" rows="3"/></div>' +
-                        '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_planned[]"/></div>' +
-                        '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_done[]"/></div>' +
-                        '</div></div>'); //add input box
-                $(".js-additional-subcontractor_staff").select2();
-
-            });
-
-            $(subcontractorStaffWrapper).on("click", ".remove_field", function (e) { //user click on remove text
-                e.preventDefault();
-                $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
-            });
-        });
-
-
-        var staffToWorkDoneWrapper = $("#staff-to-work-insert"); //Fields wrapper
-        var addStaffToWorkDone = $(".add-staff-to-work-done-row"); //Add button ID
-
-        $(addStaffToWorkDone).click(function (e) { //on add input button click
-            $(staffToWorkDoneWrapper).append('<div class="form-group"><div class="row"><div class="col-sm-2">' +
-                    '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
-                    '<div class="col-sm-10">' +
-                    '<select name="staffs[]" class="js-additional-staff form-control">' +
-                    {!! $staff_options_js_all !!}
-            '</select></div></div></div>' +
-                    '<div class="col-sm-1"><input type="number" class="form-control" name="staff_quantity[]"/></div>' +
-                    '<div class="col-sm-1"><input type="text" class="form-control" name="staff_unit[]"/></div>' +
-                    '<div class="col-sm-6"><textarea class="form-control" name="staff_work_done[]" rows="3"/></div>' +
-                    '<div class="col-sm-1"><input type="number" class="form-control" name="staff_planned[]"/></div>' +
-                    '<div class="col-sm-1"><input type="number" class="form-control" name="staff_done[]"/></div>' +
-                    '</div></div>'); //add input box
-            $(".js-additional-staff").select2();
-
-        });
-
-        $(staffToWorkDoneWrapper).on("click", ".remove_field", function (e) { //user click on remove text
-            e.preventDefault();
-            $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
-        });
-
-        var mainStaffWrapper = $("#main-staff-insert"); //Fields wrapper
-        var addMainStaff = $(".add-main-staff-row"); //Add button ID
-
-        $(addMainStaff).click(function (e) { //on add input button click
-            $(mainStaffWrapper).append('<div class="row">' +
-                    '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
-                    '<div class="col-sm-7">' +
-                    '<div class="form-group"><select name="main-staffs[]" class="js-example-data-array form-control"></select>' +
-                    '</div></div>' +
-                    '<div class="col-sm-4"><input type="number" class="form-control" name="main-staff-quantity[]"/>' +
-                    '</div></div>'); //add input box
-            var data = [{id: 0, text: 'İşveren ({!! $site->employer!!})'}, {
-                id: 1,
-                text: 'İdare({!! $site->management_name!!})'
-            },
-                {id: 2, text: 'Yapı Denetim({!! $site->building_control !!})'}, {id: 3, text: 'İSG ({!! $site->isg!!})'}
-            ];
-            $(".js-example-data-array").select2({
-                data: data
-            });
-
-        });
-
-        $(mainStaffWrapper).on("click", ".remove_field", function (e) { //user click on remove text
-            e.preventDefault();
-            $(this).parent().closest('div.row').remove();
-        });
-    </script>
 @stop
 
 @section('content')
@@ -1331,10 +1408,10 @@ EOT;
                             <!-- /.box-header -->
                             <div class="box-body">
                                 <div class="row">
-                                    <div class="col-sm-4">
+                                    <div class="col-sm-5">
                                         <span class="text-center"><strong>EKİPMAN ADI</strong></span>
                                     </div>
-                                    <div class="col-sm-8">
+                                    <div class="col-sm-7">
                                         <div class="row">
                                             <div class="col-sm-4">
                                                 <span class="text-center"><strong>ÇALIŞAN</strong></span>
@@ -1359,10 +1436,10 @@ EOT;
                                 <div id="equipment-insert">
                                     @foreach($report->equipment()->get() as $equipment)
                                         <div class="row" id="div-equipmentid{{$equipment->id}}">
-                                            <div class="col-sm-4">
+                                            <div class="col-sm-5">
                                                 <div class="form-group">
                                                     <div class="row">
-                                                        <div class="col-sm-2"><a href="#"
+                                                        <div class="col-sm-1"><a href="#"
                                                                                  onclick="equipmentDetach({{$equipment->id}})"><i
                                                                         class="fa fa-close"></i></a></div>
                                                         <div class="col-sm-10">
@@ -1372,7 +1449,7 @@ EOT;
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-sm-8">
+                                            <div class="col-sm-7">
                                                 <div class="row">
                                                     <div class="col-sm-4">
 
@@ -1399,7 +1476,7 @@ EOT;
                                     @endforeach
 
                                     <div class="row">
-                                        <div class="col-sm-4">
+                                        <div class="col-sm-5">
                                             <div class="form-group">
                                                 <select name="equipments[]"
                                                         class="js-example-basic-single form-control">
@@ -1408,7 +1485,7 @@ EOT;
                                                 </select>
                                             </div>
                                         </div>
-                                        <div class="col-sm-8">
+                                        <div class="col-sm-7">
                                             <div class="row">
                                                 <div class="col-sm-4">
 
@@ -1798,7 +1875,7 @@ EOT;
                                                                         ]) !!}
                         {!! Form::hidden('report_id', $report->id) !!}
 
-                        <div id="inmaterial-insert">
+                        <div id="outmaterial-insert">
                             @foreach($outmaterials as $outmaterial)
                                 <div class="row" id="div-outmaterialid{{$outmaterial->id}}">
                                     <div class="col-sm-2">
@@ -1924,9 +2001,9 @@ EOT;
                     <!-- /.box-header -->
                     <div class="box-body">
                         <div class="row">
-                            <div class="col-sm-2 text-center"><strong>PERSONEL</strong></div>
+                            <div class="col-sm-3 text-center"><strong>PERSONEL</strong></div>
                             <div class="col-sm-5 text-center"><strong>PUANTAJ</strong></div>
-                            <div class="col-sm-5 text-center"><strong>YEMEK</strong></div>
+                            <div class="col-sm-4 text-center"><strong>YEMEK</strong></div>
                         </div>
 
                         {!! Form::open([
@@ -1937,141 +2014,162 @@ EOT;
                                                                         'role' => 'form'
                                                                         ]) !!}
                         {!! Form::hidden('report_id', $report->id) !!}
-                        <div id="personnel-insert">
+                            <div id="personnel-insert">
+                                @if($personnel_left)
+                                <div class="row overtimes-meals-div">
+                                    <div class="col-sm-3">
+                                        <div class="form-group">
+                                            <div class="row">
+                                                <div class="col-sm-2"><a href="#" class="remove_field"><i
+                                                                class="fa fa-close"></i></a></div>
+                                                <div class="col-sm-10">
+                                                    <select name="personnel[]"
+                                                            class="js-additional-personnel form-control">
+                                                        {!! $personnel_options!!}
+                                                    </select></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-5">
+                                        <div class="row">
+                                            <div class="col-sm-2">
+                                                <label class="radio-inline"><input type="radio" class="overtime-radio"
+                                                                                   name="overtime"
+                                                                                   value="999">Tam</label>
+                                            </div>
+                                            <div class="col-sm-2">
+                                                <label class="radio-inline"><input type="radio" class="overtime-radio"
+                                                                                   name="overtime"
+                                                                                   value="998">Yarım</label>
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <div class="row">
+                                                    <div class="col-sm-5">
+                                                        <label class="radio-inline"><input type="radio"
+                                                                                           class="overtime-radio"
+                                                                                           name="overtime"
+                                                                                           value="0">Fazla Mesai</label>
+                                                    </div>
+                                                    <div class="col-sm-6 overtime-input-div">
+                                                        {!! Form::number('overtime', null, ['class' => 'form-control overtime_input',
+                                                                                            'placeholder' => 'Mesai (Saat)',
+                                                                                             'disabled']) !!}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {!! Form::hidden('overtime_arr[]', null, ['class' => 'overtime-hidden']) !!}
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <div class="row col-sm-offset-1">
+                                            <div class="col-sm-3">
+                                                <label class="checkbox-inline">
+                                                    {!! Form::checkbox('meals[]', '1', null) !!}
+                                                    Kahvaltı
+                                                </label>
+                                            </div>
+                                            <div class="col-sm-3">
+                                                <label class="checkbox-inline">
+                                                    {!! Form::checkbox('meals[]', '2', null) !!}
+                                                    Öğle
+                                                </label>
+                                            </div>
+                                            <div class="col-sm-3">
+                                                <label class="checkbox-inline">
+                                                    {!! Form::checkbox('meals[]', '4', null) !!}
+                                                    Akşam
+                                                </label>
+                                            </div>
+                                            {!! Form::hidden('meals_arr[]', "0", ['class' => 'meals_arr']) !!}
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
+                            </div>
+                            <div id="personnel-helper-block"></div>
+                        @for($i = 0; $i < sizeof($report_personnel_id_arr); $i++)
+                            <?php
+                                $per = $report_personnel_id_arr[$i];
+                                $report_person = Personnel::find($per);
+                                $report_shift = $report->shift()->where('personnel_id', $report_person->id)->first();
+                                $report_meal = $report->meal()->where('personnel_id', $report_person->id)->first();
+                                ?>
+                            <div class="row overtimes-meals-div" id="personnel-div-{{$per}}">
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-sm-2"><a onclick="removeShiftsMeals({{$per}})" class="remove_field"><i
+                                                            class="fa fa-close"></i></a></div>
+                                            <div class="col-sm-10">
+                                                {{\App\Library\TurkishChar::tr_up($report_person->name) . " (" . \App\Library\TurkishChar::tr_up($report_person->staff()->first()->staff) . ")"}}</div>
 
-                            <div class="row">
-                                <div class="col-sm-2">
-                                    <div class="row">
-                                        <div class="form-group">
-                                            <div class="col-sm-2"><a href="#" class="remove_field"><i
-                                                            class="fa fa-close"></i></a></div>
-                                            <div class="col-sm-10">
-                                                <select name="personnel[]" class="js-additional-personnel form-control">
-                                                    {!! $personnel_options!!}
-                                                </select></div>
+                                            {!! Form::hidden('personnel[]', $report_person->id) !!}
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-sm-5">
-                                    <div class="row col-sm-offset-1">
+                                    <div class="row">
                                         <div class="col-sm-2">
-                                            <label class="radio-inline"><input type="radio" name="overtime"
-                                                                               value="999">Tam</label>
+                                            <label class="radio-inline"><input type="radio" class="overtime-radio"
+                                                                               name="overtime-{{$i}}"
+                                                                               value="999" {{(int)$report_shift->overtime == 999 ? "checked" : ""}}>Tam</label>
                                         </div>
                                         <div class="col-sm-2">
-                                            <label class="radio-inline"><input type="radio" name="overtime"
-                                                                               value="998">Yarım</label>
+                                            <label class="radio-inline"><input type="radio" class="overtime-radio"
+                                                                               name="overtime-{{$i}}"
+                                                                               value="998" {{(int)$report_shift->overtime == 998 ? "checked" : ""}}>Yarım</label>
                                         </div>
-                                        <div class="col-sm-6">
+                                        <div class="col-sm-8">
                                             <div class="row">
-                                                <div class="col-sm-4">
-                                                    <label class="radio-inline"><input type="radio" name="overtime"
-                                                                                       value="0">Fazla Mesai</label>
+                                                <div class="col-sm-5">
+                                                    <label class="radio-inline"><input type="radio"
+                                                                                       class="overtime-radio"
+                                                                                       name="overtime-{{$i}}"
+                                                                                       value="0" {{(int)$report_shift->overtime < 998 ? "checked" : ""}}>Fazla Mesai</label>
                                                 </div>
-                                                <div class="col-sm-8">
-                                                    {!! Form::number('overtime', null, ['class' => 'form-control overtime_input',
-                                                                                        'placeholder' => 'Mesaiyi saat olarak giriniz',
-                                                                                         'disabled']) !!}
+                                                <div class="col-sm-6 overtime-input-div">
+                                                    {!! Form::number('overtime', ((int)$report_shift->overtime < 998 ? $report_shift->overtime : null), ['class' => 'form-control overtime_input',
+                                                                                        'placeholder' => 'Mesai (Saat)',
+                                                                                         (int)$report_shift->overtime < 998 ? "" : "disabled"]) !!}
                                                 </div>
                                             </div>
                                         </div>
-                                        {!! Form::hidden('overtime[]', null, ['class' => 'overtime']) !!}
+                                        {!! Form::hidden('overtime_arr[]', $report_shift->overtime, ['class' => 'overtime-hidden']) !!}
                                     </div>
                                 </div>
-                                <div class="col-sm-5">
-                                    <div class="row col-sm-offset-3">
-                                        <div class="col-sm-2">
-                                            <label class="checkbox-inline">
-                                                {!! Form::checkbox('meals[]', '1', null) !!}
-                                                Kahvaltı
-                                            </label>
-                                        </div>
-                                        <div class="col-sm-2">
-                                            <label class="checkbox-inline">
-                                                {!! Form::checkbox('meals[]', '2', null) !!}
-                                                Öğle
-                                            </label>
-                                        </div>
-                                        <div class="col-sm-2">
-                                            <label class="checkbox-inline">
-                                                {!! Form::checkbox('meals[]', '4', null) !!}
-                                                Akşam
-                                            </label>
-                                        </div>
-                                        {!! Form::hidden('meals_arr[]', "0", ['class' => 'meals_arr']) !!}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-2">
-                                    <div class="row">
-                                        <div class="form-group">
-                                            <div class="col-sm-2"><a href="#" class="remove_field"><i
-                                                            class="fa fa-close"></i></a></div>
-                                            <div class="col-sm-10">
-                                                <select name="personnel[]" class="js-additional-personnel form-control">
-                                                    {!! $personnel_options!!}
-                                                </select></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-sm-5">
+                                <div class="col-sm-4">
                                     <div class="row col-sm-offset-1">
-                                        <div class="col-sm-2">
-                                            <label class="radio-inline"><input type="radio" name="overtime"
-                                                                               value="999">Tam</label>
-                                        </div>
-                                        <div class="col-sm-2">
-                                            <label class="radio-inline"><input type="radio" name="overtime"
-                                                                               value="998">Yarım</label>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <div class="row">
-                                                <div class="col-sm-4">
-                                                    <label class="radio-inline"><input type="radio" name="overtime"
-                                                                                       value="0">Fazla Mesai</label>
-                                                </div>
-                                                <div class="col-sm-8">
-                                                    {!! Form::number('overtime', null, ['class' => 'form-control overtime_input',
-                                                                                        'placeholder' => 'Mesaiyi saat olarak giriniz',
-                                                                                         'disabled']) !!}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {!! Form::hidden('overtime[]', null, ['class' => 'overtime']) !!}
-                                    </div>
-                                </div>
-                                <div class="col-sm-5">
-                                    <div class="row col-sm-offset-3">
-                                        <div class="col-sm-2">
+                                        <div class="col-sm-3">
                                             <label class="checkbox-inline">
-                                                {!! Form::checkbox('meals[]', '1', null) !!}
+                                                {!! Form::checkbox("meals-$i"."[]", '1', (!is_null($report_meal) && (int) $report_meal->meal%2 == 1) ? true : false, ['class' => 'personnel-row-cb']) !!}
                                                 Kahvaltı
                                             </label>
                                         </div>
-                                        <div class="col-sm-2">
+                                        <div class="col-sm-3">
                                             <label class="checkbox-inline">
-                                                {!! Form::checkbox('meals[]', '2', null) !!}
+                                                {!! Form::checkbox("meals-$i"."[]", '2', (!is_null($report_meal) && in_array((int)$report_meal->meal, [2,6,7])) ? true : false, ['class' => 'personnel-row-cb']) !!}
                                                 Öğle
                                             </label>
                                         </div>
-                                        <div class="col-sm-2">
+                                        <div class="col-sm-3">
                                             <label class="checkbox-inline">
-                                                {!! Form::checkbox('meals[]', '4', null) !!}
+                                                {!! Form::checkbox("meals-$i"."[]", '4', (!is_null($report_meal) && (int)$report_meal->meal>=4) ? true : false, ['class' => 'personnel-row-cb']) !!}
                                                 Akşam
                                             </label>
                                         </div>
-                                        {!! Form::hidden('meals_arr[]', "0", ['class' => 'meals_arr']) !!}
+                                        {!! Form::hidden('meals_arr[]', (!is_null($report_meal) ? $report_meal->meal : "0"), ['class' => 'meals_arr']) !!}
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        @endfor
                         <div class="row">
                             <div class="col-sm-12">
+
                                 <div class="form-group pull-right">
-                                    <a href="#" class="btn btn-primary btn-flat add-personnel-row">
-                                        Satır Ekle
-                                    </a>
+
+                                        <a class="btn btn-primary btn-flat add-personnel-row">
+                                            Satır Ekle
+                                        </a>
 
                                     <button type="submit" class="btn btn-success btn-flat ">
                                         Kaydet

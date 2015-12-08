@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Meal extends Model
 {
     //
-    protected $fillable = ['meal'];
+    protected $fillable = ['meal', 'site_id', 'report_id', 'personnel_id'];
 
     public function site()
     {

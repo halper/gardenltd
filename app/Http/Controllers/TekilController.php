@@ -14,12 +14,15 @@ use App\Library\CarbonHelper;
 use App\Library\Weather;
 use App\Manufacturing;
 use App\Material;
+use App\Meal;
 use App\Module;
 use App\Outmaterial;
+use App\Personnel;
 use App\Photo;
 use App\Pwunit;
 use App\Receipt;
 use App\Report;
+use App\Shift;
 use App\Site;
 use App\Http\Requests;
 use App\Subcontractor;
@@ -54,7 +57,7 @@ class TekilController extends Controller
             $report = session()->get('report');
         }
         $yesterdays_report = $site->report()->where('created_at', Carbon::yesterday()->toDateString())->first();
-        if(is_null($yesterdays_report->weather)){
+        if (is_null($yesterdays_report->weather)) {
             $wt = new Weather(1);
             $yesterdays_report->weather = $wt->getDescription();
             $yesterdays_report->temp_min = $wt->getMin();
@@ -470,12 +473,11 @@ class TekilController extends Controller
         $db_file = $this->uploadFile($request->file("file"));
 
         if ($db_file) {
-            if($request->get("type") == 0) {
+            if ($request->get("type") == 0) {
                 $photo = Photo::create();
                 $report->photo()->save($photo);
                 $photo->file()->save($db_file);
-            }
-            else{
+            } else {
                 $receipt = Receipt::create();
                 $report->receipt()->save($receipt);
                 $receipt->file()->save($db_file);
@@ -511,7 +513,53 @@ class TekilController extends Controller
 
     public function postSaveShiftsMeals(Site $site, Request $request)
     {
-        dd($request->all());
+        $personnel = [];
+        $k = 0;
+        foreach ($request->get("personnel") as $per) {
+            if ($request->get("overtime_arr")[$k] == 0) {
+                Session::flash('flash_message_error', 'İlgili personel için mesai girmelisiniz');
+                return redirect()->back();
+            }
+            if (in_array($per, $personnel)) {
+                Session::flash('flash_message_error', 'Aynı personeli iki kere ekleyemezsiniz');
+                return redirect()->back();
+            } else {
+                array_push($personnel, $per);
+            }
+            $k++;
+        }
+        $overtimes = $request->get("overtime_arr");
+        $meals = $request->get("meals_arr");
+        $report_id = $request->get("report_id");
+
+        for ($i = 0; $i < sizeof($personnel); $i++) {
+            $my_arr = ['personnel_id' => $personnel[$i],
+                'report_id' => $report_id,
+                'site_id' => $site->id];
+            $shift = Shift::firstOrNew($my_arr);
+            $shift->overtime = $overtimes[$i];
+            $shift->save();
+
+            $meal = Meal::firstOrNew($my_arr);
+            $meal->meal = $meals[$i];
+            $meal->save();
+
+        }
+
+        Session::flash('flash_message', 'Puantaj ve Yemek tablosu güncellendi');
+        return redirect()->back();
+    }
+
+    public function postDeleteShiftsMeals(Request $request)
+    {
+        $report = Report::find($request->get("reportid"));
+        $pid = $request->get("pid");
+        $meal = $report->meal()->where('personnel_id', $pid)->first();
+        $meal->delete();
+        $shift = $report->shift()->where('personnel_id', $pid)->first();
+        $shift->delete();
+
+        return response('success', 200);
     }
 
 //    END OF GUNLUK RAPOR PAGE
@@ -691,6 +739,34 @@ class TekilController extends Controller
     {
         Photo::find($request->get("fileid"))->delete();
         return response('success', 200);
+    }
+
+    public function postAddSubcontractorPersonnel(Request $request, Subcontractor $subcontractor)
+    {
+        $this->validate($request, [
+            'tck_no' => 'required | size:11',
+            'name' => 'required'
+        ]);
+        $personnel = Personnel::create([
+            'tck_no' => $request->get('tck_no'),
+            'name' => $request->get('name'),
+            'staff_id' => $request->get('staff_id')]);
+
+        if (!empty($request->file("documents"))) {
+            foreach ($request->file("documents") as $file) {
+                $db_file = $this->uploadFile($file);
+
+                if ($db_file) {
+                    $photo = Photo::create();
+                    $photo->file()->save($db_file);
+                    $personnel->photo()->save($photo);
+                }
+            }
+        }
+        $subcontractor->personnel()->save($personnel);
+
+        Session::flash('flash_message', 'Personel eklendi');
+        return redirect()->back();
     }
 
 

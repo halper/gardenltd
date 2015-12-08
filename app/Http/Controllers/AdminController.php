@@ -173,8 +173,7 @@ class AdminController extends Controller
     {
         $this->validate($request, [
             'tck_no' => 'required | size:11',
-            'name' => 'required',
-            'is_subpersonnel' => 'required'
+            'name' => 'required'
         ]);
         $personnel = Personnel::create([
             'tck_no' => $request->get('tck_no'),
@@ -192,11 +191,7 @@ class AdminController extends Controller
                 }
             }
         }
-        if ($request->get('is_subpersonnel') == '0') {
-            (new Site)->personnel()->save($personnel);
-        } else {
-            (new Subcontractor())->personnel()->save($personnel);
-        }
+        (new Site)->personnel()->save($personnel);
 
         Session::flash('flash_message', 'Personel eklendi');
         return redirect()->back();

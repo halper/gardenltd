@@ -79,6 +79,7 @@
                     <li><a href="#tab_3" data-toggle="tab">Ek Ödemeler</a></li>
                     <li><a href="#tab_4" data-toggle="tab">Yemek Ücretleri</a></li>
                     <li><a href="#tab_5" data-toggle="tab">Ek Belgeler</a></li>
+                    <li><a href="#tab_6" data-toggle="tab">Personel Ekle</a></li>
 
                 </ul>
                 <div class="tab-content">
@@ -160,11 +161,27 @@
                         </div>
                     </div>
 
-<!-- /.tab-pane -->
+                    <!-- /.tab-pane -->
                     <div class="tab-pane" id="tab_5">
                         <div class="row">
                             <div class="col-xs-12">
                                 @include('tekil._subcontractor-files')
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="tab_6">
+                        <div class="row">
+                            <div class="col-xs-12">
+                                {!! Form::model($subcontractor, [
+                                                                        'url' => "/tekil/$site->slug/add-subcontractor-personnel",
+                                                                        'method' => 'POST',
+                                                                        'class' => 'form form-horizontal',
+                                                                        'id' => 'subcontractorPersonnelForm',
+                                                                        'role' => 'form'
+                                                                        ])!!}
+                                @include('landing._personnel-insert-form')
+                                {!! Form::close() !!}
                             </div>
                         </div>
                     </div>

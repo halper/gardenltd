@@ -741,12 +741,13 @@ class TekilController extends Controller
         return response('success', 200);
     }
 
-    public function postAddSubcontractorPersonnel(Request $request, Subcontractor $subcontractor)
+    public function postAddSubcontractorPersonnel(Request $request)
     {
         $this->validate($request, [
             'tck_no' => 'required | size:11',
             'name' => 'required'
         ]);
+        $subcontractor = Subcontractor::find($request->get('subcontractor_id'));
         $personnel = Personnel::create([
             'tck_no' => $request->get('tck_no'),
             'name' => $request->get('name'),
@@ -855,6 +856,16 @@ class TekilController extends Controller
             ]);
 
         return null;
+    }
+
+    public function postCheckTck(Request $request)
+    {
+        if (is_null(Personnel::where('tck_no', $request->get('tck_no'))->first())) {
+            return response()->json('unique', 200);
+        } else {
+            return response()->json('found!', 200);
+        }
+
     }
 
 }

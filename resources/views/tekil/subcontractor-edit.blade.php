@@ -17,6 +17,51 @@
     <script src="<?= URL::to('/'); ?>/js/lightbox.js" type="text/javascript"></script>
 
     <script>
+
+        $('a[href=#tab_6]').on("shown.bs.tab", function () {
+            $(".staff-select").select2({
+                placeholder: "İş kolu seçiniz",
+                allowClear: true
+            });
+        });
+
+        $("#add-personnel").on("click", function (e) {
+            e.preventDefault();
+            var tckInput = $('input[name=tck_no]');
+            var tck = tckInput.val();
+            if (tck.length != 11) {
+                tckInput.parent('div').parent().closest('div.row').append(
+                        '<div class="col-sm-4">' +
+                        '<span class="text-danger">TCK No giriniz!</span>' +
+                        '</div>'
+                );
+                tckInput.parent('div').parent().closest('div.row').addClass('has-error');
+                return;
+            }
+            var unique;
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/check-tck"}}',
+                data: {
+                    "tck_no": tck
+                }
+            }).success(function (response) {
+                unique = (response.indexOf('unique') > -1);
+                if (!unique) {
+                    tckInput.parent('div').parent().closest('div.row').append(
+                            '<div class="col-sm-4">' +
+                            '<span class="text-danger">TCK No sistemde kayıtlı!</span>' +
+                            '</div>'
+                    );
+                    tckInput.parent('div').parent().closest('div.row').addClass('has-error');
+                }
+                else {
+                    $('#subcontractorPersonnelForm').submit();
+                }
+            });
+
+        });
+
         function removeFiles(fid) {
             $.ajax({
                 type: 'POST',
@@ -171,22 +216,23 @@
                     </div>
 
                     <div class="tab-pane" id="tab_6">
-                        <div class="row">
-                            <div class="col-xs-12">
-                                {!! Form::model($subcontractor, [
+                        {!! Form::model($subcontractor, [
                                                                         'url' => "/tekil/$site->slug/add-subcontractor-personnel",
                                                                         'method' => 'POST',
-                                                                        'class' => 'form form-horizontal',
+                                                                        'class' => 'form',
                                                                         'id' => 'subcontractorPersonnelForm',
                                                                         'role' => 'form'
                                                                         ])!!}
+                        {!! Form::hidden('subcontractor_id', $subcontractor->id) !!}
+                        <div class="row">
+                            <div class="col-sm-12">
+
                                 @include('landing._personnel-insert-form')
-                                {!! Form::close() !!}
+
                             </div>
                         </div>
+                        {!! Form::close() !!}
                     </div>
-
-
                 </div>
             </div>
         </div>

@@ -1,7 +1,7 @@
 {!! Form::open([
 'url' => "/tekil/$site->slug/update-cost",
 'method' => 'POST',
-'class' => 'form form-horizontal',
+'class' => 'form',
 'id' => 'subcontractorCostForm',
 'role' => 'form'
 ])!!}
@@ -29,13 +29,13 @@
             {!! Form::label('breakfast', 'YEMEK ÜCRETLERİ: ', ['class' => 'control-label']) !!}
         </div>
         <div class="col-sm-2">
-            {!! Form::number('breakfast', null, ['class' => 'form-control', 'placeholder' => 'Kahvaltı Ücreti', 'step' => 'any']) !!}
+            {!! Form::text('breakfast', null, ['class' => 'form-control number', 'placeholder' => 'Kahvaltı Ücreti']) !!}
         </div>
         <div class="col-sm-2 col-sm-offset-1">
-            {!! Form::number('lunch', null, ['class' => 'form-control', 'placeholder' => 'Öğle Yemeği Ücreti', 'step' => 'any']) !!}
+            {!! Form::text('lunch', null, ['class' => 'form-control number', 'placeholder' => 'Öğle Yemeği Ücreti']) !!}
         </div>
         <div class="col-sm-2 col-sm-offset-1">
-            {!! Form::number('supper', null, ['class' => 'form-control', 'placeholder' => 'Akşam Yemeği Ücreti', 'step' => 'any']) !!}
+            {!! Form::text('supper', null, ['class' => 'form-control number', 'placeholder' => 'Akşam Yemeği Ücreti']) !!}
         </div>
     </div>
 </div>

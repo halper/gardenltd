@@ -20,6 +20,8 @@
     });
     $('div.alert-success').not('.alert-important').delay(5000).slideUp(300);
 
+    $('.number').number(true, 2, ',', '.');
+
 </script>
 
 

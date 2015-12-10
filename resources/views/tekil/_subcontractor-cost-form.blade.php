@@ -1,7 +1,7 @@
 {!! Form::open([
 'url' => "/tekil/$site->slug/update-cost",
 'method' => 'POST',
-'class' => 'form .form-horizontal',
+'class' => 'form',
 'id' => 'subcontractorCostForm',
 'role' => 'form'
 ])!!}
@@ -43,7 +43,7 @@
                     {!! Form::label('material', 'GARDEN TARAFINDAN SAĞLANAN MALZEME BEDELİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('material', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('material', null, ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -55,7 +55,7 @@
                     {!! Form::label('equipment', 'GARDEN TARAFINDAN SAĞLANAN İŞ MAKİNASI BEDELİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('equipment', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('equipment', null, ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -70,7 +70,7 @@
                     {!! Form::label('oil', 'GARDEN TARAFINDAN SAĞLANAN AKARYAKIT BEDELİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('oil', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('oil', null, ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -82,7 +82,7 @@
                     {!! Form::label('cleaning', 'TAŞERON ADINA YAPILAN TEMİZLİK BEDELİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('cleaning', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('cleaning', null, ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -97,7 +97,7 @@
                     {!! Form::label('labour', 'TAŞERON ADINA ÇALIŞTIRILAN İŞÇİLİK BEDELİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('labour', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('labour', null, ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>

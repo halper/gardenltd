@@ -134,7 +134,7 @@
                         {!! Form::model($subcontractor, [
                                                                         'url' => "/tekil/$site->slug/update-subcontractor",
                                                                         'method' => 'POST',
-                                                                        'class' => 'form .form-horizontal',
+                                                                        'class' => 'form',
                                                                         'id' => 'subcontractorEditForm',
                                                                         'role' => 'form',
                                                                         'files' => true
@@ -238,7 +238,7 @@
         </div>
     </div>
 
-    @if(sizeof($costs)>0)
+    @if(!is_null($subcontractor->cost) && sizeof($costs)>0)
         <div class="row">
             <div class="col-xs-12 col-md-12">
                 <div class="box box-success box-solid">

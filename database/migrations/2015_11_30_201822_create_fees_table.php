@@ -31,7 +31,7 @@ class CreateFeesTable extends Migration
             $table->double('kdv')->nullable();
             $table->double('electricity')->nullable();
             $table->double('water')->nullable();
-            $table->integer('subcontractor_id')->unsigned()->index();
+            $table->integer('subcontractor_id')->unsigned()->index()->nullable();
             $table->foreign('subcontractor_id')->references('id')->on('subcontractors')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
         });

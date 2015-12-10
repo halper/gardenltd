@@ -159,31 +159,31 @@ use App\Library\TurkishChar;
                             @if(!empty($report->employer_staff))
                                 <tr>
                                     <td><strong>İŞVEREN ({{$site->employer}})</strong></td>
-                                    <td>{{$report->employer_staff}}</td>
+                                    <td class="text-right">{{$report->employer_staff}}</td>
                                 </tr>
                             @endif
                             @if(!empty($report->management_staff))
                                 <tr>
                                     <td><strong>PROJE YÖNETİM({{$site->management_name}})</strong></td>
-                                    <td>{{$report->management_staff}}</td>
+                                    <td class="text-right">{{$report->management_staff}}</td>
                                 </tr>
                             @endif
                             @if(!empty($report->building_control_staff))
                                 <tr>
                                     <td><strong>YAPI DENETİM({{$site->building_control}})</strong></td>
-                                    <td>{{$report->building_control_staff}}</td>
+                                    <td class="text-right">{{$report->building_control_staff}}</td>
                                 </tr>
                             @endif
                             @if(!empty($report->isg_staff))
                                 <tr>
                                     <td><strong>İSG({{$site->isg}})</strong></td>
-                                    <td>{{$report->isg_staff}}</td>
+                                    <td class="text-right">{{$report->isg_staff}}</td>
                                 </tr>
                             @endif
 
                             <tr>
                                 <td><strong>TOPLAM</strong></td>
-                                <td id="man-tot">{{(int)$report->building_control_staff + (int) $report->management_staff + (int) $report->employer_staff + (int) $report->isg_staff}}</td>
+                                <td id="man-tot" class="text-right">{{(int)$report->building_control_staff + (int) $report->management_staff + (int) $report->employer_staff + (int) $report->isg_staff}}</td>
                             </tr>
 
                             </tbody>
@@ -238,7 +238,7 @@ use App\Library\TurkishChar;
 
                                 <tr>
                                     @for($j = $i*$number_of_col; $j<sizeof($staff_name_arr) && $j<($i+1)*$number_of_col; $j++)
-                                        <td>{{$staff_quantity_arr[$j]}}</td>
+                                        <td class="text-right">{{$staff_quantity_arr[$j]}}</td>
                                     @endfor
                                 </tr>
                             @endfor
@@ -247,7 +247,7 @@ use App\Library\TurkishChar;
                                 @for($i = 0; $i<$extra_column; $i++)
                                     <td></td>
                                 @endfor
-                                <td id="main-con-tot">{{$main_contractor_total}}</td>
+                                <td id="main-con-tot" class="text-right">{{$main_contractor_total}}</td>
                             </tr>
                             </tbody>
                         </table>
@@ -305,7 +305,7 @@ use App\Library\TurkishChar;
                                             </tr>
                                             <tr>
                                                 @for($j = $i*$number_of_col; $j<sizeof($staff_name_arr) && $j<($i+1)*$number_of_col; $j++)
-                                                    <td>{{$staff_quantity_arr[$j]}}</td>
+                                                    <td class="text-right">{{$staff_quantity_arr[$j]}}</td>
                                                 @endfor
                                             </tr>
 
@@ -315,7 +315,7 @@ use App\Library\TurkishChar;
                                             @for($i = 0; $i<$extra_column; $i++)
                                                 <td></td>
                                             @endfor
-                                            <td class="sub-staff-tot">{{$sub_row_total}}</td>
+                                            <td class="sub-staff-tot text-right">{{$sub_row_total}}</td>
                                         </tr>
                                         </tbody>
                                     </table>
@@ -392,10 +392,10 @@ use App\Library\TurkishChar;
                             @foreach ($report->equipment()->get() as $eq)
                                 <tr>
                                     <td>{{$eq->name}}</td>
-                                    <td>{{$eq->pivot->present}}</td>
-                                    <td>{{$eq->pivot->working}}</td>
-                                    <td>{{$eq->pivot->broken}}</td>
-                                    <td>{{$eq->pivot->present + $eq->pivot->working + $eq->pivot->broken}}</td>
+                                    <td class="text-right">{{$eq->pivot->present}}</td>
+                                    <td class="text-right">{{$eq->pivot->working}}</td>
+                                    <td class="text-right">{{$eq->pivot->broken}}</td>
+                                    <td class="text-right">{{$eq->pivot->present + $eq->pivot->working + $eq->pivot->broken}}</td>
                                 </tr>
                                 <?php
                                 $equipment_total += (int)$eq->pivot->present + (int)$eq->pivot->working + (int)$eq->pivot->broken;
@@ -406,7 +406,7 @@ use App\Library\TurkishChar;
                                 <td></td>
                                 <td></td>
                                 <td></td>
-                                <td>{{$equipment_total}}</td>
+                                <td class="text-right">{{$equipment_total}}</td>
                             </tr>
                             </tbody>
                         </table>
@@ -459,12 +459,12 @@ use App\Library\TurkishChar;
                                 @endif
                                 <td>{{$i++}}</td>
                                 <td>{{$staffs->find($pw->staff_id)->staff}}</td>
-                                <td>{{$pw->quantity}}</td>
+                                <td class="text-right">{{$pw->quantity}}</td>
                                 <td>{{$pw->unit}}</td>
-                                <td class="number">{{str_replace(".", ",", $pw->works_done)}}</td>
-                                <td class="number">{{str_replace(".", ",", $pw->planned)}}</td>
-                                <td class="number">{{str_replace(".", ",", $pw->done)}}</td>
-                                <td class="number">%{{str_replace(".", ",", $pw_work_done_in_percent)}}</td>
+                                <td class="number text-right">{{str_replace(".", ",", $pw->works_done)}}</td>
+                                <td class="number text-right">{{str_replace(".", ",", $pw->planned)}}</td>
+                                <td class="number text-right">{{str_replace(".", ",", $pw->done)}}</td>
+                                <td class="number text-right">%{{str_replace(".", ",", $pw_work_done_in_percent)}}</td>
                             </tr>
 
                             @endforeach
@@ -485,12 +485,12 @@ use App\Library\TurkishChar;
                                         @endif
                                         <td>{{$i++}}</td>
                                         <td>{{\App\Subcontractor::find($sw->subcontractor_id)->name}}</td>
-                                        <td class="number">{{$sw->quantity}}</td>
+                                        <td class="text-right">{{$sw->quantity}}</td>
                                         <td>{{$sw->unit}}</td>
-                                        <td class="number">{{$sw->works_done}}</td>
-                                        <td class="number">{{$sw->planned}}</td>
-                                        <td class="number">{{$sw->done}}</td>
-                                        <td>%{{$sw_work_done_in_percent}}</td>
+                                        <td class="number text-right">{{$sw->works_done}}</td>
+                                        <td class="number text-right">{{$sw->planned}}</td>
+                                        <td class="number text-right">{{$sw->done}}</td>
+                                        <td class="number text-right">%{{$sw_work_done_in_percent}}</td>
                                     </tr>
 
                                     @endforeach
@@ -530,7 +530,7 @@ use App\Library\TurkishChar;
                             <td>{{TurkishChar::tr_up(\App\Material::find($inmaterials[$i-1]->material_id)->material)}}</td>
                             <td>{{TurkishChar::tr_up($inmaterials[$i-1]->coming_from)}}</td>
                             <td>{{TurkishChar::tr_up($inmaterials[$i-1]->unit)}}</td>
-                            <td class="number">{{str_replace(".", ",", $inmaterials[$i-1]->quantity)}}</td>
+                            <td class="number text-right">{{str_replace(".", ",", $inmaterials[$i-1]->quantity)}}</td>
                             <td>{{$inmaterials[$i-1]->explanation}}</td>
                         </tr>
 
@@ -572,7 +572,7 @@ use App\Library\TurkishChar;
                             <td>{{TurkishChar::tr_up(\App\Material::find($outmaterials[$i-1]->material_id)->material)}}</td>
                             <td>{{TurkishChar::tr_up($outmaterials[$i-1]->coming_from)}}</td>
                             <td>{{TurkishChar::tr_up($outmaterials[$i-1]->unit)}}</td>
-                            <td class="number">{{str_replace(".", ",", $outmaterials[$i-1]->quantity)}}</td>
+                            <td class="number text-right">{{str_replace(".", ",", $outmaterials[$i-1]->quantity)}}</td>
                             <td>{{$outmaterials[$i-1]->explanation}}</td>
                         </tr>
 

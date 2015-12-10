@@ -1,7 +1,11 @@
-{!! Form::model($subcontractor->fee()->first(), [
+<?php
+$fee = $subcontractor->fee()->first();
+?>
+
+{!! Form::open([
 'url' => "/tekil/$site->slug/update-fee",
 'method' => 'POST',
-'class' => 'form .form-horizontal',
+'class' => 'form',
 'id' => 'subcontractorOtherForm',
 'role' => 'form'
 ])!!}
@@ -13,13 +17,13 @@
             {!! Form::label('breakfast', 'YEMEK ÜCRETLERİ: ', ['class' => 'control-label']) !!}
         </div>
         <div class="col-sm-2">
-            {!! Form::number('breakfast', null, ['class' => 'form-control', 'placeholder' => 'Kahvaltı Ücreti', 'step' => 'any']) !!}
+            {!! Form::text('breakfast', is_null($fee) ? null : str_replace(".", ",", $fee->breakfast), ['class' => 'form-control number', 'placeholder' => 'Kahvaltı Ücreti']) !!}
         </div>
         <div class="col-sm-2 col-sm-offset-1">
-            {!! Form::number('lunch', null, ['class' => 'form-control', 'placeholder' => 'Öğle Yemeği Ücreti', 'step' => 'any']) !!}
+            {!! Form::text('lunch', is_null($fee) ? null : str_replace(".", ",", $fee->lunch), ['class' => 'form-control number', 'placeholder' => 'Öğle Yemeği Ücreti']) !!}
         </div>
         <div class="col-sm-2 col-sm-offset-1">
-            {!! Form::number('supper', null, ['class' => 'form-control', 'placeholder' => 'Akşam Yemeği Ücreti', 'step' => 'any']) !!}
+            {!! Form::text('supper', is_null($fee) ? null : str_replace(".", ",", $fee->supper), ['class' => 'form-control number', 'placeholder' => 'Akşam Yemeği Ücreti']) !!}
         </div>
     </div>
 </div>
@@ -32,7 +36,7 @@
                     {!! Form::label('shelter', 'BARINMA YERİ ÜCRETİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('shelter', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('shelter', is_null($fee) ? null : str_replace(".", ",", $fee->shelter), ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -44,7 +48,7 @@
                     {!! Form::label('sgk', 'SGK TUTARI: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('sgk', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('sgk', is_null($fee) ? null : str_replace(".", ",", $fee->sgk), ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -59,7 +63,7 @@
                     {!! Form::label('allrisk', 'ALL-RİSK SİGORTA TUTARI: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('allrisk', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('allrisk', is_null($fee) ? null : str_replace(".", ",", $fee->allrisk), ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -71,7 +75,7 @@
                     {!! Form::label('isg', 'İSG TUTARI: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('isg', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('isg', is_null($fee) ? null : str_replace(".", ",", $fee->isg), ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -85,7 +89,7 @@
                     {!! Form::label('contract_tax', 'SÖZLEŞME/DAMGA VERGİSİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('contract_tax', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('contract_tax', is_null($fee) ? null : str_replace(".", ",", $fee->contract_tax), ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -97,7 +101,7 @@
                     {!! Form::label('kdv', 'KDV TEVKİFAT BEDELİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('kdv', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('kdv', is_null($fee) ? null : str_replace(".", ",", $fee->kdv), ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -111,7 +115,7 @@
                     {!! Form::label('material', 'GARDEN TARAFINDAN SAĞLANAN MALZEME BEDELİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('material', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('material', is_null($fee) ? null : str_replace(".", ",", $fee->material), ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -123,7 +127,7 @@
                     {!! Form::label('equipment', 'GARDEN TARAFINDAN SAĞLANAN İŞ MAKİNASI BEDELİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('equipment', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('equipment', is_null($fee) ? null : str_replace(".", ",", $fee->equipment), ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -138,7 +142,7 @@
                     {!! Form::label('oil', 'GARDEN TARAFINDAN SAĞLANAN AKARYAKIT BEDELİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('oil', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('oil', is_null($fee) ? null : str_replace(".", ",", $fee->oil), ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -150,7 +154,7 @@
                     {!! Form::label('electricity', 'GARDEN TARAFINDAN SAĞLANAN ELEKTRİK BEDELİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('electricity', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('electricity', is_null($fee) ? null : str_replace(".", ",", $fee->electricity), ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -165,7 +169,7 @@
                     {!! Form::label('water', 'GARDEN TARAFINDAN SAĞLANAN SU TÜKETİM BEDELİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('water', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('water', is_null($fee) ? null : str_replace(".", ",", $fee->water), ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -177,7 +181,7 @@
                     {!! Form::label('cleaning', 'TAŞERON ADINA YAPILAN TEMİZLİK BEDELİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('cleaning', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('cleaning', is_null($fee) ? null : str_replace(".", ",", $fee->cleaning), ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>
@@ -192,7 +196,7 @@
                     {!! Form::label('labour', 'TAŞERON ADINA ÇALIŞTIRILAN İŞÇİLİK BEDELİ: ', ['class' => 'control-label']) !!}
                 </div>
                 <div class="col-sm-2">
-                    {!! Form::number('labour', null, ['class' => 'form-control', 'placeholder' => 'Tutar(TL)', 'step' => 'any']) !!}
+                    {!! Form::text('labour', is_null($fee) ? null : str_replace(".", ",", $fee->labour), ['class' => 'form-control number', 'placeholder' => 'Tutar(TL)']) !!}
                 </div>
             </div>
         </div>

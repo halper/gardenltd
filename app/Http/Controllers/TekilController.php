@@ -559,12 +559,14 @@ class TekilController extends Controller
     {
         $has_error = false;
         $subcontractor = Subcontractor::find($request->get('sub-id'));
-        $sub_name = $subcontractor->name;
+        $sub_name = $subcontractor->subdetail->name;
         $subcontractor->manufacturing()->detach();
-        foreach ($request->get('manufacturings') as $man_id) {
-            $subcontractor->manufacturing()->attach($man_id);
+        if (!empty($request->get('manufacturings'))) {
+            foreach ($request->get('manufacturings') as $man_id) {
+                $subcontractor->manufacturing()->attach($man_id);
+            }
         }
-        $subcontractor->price = $request->get('price');
+        $subcontractor->price = str_replace(",", ".", str_replace(".", "", $request->get('price')));
         $subcontractor->save();
         $contract = Contract::firstOrCreate(['contract_date' => CarbonHelper::getMySQLDate($request->get('contract_date')),
             'contract_start_date' => CarbonHelper::getMySQLDate($request->get('contract_start_date')),
@@ -619,30 +621,16 @@ class TekilController extends Controller
         return redirect()->back();
     }
 
-    public function postUpdateFee(Request $request, Fee $fee)
+    public function postUpdateFee(Request $request)
     {
-        $subcontractor = Subcontractor::find($request->get("subcontractor_id"));
-        if (is_null($subcontractor->fee()->first())) {
-            $fee->create($request->all());
-        } else {
-            $fee->breakfast = $request->get("breakfast");
-            $fee->lunch = $request->get("lunch");
-            $fee->supper = $request->get("supper");
-            $fee->material = $request->get("material");
-            $fee->equipment = $request->get("equipment");
-            $fee->oil = $request->get("oil");
-            $fee->cleaning = $request->get("cleaning");
-            $fee->labour = $request->get("labour");
-            $fee->shelter = $request->get("shelter");
-            $fee->sgk = $request->get("sgk");
-            $fee->allrisk = $request->get("allrisk");
-            $fee->isg = $request->get("isg");
-            $fee->contract_tax = $request->get("contract_tax");
-            $fee->kdv = $request->get("kdv");
-            $fee->electricity = $request->get("electricity");
-            $fee->water = $request->get("water");
-            $fee->save();
+        $my_arr = $this->trCurrencyFormatter($request->all());
+
+        $fee = Fee::firstOrNew(['subcontractor_id' => $request->get("subcontractor_id")]);
+        foreach($my_arr as $key=>$value){
+            $fee->$key = $value;
         }
+        $fee->save();
+
         Session::flash('flash_message', 'Bilgiler kaydedildi');
 
         return redirect()->back();
@@ -658,7 +646,7 @@ class TekilController extends Controller
                 "explanation" => "required"
             ]);
         }
-        $my_arr = $request->all();
+        $my_arr = $this->trCurrencyFormatter($request->all());
         $my_arr["pay_date"] = CarbonHelper::getMySQLDate($request->get("pay_date"));
         Cost::create($my_arr);
         Session::flash('flash_message', 'Bilgiler eklendi');
@@ -816,6 +804,16 @@ class TekilController extends Controller
             return response()->json('found!', 200);
         }
 
+    }
+
+    private function trCurrencyFormatter($my_arr){
+        if(array_key_exists("_token", $my_arr)) {
+            unset($my_arr["_token"]);
+        }
+        foreach($my_arr as $key=>$value){
+            $my_arr[$key] = str_replace(",", ".", str_replace(".", "", $value));
+        }
+        return $my_arr;
     }
 
 }

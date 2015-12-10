@@ -397,19 +397,6 @@ EOT;
 
     <script>
         $(document).ready(function () {
-            $('.number').number(true, 2, ',', '.');
-            /*$("form").submit(function (e) {
-                // Let's find the input to check
-                e.preventDefault();
-                var inputs = $(this).find("input.number");
-                $.each(inputs, function (index, object) {
-                    console.log($(object).val());
-                    $(object).val($(object).val().replace(".", ""));
-                    $(object).val($(object).val().replace(",", "."));
-                    console.log($(object).val());
-                });
-//                $(this).submit();
-            });*/
             var data = [{id: 0, text: 'İşveren ({!! $site->employer!!})'}, {
                 id: 1,
                 text: 'İdare({!! $site->management_name!!})'
@@ -483,7 +470,7 @@ EOT;
                     '<div class="col-sm-7">' +
                     '<div class="form-group"><select name="main-staffs[]" class="js-example-data-array form-control"></select>' +
                     '</div></div>' +
-                    '<div class="col-sm-4"><input type="number" step="1" class="form-control" name="main-staff-quantity[]"/>' +
+                    '<div class="col-sm-offset-2 col-sm-2"><input type="number" step="1" class="form-control" name="main-staff-quantity[]"/>' +
                     '</div></div>'); //add input box
             var data = [{id: 0, text: 'İşveren ({!! $site->employer!!})'}, {
                 id: 1,
@@ -1057,7 +1044,7 @@ EOT;
                                         <div class="col-sm-8 text-center">
                                             <span><strong>PERSONEL </strong></span>
                                         </div>
-                                        <div class="col-sm-4 text-center">
+                                        <div class="col-sm-2 col-sm-offset-2 text-center">
                                             <span><strong>SAYISI</strong></span>
                                         </div>
                                     </div>
@@ -1084,7 +1071,7 @@ EOT;
                                                 {!! Form::hidden('main-staffs[]', '0') !!}
                                             </div>
 
-                                            <div class="col-sm-4">
+                                            <div class="col-sm-2 col-sm-offset-2">
 
                                                 {!! Form::number('main-staff-quantity[]', $report->management_staff, ['class' => 'form-control', 'step' => '1'])  !!}
 
@@ -1106,7 +1093,7 @@ EOT;
                                                 {!! Form::hidden('main-staffs[]', '1') !!}
                                             </div>
 
-                                            <div class="col-sm-4">
+                                            <div class="col-sm-2 col-sm-offset-2">
                                                 {!! Form::number('main-staff-quantity[]', $report->employer_staff, ['class' => 'form-control', 'step' => '1'])  !!}
                                             </div>
                                         </div>
@@ -1126,7 +1113,7 @@ EOT;
                                                 {!! Form::hidden('main-staffs[]', '2') !!}
                                             </div>
 
-                                            <div class="col-sm-4">
+                                            <div class="col-sm-2 col-sm-offset-2">
                                                 {!! Form::number('main-staff-quantity[]', $report->building_control_staff, ['class' => 'form-control', 'step' => '1'])  !!}
 
                                             </div>
@@ -1146,7 +1133,7 @@ EOT;
                                                 {!! Form::hidden('main-staffs[]', '3') !!}
                                             </div>
 
-                                            <div class="col-sm-4">
+                                            <div class="col-sm-2 col-sm-offset-2">
                                                 {!! Form::number('main-staff-quantity[]', $report->isg_staff, ['class' => 'form-control', 'step' => '1'])  !!}
 
                                             </div>
@@ -1162,7 +1149,7 @@ EOT;
                                         </div>
                                     </div>
 
-                                    <div class="col-sm-4">
+                                    <div class="col-sm-2 col-sm-offset-2">
 
                                         <input type="number" step="1" class="form-control"
                                                name="main-staff-quantity[]"/>
@@ -1242,7 +1229,7 @@ EOT;
                                         <div class="col-sm-8">
                                             <span><strong>PERSONEL</strong></span>
                                         </div>
-                                        <div class="col-sm-3">
+                                        <div class="col-sm-2 col-sm-offset-2 text-center">
                                             <span><strong>SAYISI</strong></span>
                                         </div>
                                     </div>
@@ -1287,7 +1274,7 @@ EOT;
                                             </div>
                                         </div>
 
-                                        <div class="col-sm-4">
+                                        <div class="col-sm-2 col-sm-offset-2">
 
                                             <input type="number" step="1" class="form-control"
                                                    name="contractor-quantity[]"/>
@@ -1492,7 +1479,7 @@ EOT;
                                         </div>
                                     @endforeach
 
-                                    <div class="row">
+                                    {{--<div class="row">
                                         <div class="col-sm-5">
                                             <div class="form-group">
                                                 <select name="equipments[]"
@@ -1521,7 +1508,7 @@ EOT;
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </div>--}}
                                 </div>
 
                                 <div class="row">
@@ -1799,7 +1786,7 @@ EOT;
                                 </div>
                             @endforeach
 
-                            <div class="row">
+                            {{--<div class="row">
                                 <div class="col-sm-2">
                                     <div class="form-group">
                                         <select name="inmaterials[]"
@@ -1835,7 +1822,7 @@ EOT;
                                            name="inmaterial-explanation[]"
                                            value=""/>
                                 </div>
-                            </div>
+                            </div>--}}
                         </div>
 
 
@@ -1939,7 +1926,7 @@ EOT;
                                 </div>
                             @endforeach
 
-                            <div class="row">
+                            {{--<div class="row">
                                 <div class="col-sm-2">
                                     <div class="form-group">
                                         <select name="outmaterials[]"
@@ -1975,7 +1962,7 @@ EOT;
                                            name="outmaterial-explanation[]"
                                            value=""/>
                                 </div>
-                            </div>
+                            </div>--}}
                         </div>
 
 

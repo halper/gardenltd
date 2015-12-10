@@ -19,8 +19,8 @@ class CreatePwunitsTable extends Migration
             $table->integer('quantity');
             $table->text('works_done');
             $table->string('unit');
-            $table->integer('planned');
-            $table->integer('done');
+            $table->double('planned', 8, 2);
+            $table->double('done', 8, 2);
             $table->integer('report_id')->unsigned()->index();
             $table->foreign('report_id')->references('id')->on('reports')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();

@@ -10,13 +10,14 @@
 
 <!-- AdminLTE App -->
 <script src="<?= URL::to('/'); ?>/js/manager.js" type="text/javascript"></script>
+<script src="<?= URL::to('/'); ?>/js/jquery.number.js" type="text/javascript"></script>
 
 <script>
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         }
-    })
+    });
     $('div.alert-success').not('.alert-important').delay(5000).slideUp(300);
 
 </script>

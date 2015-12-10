@@ -14,7 +14,7 @@ class CreateShiftsTable extends Migration
     {
         Schema::create('shifts', function (Blueprint $table) {
             $table->increments('id');
-            $table->integer('overtime')->comment = '999 tam, 998 yarım, sayılar saat cinsinden fazla mesai';
+            $table->double('overtime')->comment = '999 tam, 998 yarım, sayılar saat cinsinden fazla mesai';
             $table->unsignedInteger('site_id')->index();
             $table->unsignedInteger('personnel_id')->index();
             $table->foreign('site_id')->references('id')->on('sites')->onDelete('cascade')->onUpdate('cascade');

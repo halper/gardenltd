@@ -353,41 +353,16 @@ class TekilController extends Controller
             $inmat->delete();
         }
         foreach ($in_arr as $mat_id) {
-            $inmaterial = new Inmaterial();
-
-            if (empty($inmaterial->where("report_id", $report_id)
-                ->where('material_id', $mat_id)->first())
-            ) {
-                if (!(empty($request->get("inmaterial-quantity")[$i]) &&
-                    empty($request->get("inmaterial-unit")[$i]) &&
-                    empty($request->get("inmaterial-from")[$i]) &&
-                    empty($request->get("inmaterial-explanation")[$i]))
-                ) {
-
-                    $inmaterial = $inmaterial->create([
-                        "material_id" => $mat_id,
-                        "report_id" => $report_id,
-                        "quantity" => $request->get("inmaterial-quantity")[$i],
-                        "unit" => $request->get("inmaterial-unit")[$i],
-                        "coming_from" => $request->get("inmaterial-from")[$i],
-                        "explanation" => $request->get("inmaterial-explanation")[$i],
-                    ]);
-                }
-
-            } else {
-
-                $inmaterial = $inmaterial->where("report_id", $report_id)
-                    ->where('material_id', $mat_id)->first();
-
-                $inmaterial->quantity = $request->get("inmaterial-quantity")[$i];
-                $inmaterial->unit = $request->get("inmaterial-unit")[$i];
-                $inmaterial->coming_from = $request->get("inmaterial-from")[$i];
-                $inmaterial->explanation = $request->get("inmaterial-explanation")[$i];
-                $inmaterial->save();
-
-            }
+            $inmaterial = Inmaterial::firstOrNew([
+                "material_id" => $mat_id,
+                "report_id" => $report_id]);
+            $inmaterial->quantity = str_replace(",", ".", str_replace(".", "", $request->get("inmaterial-quantity")[$i]));
+            $inmaterial->unit = $request->get("inmaterial-unit")[$i];
+            $inmaterial->coming_from = $request->get("inmaterial-from")[$i];
+            $inmaterial->explanation = $request->get("inmaterial-explanation")[$i];
+            $inmaterial->save();
             $i++;
-            Session::flash('flash_message', 'Gelen materyal tablosu güncellendi');
+            Session::flash('flash_message', 'Gelen malzeme tablosu güncellendi');
         }
 
 
@@ -411,41 +386,16 @@ class TekilController extends Controller
             $inmat->delete();
         }
         foreach ($in_arr as $mat_id) {
-            $outmaterial = new outmaterial();
+            $outmaterial = Outmaterial::firstOrNew(["material_id" => $mat_id,
+                "report_id" => $report_id]);
 
-            if (empty($outmaterial->where("report_id", $report_id)
-                ->where('material_id', $mat_id)->first())
-            ) {
-                if (!(empty($request->get("outmaterial-quantity")[$i]) &&
-                    empty($request->get("outmaterial-unit")[$i]) &&
-                    empty($request->get("outmaterial-from")[$i]) &&
-                    empty($request->get("outmaterial-explanation")[$i]))
-                ) {
-
-                    $outmaterial = $outmaterial->create([
-                        "material_id" => $mat_id,
-                        "report_id" => $report_id,
-                        "quantity" => $request->get("outmaterial-quantity")[$i],
-                        "unit" => $request->get("outmaterial-unit")[$i],
-                        "coming_from" => $request->get("outmaterial-from")[$i],
-                        "explanation" => $request->get("outmaterial-explanation")[$i],
-                    ]);
-                }
-
-            } else {
-
-                $outmaterial = $outmaterial->where("report_id", $report_id)
-                    ->where('material_id', $mat_id)->first();
-
-                $outmaterial->quantity = $request->get("outmaterial-quantity")[$i];
-                $outmaterial->unit = $request->get("outmaterial-unit")[$i];
-                $outmaterial->coming_from = $request->get("outmaterial-from")[$i];
-                $outmaterial->explanation = $request->get("outmaterial-explanation")[$i];
-                $outmaterial->save();
-
-            }
+            $outmaterial->quantity = str_replace(",", ".", str_replace(".", "", $request->get("outmaterial-quantity")[$i]));
+            $outmaterial->unit = $request->get("outmaterial-unit")[$i];
+            $outmaterial->coming_from = $request->get("outmaterial-from")[$i];
+            $outmaterial->explanation = $request->get("outmaterial-explanation")[$i];
+            $outmaterial->save();
             $i++;
-            Session::flash('flash_message', 'Gelen materyal tablosu güncellendi');
+            Session::flash('flash_message', 'Giden malzeme tablosu güncellendi');
         }
 
 

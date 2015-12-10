@@ -256,7 +256,7 @@ EOT;
                     '<select name="staffs[]" class="js-additional-staff form-control">' +
 $staff_options_js
             '</select></div></div>' +
-                '<div class="col-sm-3"><input type="number" class="form-control" name="contractor-quantity[]"/></div>'+
+                '<div class="col-sm-3"><input type="number" class="form-control" name="contractor-quantity[]" step="1"/></div>'+
                 '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div></div>'); //add input box
                 $(".js-additional-staff").select2();
 
@@ -287,9 +287,9 @@ EOT;
 $equipment_options_js
             '</select></div></div></div></div>' +
                 '<div class="col-sm-7"><div class="row">'+
-                '<div class="col-sm-4"><input type="number" class="form-control" name="equipment-present[]"/></div>'+
-                '<div class="col-sm-4"><input type="number" class="form-control" name="equipment-working[]"/></div>'+
-                '<div class="col-sm-4"><input type="number" class="form-control" name="equipment-broken[]"/></div></div></div></div>'); //add input box
+                '<div class="col-sm-4"><input type="number" step="1" class="form-control" name="equipment-present[]"/></div>'+
+                '<div class="col-sm-4"><input type="number" step="1" class="form-control" name="equipment-working[]"/></div>'+
+                '<div class="col-sm-4"><input type="number" step="1" class="form-control" name="equipment-broken[]"/></div></div></div></div>'); //add input box
                 $(".js-additional-equipment").select2();
 
             });
@@ -320,10 +320,10 @@ $inmaterial_options_js
             '</select></div></div></div></div>' +
                 '<div class="col-sm-2"><input type="text" class="form-control" name="inmaterial-from[]"/></div>'+
                 '<div class="col-sm-1"><input type="text" class="form-control" name="inmaterial-unit[]"/></div>'+
-                '<div class="col-sm-1"><input type="number" class="form-control" name="inmaterial-quantity[]"/></div>'+
+                '<div class="col-sm-1"><input type="text" class="form-control number" name="inmaterial-quantity[]"/></div>'+
                 '<div class="col-sm-6"><input type="text" class="form-control" name="inmaterial-explanation[]"/></div></div>'); //add input box
                 $(".js-additional-inmaterial").select2();
-
+$('.number').number(true, 2, ',', '.');
             });
 
             $(inmaterial_wrapper).on("click",".remove_field", function(e){ //user click on remove text
@@ -351,10 +351,10 @@ $outmaterial_options_js
             '</select></div></div></div></div>' +
                 '<div class="col-sm-2"><input type="text" class="form-control" name="outmaterial-from[]"/></div>'+
                 '<div class="col-sm-1"><input type="text" class="form-control" name="outmaterial-unit[]"/></div>'+
-                '<div class="col-sm-1"><input type="number" class="form-control" name="outmaterial-quantity[]"/></div>'+
+                '<div class="col-sm-1"><input type="text" class="form-control number" name="outmaterial-quantity[]"/></div>'+
                 '<div class="col-sm-6"><input type="text" class="form-control" name="outmaterial-explanation[]"/></div></div>'); //add input box
                 $(".js-additional-outmaterial").select2();
-
+$('.number').number(true, 2, ',', '.');
             });
 
             $(outmaterial_wrapper).on("click",".remove_field", function(e){ //user click on remove text
@@ -379,7 +379,7 @@ $(document).ready(function() {
                     '<select name="subcontractor_staffs[]" class="js-additional-subcontractor_staff form-control">' +
 $subcontractor_staff_options_js
             '</select></div>' +
-                '<div class="col-sm-4"><input type="number" placeholder="Personel sayısı giriniz" class="form-control" name="substaff-quantity[]"/></div>'+
+                '<div class="col-sm-4"><input type="number" step="1" placeholder="Personel sayısı giriniz" class="form-control" name="substaff-quantity[]"/></div>'+
                 '</div></div>'); //add input box
                 $(".js-additional-subcontractor_staff").select2();
 
@@ -397,6 +397,19 @@ EOT;
 
     <script>
         $(document).ready(function () {
+            $('.number').number(true, 2, ',', '.');
+            /*$("form").submit(function (e) {
+                // Let's find the input to check
+                e.preventDefault();
+                var inputs = $(this).find("input.number");
+                $.each(inputs, function (index, object) {
+                    console.log($(object).val());
+                    $(object).val($(object).val().replace(".", ""));
+                    $(object).val($(object).val().replace(",", "."));
+                    console.log($(object).val());
+                });
+//                $(this).submit();
+            });*/
             var data = [{id: 0, text: 'İşveren ({!! $site->employer!!})'}, {
                 id: 1,
                 text: 'İdare({!! $site->management_name!!})'
@@ -418,14 +431,14 @@ EOT;
                         '<select name="subcontractors[]" class="js-additional-subcontractor_staff form-control">' +
                         {!! $subcontractor_options_js !!}
                 '</select></div></div></div>' +
-                        '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_quantity[]"/></div>' +
+                        '<div class="col-sm-1"><input type="number" step="1" class="form-control" name="subcontractor_quantity[]"/></div>' +
                         '<div class="col-sm-1"><input type="text" class="form-control" name="subcontractor_unit[]"/></div>' +
                         '<div class="col-sm-6"><textarea class="form-control" name="subcontractor_work_done[]" rows="3"/></div>' +
-                        '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_planned[]"/></div>' +
-                        '<div class="col-sm-1"><input type="number" class="form-control" name="subcontractor_done[]"/></div>' +
+                        '<div class="col-sm-1"><input type="text" class="number form-control" name="subcontractor_planned[]"/></div>' +
+                        '<div class="col-sm-1"><input type="text" class="number form-control" name="subcontractor_done[]"/></div>' +
                         '</div></div>'); //add input box
                 $(".js-additional-subcontractor_staff").select2();
-
+                $('.number').number(true, 2, ',', '.');
             });
 
             $(subcontractorStaffWrapper).on("click", ".remove_field", function (e) { //user click on remove text
@@ -445,13 +458,14 @@ EOT;
                     '<select name="staffs[]" class="js-additional-staff form-control">' +
                     {!! $staff_options_js_all !!}
             '</select></div></div></div>' +
-                    '<div class="col-sm-1"><input type="number" class="form-control" name="staff_quantity[]"/></div>' +
+                    '<div class="col-sm-1"><input type="number" step="1" class="form-control" name="staff_quantity[]"/></div>' +
                     '<div class="col-sm-1"><input type="text" class="form-control" name="staff_unit[]"/></div>' +
                     '<div class="col-sm-6"><textarea class="form-control" name="staff_work_done[]" rows="3"/></div>' +
-                    '<div class="col-sm-1"><input type="number" class="form-control" name="staff_planned[]"/></div>' +
-                    '<div class="col-sm-1"><input type="number" class="form-control" name="staff_done[]"/></div>' +
+                    '<div class="col-sm-1"><input type="text" class="number form-control" name="staff_planned[]"/></div>' +
+                    '<div class="col-sm-1"><input type="text" class="number form-control" name="staff_done[]"/></div>' +
                     '</div></div>'); //add input box
             $(".js-additional-staff").select2();
+            $('.number').number(true, 2, ',', '.');
 
         });
 
@@ -469,7 +483,7 @@ EOT;
                     '<div class="col-sm-7">' +
                     '<div class="form-group"><select name="main-staffs[]" class="js-example-data-array form-control"></select>' +
                     '</div></div>' +
-                    '<div class="col-sm-4"><input type="number" class="form-control" name="main-staff-quantity[]"/>' +
+                    '<div class="col-sm-4"><input type="number" step="1" class="form-control" name="main-staff-quantity[]"/>' +
                     '</div></div>'); //add input box
             var data = [{id: 0, text: 'İşveren ({!! $site->employer!!})'}, {
                 id: 1,
@@ -547,7 +561,7 @@ EOT;
                     '<label class="radio-inline"><input type="radio" class="overtime-radio" name="overtime-' + overtimesLength +
                     '" value="0">Fazla Mesai</label></div>' +
                     '<div class="col-sm-6 overtime-input-div">' +
-                    '<input class="form-control overtime_input" placeholder="Mesai (Saat)" disabled="disabled" name="overtime" type="number">' +
+                    '<input class="form-control overtime_input number" placeholder="Mesai (Saat)" disabled="disabled" name="overtime" type="text">' +
                     '</div></div></div>' +
                     '<input class="overtime-hidden" name="overtime_arr[]" type="hidden"></div></div>' +
                     '<div class="col-sm-4"><div class="row col-sm-offset-1"><div class="col-sm-3">' +
@@ -557,6 +571,7 @@ EOT;
                     '<input class="meals_arr" name="meals_arr[]" type="hidden" value="0"></div></div></div>');
 
             $(".js-additional-personnel").select2();
+            $('.number').number(true, 2, ',', '.');
             $("input[name='meals-" + overtimesLength + "[]']").on("click", setCbHidden);
             $("input.overtime-radio").on("click", setRdHidden);
             $('.overtime_input').keyup(function () {
@@ -1071,7 +1086,7 @@ EOT;
 
                                             <div class="col-sm-4">
 
-                                                {!! Form::number('main-staff-quantity[]', $report->management_staff, ['class' => 'form-control'])  !!}
+                                                {!! Form::number('main-staff-quantity[]', $report->management_staff, ['class' => 'form-control', 'step' => '1'])  !!}
 
                                             </div>
                                         </div>
@@ -1092,7 +1107,7 @@ EOT;
                                             </div>
 
                                             <div class="col-sm-4">
-                                                {!! Form::number('main-staff-quantity[]', $report->employer_staff, ['class' => 'form-control'])  !!}
+                                                {!! Form::number('main-staff-quantity[]', $report->employer_staff, ['class' => 'form-control', 'step' => '1'])  !!}
                                             </div>
                                         </div>
                                     </div>
@@ -1112,7 +1127,7 @@ EOT;
                                             </div>
 
                                             <div class="col-sm-4">
-                                                {!! Form::number('main-staff-quantity[]', $report->building_control_staff, ['class' => 'form-control'])  !!}
+                                                {!! Form::number('main-staff-quantity[]', $report->building_control_staff, ['class' => 'form-control', 'step' => '1'])  !!}
 
                                             </div>
                                         </div>
@@ -1132,7 +1147,7 @@ EOT;
                                             </div>
 
                                             <div class="col-sm-4">
-                                                {!! Form::number('main-staff-quantity[]', $report->isg_staff, ['class' => 'form-control'])  !!}
+                                                {!! Form::number('main-staff-quantity[]', $report->isg_staff, ['class' => 'form-control', 'step' => '1'])  !!}
 
                                             </div>
                                         </div>
@@ -1149,7 +1164,8 @@ EOT;
 
                                     <div class="col-sm-4">
 
-                                        <input type="number" class="form-control" name="main-staff-quantity[]"/>
+                                        <input type="number" step="1" class="form-control"
+                                               name="main-staff-quantity[]"/>
                                     </div>
                                 </div>
 
@@ -1251,7 +1267,7 @@ EOT;
 
                                             <div class="col-sm-3">
 
-                                                <input type="number" class="form-control"
+                                                <input type="number" class="form-control" step="1"
                                                        name="contractor-quantity[]"
                                                        value="{{$staff->pivot->quantity}}"/>
                                             </div>
@@ -1273,7 +1289,8 @@ EOT;
 
                                         <div class="col-sm-4">
 
-                                            <input type="number" class="form-control" name="contractor-quantity[]"/>
+                                            <input type="number" step="1" class="form-control"
+                                                   name="contractor-quantity[]"/>
                                         </div>
                                     </div>
                                 </div>
@@ -1453,19 +1470,19 @@ EOT;
                                                 <div class="row">
                                                     <div class="col-sm-4">
 
-                                                        <input type="number" class="form-control"
+                                                        <input type="number" step="1" class="form-control"
                                                                name="equipment-present[]"
                                                                value="{{$equipment->pivot->present}}"/>
                                                     </div>
                                                     <div class="col-sm-4">
 
-                                                        <input type="number" class="form-control"
+                                                        <input type="number" step="1" class="form-control"
                                                                name="equipment-working[]"
                                                                value="{{$equipment->pivot->working}}"/>
                                                     </div>
                                                     <div class="col-sm-4">
 
-                                                        <input type="number" class="form-control"
+                                                        <input type="number" step="1" class="form-control"
                                                                name="equipment-broken[]"
                                                                value="{{$equipment->pivot->broken}}"/>
                                                     </div>
@@ -1489,17 +1506,17 @@ EOT;
                                             <div class="row">
                                                 <div class="col-sm-4">
 
-                                                    <input type="number" class="form-control"
+                                                    <input type="number" step="1" class="form-control"
                                                            name="equipment-present[]"/>
                                                 </div>
                                                 <div class="col-sm-4">
 
-                                                    <input type="number" class="form-control"
+                                                    <input type="number" step="1" class="form-control"
                                                            name="equipment-working[]"/>
                                                 </div>
                                                 <div class="col-sm-4">
 
-                                                    <input type="number" class="form-control"
+                                                    <input type="number" step="1" class="form-control"
                                                            name="equipment-broken[]"/>
                                                 </div>
                                             </div>
@@ -1606,7 +1623,7 @@ EOT;
                                         </div>
                                     </div>
                                     <div class="col-sm-1">
-                                        {!! Form::number("staff_quantity[]", $staff->quantity, ['class' => 'form-control']) !!}
+                                        {!! Form::number("staff_quantity[]", $staff->quantity, ['class' => 'form-control', 'step' => '1']) !!}
                                     </div>
                                     <div class="col-sm-1">
                                         {!! Form::text("staff_unit[]", $staff_unit_for_work_done , ['class' => 'form-control']) !!}
@@ -1615,10 +1632,10 @@ EOT;
                                         {!! Form::textarea("staff_work_done[]", $staff_work_done_for_work_done , ['class' => 'form-control', 'rows' => '3']) !!}
                                     </div>
                                     <div class="col-sm-1">
-                                        {!! Form::number("staff_planned[]", $staff_planned_for_work_done , ['class' => 'form-control']) !!}
+                                        {!! Form::text("staff_planned[]", $staff_planned_for_work_done , ['class' => 'form-control number']) !!}
                                     </div>
                                     <div class="col-sm-1">
-                                        {!! Form::number("staff_done[]", $staff_done_for_work_done , ['class' => 'form-control']) !!}
+                                        {!! Form::text("staff_done[]", $staff_done_for_work_done , ['class' => 'form-control number']) !!}
                                     </div>
                                 </div>
                             @endforeach
@@ -1631,6 +1648,7 @@ EOT;
                                 $subcontractor_work_done_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->works_done) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->works_done;
                                 $subcontractor_planned_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->planned) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->planned;
                                 $subcontractor_done_for_work_done = empty($report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->done) ? null : $report->swunit()->where("subcontractor_id", $subcontractor->subcontractor_id)->first()->done;
+                                $sub = \App\Subcontractor::find($subcontractor->subcontractor_id);
                                 ?>
                                 <div class="row" id="div-swid{{$subcontractor->id}}">
                                     <div class="col-sm-2">
@@ -1640,13 +1658,13 @@ EOT;
                                                             class="fa fa-close"></i></a>
                                             </div>
                                             <div class="col-sm-10">
-                                                {{\App\Subcontractor::find($subcontractor->subcontractor_id)->subdetail()->name}}
+                                                {{$sub->subdetail->name}}
                                                 {!! Form::hidden("subcontractors[]", $subcontractor->subcontractor_id)!!}
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-sm-1">
-                                        {!! Form::number("subcontractor_quantity[]", $subcontractor->quantity, ['class' => 'form-control']) !!}
+                                        {!! Form::number("subcontractor_quantity[]", $subcontractor->quantity, ['class' => 'form-control', 'step' =>'1']) !!}
                                     </div>
                                     <div class="col-sm-1">
                                         {!! Form::text("subcontractor_unit[]", $subcontractor_unit_for_work_done , ['class' => 'form-control']) !!}
@@ -1655,10 +1673,10 @@ EOT;
                                         {!! Form::textarea("subcontractor_work_done[]", $subcontractor_work_done_for_work_done , ['class' => 'form-control', 'rows' => '3']) !!}
                                     </div>
                                     <div class="col-sm-1">
-                                        {!! Form::number("subcontractor_planned[]", $subcontractor_planned_for_work_done , ['class' => 'form-control']) !!}
+                                        {!! Form::text("subcontractor_planned[]", $subcontractor_planned_for_work_done , ['class' => 'form-control number']) !!}
                                     </div>
                                     <div class="col-sm-1">
-                                        {!! Form::number("subcontractor_done[]", $subcontractor_done_for_work_done , ['class' => 'form-control']) !!}
+                                        {!! Form::text("subcontractor_done[]", $subcontractor_done_for_work_done , ['class' => 'form-control number']) !!}
                                     </div>
                                 </div>
                             @endforeach
@@ -1766,9 +1784,9 @@ EOT;
                                     </div>
                                     <div class="col-sm-1">
 
-                                        <input type="number" class="form-control"
+                                        <input type="text" class="form-control number"
                                                name="inmaterial-quantity[]"
-                                               value="{{$inmaterial->quantity}}"/>
+                                               value="{{str_replace('.', ',', $inmaterial->quantity)}}"/>
                                     </div>
 
                                     <div class="col-sm-6">
@@ -1806,7 +1824,7 @@ EOT;
                                 </div>
                                 <div class="col-sm-1">
 
-                                    <input type="number" class="form-control"
+                                    <input type="text" class="number form-control"
                                            name="inmaterial-quantity[]"
                                            value=""/>
                                 </div>
@@ -1906,9 +1924,9 @@ EOT;
                                     </div>
                                     <div class="col-sm-1">
 
-                                        <input type="number" class="form-control"
+                                        <input type="text" class="number form-control"
                                                name="outmaterial-quantity[]"
-                                               value="{{$outmaterial->quantity}}"/>
+                                               value="{{str_replace('.', ',', $outmaterial->quantity)}}"/>
                                     </div>
 
                                     <div class="col-sm-6">
@@ -1946,7 +1964,7 @@ EOT;
                                 </div>
                                 <div class="col-sm-1">
 
-                                    <input type="number" class="form-control"
+                                    <input type="text" class="number form-control"
                                            name="outmaterial-quantity[]"
                                            value=""/>
                                 </div>
@@ -2014,91 +2032,23 @@ EOT;
                                                                         'role' => 'form'
                                                                         ]) !!}
                         {!! Form::hidden('report_id', $report->id) !!}
-                            <div id="personnel-insert">
-                                @if($personnel_left)
-                                <div class="row overtimes-meals-div">
-                                    <div class="col-sm-3">
-                                        <div class="form-group">
-                                            <div class="row">
-                                                <div class="col-sm-2"><a href="#" class="remove_field"><i
-                                                                class="fa fa-close"></i></a></div>
-                                                <div class="col-sm-10">
-                                                    <select name="personnel[]"
-                                                            class="js-additional-personnel form-control">
-                                                        {!! $personnel_options!!}
-                                                    </select></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-5">
-                                        <div class="row">
-                                            <div class="col-sm-2">
-                                                <label class="radio-inline"><input type="radio" class="overtime-radio"
-                                                                                   name="overtime"
-                                                                                   value="999">Tam</label>
-                                            </div>
-                                            <div class="col-sm-2">
-                                                <label class="radio-inline"><input type="radio" class="overtime-radio"
-                                                                                   name="overtime"
-                                                                                   value="998">Yarım</label>
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <div class="row">
-                                                    <div class="col-sm-5">
-                                                        <label class="radio-inline"><input type="radio"
-                                                                                           class="overtime-radio"
-                                                                                           name="overtime"
-                                                                                           value="0">Fazla Mesai</label>
-                                                    </div>
-                                                    <div class="col-sm-6 overtime-input-div">
-                                                        {!! Form::number('overtime', null, ['class' => 'form-control overtime_input',
-                                                                                            'placeholder' => 'Mesai (Saat)',
-                                                                                             'disabled']) !!}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {!! Form::hidden('overtime_arr[]', null, ['class' => 'overtime-hidden']) !!}
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <div class="row col-sm-offset-1">
-                                            <div class="col-sm-3">
-                                                <label class="checkbox-inline">
-                                                    {!! Form::checkbox('meals[]', '1', null) !!}
-                                                    Kahvaltı
-                                                </label>
-                                            </div>
-                                            <div class="col-sm-3">
-                                                <label class="checkbox-inline">
-                                                    {!! Form::checkbox('meals[]', '2', null) !!}
-                                                    Öğle
-                                                </label>
-                                            </div>
-                                            <div class="col-sm-3">
-                                                <label class="checkbox-inline">
-                                                    {!! Form::checkbox('meals[]', '4', null) !!}
-                                                    Akşam
-                                                </label>
-                                            </div>
-                                            {!! Form::hidden('meals_arr[]', "0", ['class' => 'meals_arr']) !!}
-                                        </div>
-                                    </div>
-                                </div>
-                                @endif
-                            </div>
-                            <div id="personnel-helper-block"></div>
+                        <div id="personnel-insert">
+
+                        </div>
+                        <div id="personnel-helper-block"></div>
                         @for($i = 0; $i < sizeof($report_personnel_id_arr); $i++)
                             <?php
-                                $per = $report_personnel_id_arr[$i];
-                                $report_person = Personnel::find($per);
-                                $report_shift = $report->shift()->where('personnel_id', $report_person->id)->first();
-                                $report_meal = $report->meal()->where('personnel_id', $report_person->id)->first();
-                                ?>
+                            $per = $report_personnel_id_arr[$i];
+                            $report_person = Personnel::find($per);
+                            $report_shift = $report->shift()->where('personnel_id', $report_person->id)->first();
+                            $report_meal = $report->meal()->where('personnel_id', $report_person->id)->first();
+                            ?>
                             <div class="row overtimes-meals-div" id="personnel-div-{{$per}}">
                                 <div class="col-sm-3">
                                     <div class="form-group">
                                         <div class="row">
-                                            <div class="col-sm-2"><a onclick="removeShiftsMeals({{$per}})" class="remove_field"><i
+                                            <div class="col-sm-2"><a onclick="removeShiftsMeals({{$per}})"
+                                                                     class="remove_field"><i
                                                             class="fa fa-close"></i></a></div>
                                             <div class="col-sm-10">
                                                 {{\App\Library\TurkishChar::tr_up($report_person->name) . " (" . \App\Library\TurkishChar::tr_up($report_person->staff()->first()->staff) . ")"}}</div>
@@ -2125,10 +2075,11 @@ EOT;
                                                     <label class="radio-inline"><input type="radio"
                                                                                        class="overtime-radio"
                                                                                        name="overtime-{{$i}}"
-                                                                                       value="0" {{(int)$report_shift->overtime < 998 ? "checked" : ""}}>Fazla Mesai</label>
+                                                                                       value="0" {{(int)$report_shift->overtime < 998 ? "checked" : ""}}>Fazla
+                                                        Mesai</label>
                                                 </div>
                                                 <div class="col-sm-6 overtime-input-div">
-                                                    {!! Form::number('overtime', ((int)$report_shift->overtime < 998 ? $report_shift->overtime : null), ['class' => 'form-control overtime_input',
+                                                    {!! Form::text('overtime', ((int)$report_shift->overtime < 998 ? str_replace('.', ',', $report_shift->overtime) : null), ['class' => 'number form-control overtime_input',
                                                                                         'placeholder' => 'Mesai (Saat)',
                                                                                          (int)$report_shift->overtime < 998 ? "" : "disabled"]) !!}
                                                 </div>
@@ -2167,9 +2118,9 @@ EOT;
 
                                 <div class="form-group pull-right">
 
-                                        <a class="btn btn-primary btn-flat add-personnel-row">
-                                            Satır Ekle
-                                        </a>
+                                    <a class="btn btn-primary btn-flat add-personnel-row">
+                                        Satır Ekle
+                                    </a>
 
                                     <button type="submit" class="btn btn-success btn-flat ">
                                         Kaydet

@@ -461,10 +461,10 @@ use App\Library\TurkishChar;
                                 <td>{{$staffs->find($pw->staff_id)->staff}}</td>
                                 <td>{{$pw->quantity}}</td>
                                 <td>{{$pw->unit}}</td>
-                                <td>{{$pw->works_done}}</td>
-                                <td>{{$pw->planned}}</td>
-                                <td>{{$pw->done}}</td>
-                                <td>%{{$pw_work_done_in_percent}}</td>
+                                <td class="number">{{str_replace(".", ",", $pw->works_done)}}</td>
+                                <td class="number">{{str_replace(".", ",", $pw->planned)}}</td>
+                                <td class="number">{{str_replace(".", ",", $pw->done)}}</td>
+                                <td class="number">%{{str_replace(".", ",", $pw_work_done_in_percent)}}</td>
                             </tr>
 
                             @endforeach
@@ -485,11 +485,11 @@ use App\Library\TurkishChar;
                                         @endif
                                         <td>{{$i++}}</td>
                                         <td>{{\App\Subcontractor::find($sw->subcontractor_id)->name}}</td>
-                                        <td>{{$sw->quantity}}</td>
+                                        <td class="number">{{$sw->quantity}}</td>
                                         <td>{{$sw->unit}}</td>
-                                        <td>{{$sw->works_done}}</td>
-                                        <td>{{$sw->planned}}</td>
-                                        <td>{{$sw->done}}</td>
+                                        <td class="number">{{$sw->works_done}}</td>
+                                        <td class="number">{{$sw->planned}}</td>
+                                        <td class="number">{{$sw->done}}</td>
                                         <td>%{{$sw_work_done_in_percent}}</td>
                                     </tr>
 
@@ -530,7 +530,7 @@ use App\Library\TurkishChar;
                             <td>{{TurkishChar::tr_up(\App\Material::find($inmaterials[$i-1]->material_id)->material)}}</td>
                             <td>{{TurkishChar::tr_up($inmaterials[$i-1]->coming_from)}}</td>
                             <td>{{TurkishChar::tr_up($inmaterials[$i-1]->unit)}}</td>
-                            <td>{{$inmaterials[$i-1]->quantity}}</td>
+                            <td class="number">{{str_replace(".", ",", $inmaterials[$i-1]->quantity)}}</td>
                             <td>{{$inmaterials[$i-1]->explanation}}</td>
                         </tr>
 
@@ -572,7 +572,7 @@ use App\Library\TurkishChar;
                             <td>{{TurkishChar::tr_up(\App\Material::find($outmaterials[$i-1]->material_id)->material)}}</td>
                             <td>{{TurkishChar::tr_up($outmaterials[$i-1]->coming_from)}}</td>
                             <td>{{TurkishChar::tr_up($outmaterials[$i-1]->unit)}}</td>
-                            <td>{{$outmaterials[$i-1]->quantity}}</td>
+                            <td class="number">{{str_replace(".", ",", $outmaterials[$i-1]->quantity)}}</td>
                             <td>{{$outmaterials[$i-1]->explanation}}</td>
                         </tr>
 

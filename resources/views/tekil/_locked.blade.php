@@ -267,8 +267,7 @@ use App\Library\TurkishChar;
                         </div>
                     </div>
 
-                    @foreach($subcontractors as $sub)
-                        {{--{{dd($subcontractors)}}--}}
+                    @foreach($report_subcontractors as $sub)
                         <?php
                         $sub_row_total = 0;
                         $report_substaffs = $report->substaff()->where('subcontractor_id', $sub->id)->get();
@@ -285,7 +284,7 @@ use App\Library\TurkishChar;
                         }
                         ?>
                         <div class="col-sm-12">
-                            <legend>{{$sub->name}}
+                            <legend>{{$sub->subdetail->name}}
                                 @foreach($sub->manufacturing()->get() as $manufacture)
                                     <small>({{TurkishChar::tr_up($manufacture->name) }})</small>
                                 @endforeach

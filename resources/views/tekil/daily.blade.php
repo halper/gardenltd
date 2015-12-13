@@ -1,10 +1,12 @@
 <?php
 use App\Library\TurkishChar;use App\Library\Weather;
-use App\Material;use App\Personnel;use Carbon\Carbon;
+use App\Material;use App\Personnel;use App\Site;use Carbon\Carbon;
 use App\Staff;
 use Illuminate\Support\Facades\Session;
 $my_weather = new Weather;
 $weather_symbol = '';
+
+
 
 if (session()->has("data")) {
     $report_date = session('data')["date"];
@@ -49,28 +51,30 @@ $left = str_replace("+", "", date_diff($now, $end_date)->format("%R%a"));
 $total_date = str_replace("+", "", date_diff($start_date, $end_date)->format("%R%a"));
 $day_warning = (int)$total_date * 0.2;
 
-$subcontractors = [];
+$report_subcontractors = [];
+$subcontractor_report_personnel = [];
+$i = 0;
 foreach ($report->subcontractor()->get() as $report_staff) {
-    if (!in_array($report_staff, $subcontractors)) {
-        array_push($subcontractors, $report_staff);
+    if (!in_array($report_staff, $report_subcontractors)) {
+        array_push($report_subcontractors, $report_staff);
     }
+
 }
+
+
 $all_subcontractors = $site->subcontractor()->get();
 $report_subcontractor_arr = [];
-foreach ($subcontractors as $report_subcontractor) {
+foreach ($report_subcontractors as $report_subcontractor) {
+    $subcontractor_report_personnel[$i] = [];
     array_push($report_subcontractor_arr, $report_subcontractor->id);
-}
-$subcontractor_options = "<option></option>";
-$subcontractor_options_js = "";
-foreach ($all_subcontractors as $subcontractor) {
-    $subcontractor_options_js .= "'<option value=\"$subcontractor->id\">" . TurkishChar::tr_up($subcontractor->subdetail->name) . "</option>'+\n";
-    if (isset($report_subcontractor_arr)) {
-        if (!in_array($subcontractor->id, $report_subcontractor_arr)) {
-            $subcontractor_options .= "<option value=\"$subcontractor->id\">" . TurkishChar::tr_up($subcontractor->subdetail->name) . "</option>";
+    foreach ($report->shift()->get() as $shift) {
+        if (!is_null($shift->personnel()->first()->personalize)) {
+            if ($shift->personnel()->first()->personalize->id == $report_subcontractor->id) {
+                array_push($subcontractor_report_personnel[$i], $shift->personnel_id);
+            }
         }
-    } else {
-        $subcontractor_options .= "<option value=\"$subcontractor->id\">" . TurkishChar::tr_up($subcontractor->subdetail->name) . "</option>";
     }
+    $i++;
 }
 
 $subcontractor_staffs = \App\Staff::all();
@@ -78,8 +82,12 @@ $subcontractor_staff_total = 0;
 
 $personnel_arr = [];
 $report_personnel_id_arr = [];
-foreach ($report->shift()->get() as $shift) {
+$site_report_personnel = [];
+foreach ($report->shift()->join('personnel', 'personnel_id', '=', 'personnel.id')->orderBy('personnel.personalize_type', 'ASC')->orderBy('personnel.personalize_id', 'ASC')->get() as $shift) {
     array_push($report_personnel_id_arr, $shift->personnel_id);
+    if ($shift->personnel()->first()->isSitePersonnel()) {
+        array_push($site_report_personnel, $shift->personnel_id);
+    }
 }
 
 $personnel_options = "<option></option>";
@@ -125,6 +133,25 @@ foreach ($management_depts->management() as $dept) {
     }
 
 }
+
+$main_personnel = Personnel::sitePersonnel()->get();
+$main_per_options = '';
+foreach ($main_personnel as $per) {
+    $main_per_options .= "<option value=\"$per->id\">" . TurkishChar::tr_up($per->staff()->first()->staff) . ": " . TurkishChar::tr_camel($per->name) . "(" . $per->tck_no . ")</option>";
+}
+
+$subcontractor_personnel_options = '';
+foreach ($all_subcontractors as $subcontractor) {
+    $subcontractor_personnel_options .= "<optgroup label=\"" . $subcontractor->subdetail->name;
+    foreach ($subcontractor->manufacturing()->get() as $manufacture) {
+        $subcontractor_personnel_options .= " (" . TurkishChar::tr_up($manufacture->name) . ")";
+    }
+    $subcontractor_personnel_options .= "\">";
+    foreach ($subcontractor->personnel()->get() as $per) {
+        $subcontractor_personnel_options .= "<option value=\"$per->id\">" . TurkishChar::tr_up($per->staff()->first()->staff) . ": " . TurkishChar::tr_camel($per->name) . "(" . $per->tck_no . ")</option>";
+    }
+}
+
 
 $equipment_options = '';
 $equipment_options_js = '';
@@ -242,34 +269,6 @@ if (!is_null($report->weather)) {
 EOT;
 
     }
-
-    echo <<<EOT
-<script>
-    $(document).ready(function() {
-            var wrapper         = $("#staff-insert"); //Fields wrapper
-            var add_button      = $(".add-staff-row"); //Add button ID
-
-            $(add_button).click(function(e){ //on add input button click
-                e.preventDefault();
-
-                    $(wrapper).append('<div class="row"><div class="col-sm-8"><div class="form-group">' +
-                    '<select name="staffs[]" class="js-additional-staff form-control">' +
-$staff_options_js
-            '</select></div></div>' +
-                '<div class="col-sm-3"><input type="number" class="form-control" name="contractor-quantity[]" step="1"/></div>'+
-                '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div></div>'); //add input box
-                $(".js-additional-staff").select2();
-
-            });
-
-            $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
-                e.preventDefault();
-                $(this).parent().closest('div.row').remove();
-            })
-        });
-</script>
-EOT;
-
 
     echo <<<EOT
 <script>
@@ -408,485 +407,437 @@ EOT;
                 data: data
             });
             $("#dateRangePicker > input").val("{{isset($report_date) ? $report_date : App\Library\CarbonHelper::getTurkishDate($today)}}");
-            var subcontractorStaffWrapper = $("#subcontractor-to-work-insert"); //Fields wrapper
-            var addSubcontractorStaffButton = $(".add-subcontractor-to-work-done-row"); //Add button ID
 
-            $(addSubcontractorStaffButton).click(function (e) { //on add input button click
-                $(subcontractorStaffWrapper).append('<div class="form-group"><div class="row"><div class="col-sm-2">' +
+
+            var staffToWorkDoneWrapper = $("#staff-to-work-insert"); //Fields wrapper
+            var addStaffToWorkDone = $(".add-staff-to-work-done-row"); //Add button ID
+
+            $(addStaffToWorkDone).click(function (e) { //on add input button click
+                $(staffToWorkDoneWrapper).append('<div class="form-group"><div class="row"><div class="col-sm-2">' +
                         '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
                         '<div class="col-sm-10">' +
-                        '<select name="subcontractors[]" class="js-additional-subcontractor_staff form-control">' +
-                        {!! $subcontractor_options_js !!}
+                        '<select name="staffs[]" class="js-additional-staff form-control">' +
+                        {!! $staff_options_js_all !!}
                 '</select></div></div></div>' +
-                        '<div class="col-sm-1"><input type="number" step="1" class="form-control" name="subcontractor_quantity[]"/></div>' +
-                        '<div class="col-sm-1"><input type="text" class="form-control" name="subcontractor_unit[]"/></div>' +
-                        '<div class="col-sm-6"><textarea class="form-control" name="subcontractor_work_done[]" rows="3"/></div>' +
-                        '<div class="col-sm-1"><input type="text" class="number form-control" name="subcontractor_planned[]"/></div>' +
-                        '<div class="col-sm-1"><input type="text" class="number form-control" name="subcontractor_done[]"/></div>' +
+                        '<div class="col-sm-1"><input type="number" step="1" class="form-control" name="staff_quantity[]"/></div>' +
+                        '<div class="col-sm-1"><input type="text" class="form-control" name="staff_unit[]"/></div>' +
+                        '<div class="col-sm-6"><textarea class="form-control" name="staff_work_done[]" rows="3"/></div>' +
+                        '<div class="col-sm-1"><input type="text" class="number form-control" name="staff_planned[]"/></div>' +
+                        '<div class="col-sm-1"><input type="text" class="number form-control" name="staff_done[]"/></div>' +
                         '</div></div>'); //add input box
-                $(".js-additional-subcontractor_staff").select2();
+                $(".js-additional-staff").select2();
                 $('.number').number(true, 2, ',', '.');
+
             });
 
-            $(subcontractorStaffWrapper).on("click", ".remove_field", function (e) { //user click on remove text
+            $(staffToWorkDoneWrapper).on("click", ".remove_field", function (e) { //user click on remove text
                 e.preventDefault();
                 $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
             });
-        });
 
+            var mainStaffWrapper = $("#main-staff-insert"); //Fields wrapper
+            var addMainStaff = $(".add-main-staff-row"); //Add button ID
 
-        var staffToWorkDoneWrapper = $("#staff-to-work-insert"); //Fields wrapper
-        var addStaffToWorkDone = $(".add-staff-to-work-done-row"); //Add button ID
+            $(addMainStaff).click(function (e) { //on add input button click
+                $(mainStaffWrapper).append('<div class="row">' +
+                        '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                        '<div class="col-sm-7">' +
+                        '<div class="form-group"><select name="main-staffs[]" class="js-example-data-array form-control"></select>' +
+                        '</div></div>' +
+                        '<div class="col-sm-offset-2 col-sm-2"><input type="number" step="1" class="form-control" name="main-staff-quantity[]"/>' +
+                        '</div></div>'); //add input box
+                var data = [{id: 0, text: 'İşveren ({!! $site->employer!!})'}, {
+                    id: 1,
+                    text: 'İdare({!! $site->management_name!!})'
+                },
+                    {id: 2, text: 'Yapı Denetim({!! $site->building_control !!})'}, {
+                        id: 3,
+                        text: 'İSG ({!! $site->isg!!})'
+                    }
+                ];
+                $(".js-example-data-array").select2({
+                    data: data
+                });
 
-        $(addStaffToWorkDone).click(function (e) { //on add input button click
-            $(staffToWorkDoneWrapper).append('<div class="form-group"><div class="row"><div class="col-sm-2">' +
-                    '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
-                    '<div class="col-sm-10">' +
-                    '<select name="staffs[]" class="js-additional-staff form-control">' +
-                    {!! $staff_options_js_all !!}
-            '</select></div></div></div>' +
-                    '<div class="col-sm-1"><input type="number" step="1" class="form-control" name="staff_quantity[]"/></div>' +
-                    '<div class="col-sm-1"><input type="text" class="form-control" name="staff_unit[]"/></div>' +
-                    '<div class="col-sm-6"><textarea class="form-control" name="staff_work_done[]" rows="3"/></div>' +
-                    '<div class="col-sm-1"><input type="text" class="number form-control" name="staff_planned[]"/></div>' +
-                    '<div class="col-sm-1"><input type="text" class="number form-control" name="staff_done[]"/></div>' +
-                    '</div></div>'); //add input box
-            $(".js-additional-staff").select2();
-            $('.number').number(true, 2, ',', '.');
-
-        });
-
-        $(staffToWorkDoneWrapper).on("click", ".remove_field", function (e) { //user click on remove text
-            e.preventDefault();
-            $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
-        });
-
-        var mainStaffWrapper = $("#main-staff-insert"); //Fields wrapper
-        var addMainStaff = $(".add-main-staff-row"); //Add button ID
-
-        $(addMainStaff).click(function (e) { //on add input button click
-            $(mainStaffWrapper).append('<div class="row">' +
-                    '<div class="col-sm-1"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
-                    '<div class="col-sm-7">' +
-                    '<div class="form-group"><select name="main-staffs[]" class="js-example-data-array form-control"></select>' +
-                    '</div></div>' +
-                    '<div class="col-sm-offset-2 col-sm-2"><input type="number" step="1" class="form-control" name="main-staff-quantity[]"/>' +
-                    '</div></div>'); //add input box
-            var data = [{id: 0, text: 'İşveren ({!! $site->employer!!})'}, {
-                id: 1,
-                text: 'İdare({!! $site->management_name!!})'
-            },
-                {id: 2, text: 'Yapı Denetim({!! $site->building_control !!})'}, {id: 3, text: 'İSG ({!! $site->isg!!})'}
-            ];
-            $(".js-example-data-array").select2({
-                data: data
             });
 
-        });
+            $(mainStaffWrapper).on("click", ".remove_field", function (e) { //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('div.row').remove();
+            });
 
-        $(mainStaffWrapper).on("click", ".remove_field", function (e) { //user click on remove text
-            e.preventDefault();
-            $(this).parent().closest('div.row').remove();
-        });
-
-        //MEALS
-        var setCbHidden = function () {
-            var myVal = parseInt($(this).val());
-            var hiddenEl = $(this).parent().closest("label").parent().closest("div").parent().find('.meals_arr');
-            var hiddenVal = parseInt($(hiddenEl).val());
-            if ($(this).is(':checked')) {
-                hiddenEl.val(myVal + hiddenVal);
-            }
-            else {
-                hiddenEl.val(hiddenVal - myVal);
-            }
-        };
-        $("input[name='meals[]']").on("click", setCbHidden);
-        $("input.personnel-row-cb").on("click", setCbHidden);
-        //END MEALS
+            //MEALS
+            var setCbHidden = function () {
+                var myVal = parseInt($(this).val());
+                var hiddenEl = $(this).parent().closest("label").parent().closest("div").parent().find('.meals_arr');
+                var hiddenVal = parseInt($(hiddenEl).val());
+                if ($(this).is(':checked')) {
+                    hiddenEl.val(myVal + hiddenVal);
+                }
+                else {
+                    hiddenEl.val(hiddenVal - myVal);
+                }
+            };
+            $("input[name='meals[]']").on("click", setCbHidden);
+            $("input.personnel-row-cb").on("click", setCbHidden);
+            //END MEALS
 
 
-        //PUANTAJ
-        var setRdHidden = function () {
-            var myVal = parseInt($(this).val());
-            var hiddenEl = $(this).parent().closest("label").parent().closest("div").parent().find('.overtime-hidden');
-            var overtimeIn = $(this).parent().parent().parent().find('.overtime_input');
-            if ($(this).is(':checked') && myVal != 0) {
-                hiddenEl.val(myVal);
-                overtimeIn.val('');
-                overtimeIn.prop('disabled', true);
-            }
+            //PUANTAJ
+            var setRdHidden = function () {
+                var myVal = parseInt($(this).val());
+                var hiddenEl = $(this).parent().closest("label").parent().closest("div").parent().find('.overtime-hidden');
+                var overtimeIn = $(this).parent().parent().parent().find('.overtime_input');
+                if ($(this).is(':checked') && myVal != 0) {
+                    hiddenEl.val(myVal);
+                    overtimeIn.val('');
+                    overtimeIn.prop('disabled', true);
+                }
 
-            if (myVal == 0) {
-                overtimeIn.prop('disabled', false);
-            }
-        };
-        $("input.overtime-radio").on("click", setRdHidden);
-        $('.overtime_input').keyup(function () {
-            $(this).parent().parent().parent().parent().find('.overtime-hidden').val($(this).val());
-        });
-        //END PUANTAJ
-
-        var personnelWrapper = $("#personnel-insert"); //Fields wrapper
-        var addpersonnel = $(".add-personnel-row"); //Add button ID
-
-        $(addpersonnel).click(function (e) { //on add input button click
-            var overtimesLength = $(".overtimes-meals-div").length + 1;
-            $(personnelWrapper).append('<div class="row overtimes-meals-div"><div class="col-sm-3">' +
-                    '<div class="form-group"><div class="row"><div class="col-sm-2">' +
-                    '<a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
-                    '<div class="col-sm-10"><select name="personnel[]" class="js-additional-personnel form-control">' +
-                    {!! $personnel_options_js!!}
-                    '</select></div></div></div></div>' +
-                    '<div class="col-sm-5"><div class="row"><div class="col-sm-2">' +
-                    '<label class="radio-inline"><input type="radio" class="overtime-radio" name="overtime-' + overtimesLength +
-                    '" value="999">Tam</label></div>' +
-                    '<div class="col-sm-2">' +
-                    '<label class="radio-inline"><input type="radio" class="overtime-radio" name="overtime-' + overtimesLength +
-                    '" value="998">Yarım</label></div>' +
-                    '<div class="col-sm-8"><div class="row"><div class="col-sm-5">' +
-                    '<label class="radio-inline"><input type="radio" class="overtime-radio" name="overtime-' + overtimesLength +
-                    '" value="0">Fazla Mesai</label></div>' +
-                    '<div class="col-sm-6 overtime-input-div">' +
-                    '<input class="form-control overtime_input number" placeholder="Mesai (Saat)" disabled="disabled" name="overtime" type="text">' +
-                    '</div></div></div>' +
-                    '<input class="overtime-hidden" name="overtime_arr[]" type="hidden"></div></div>' +
-                    '<div class="col-sm-4"><div class="row col-sm-offset-1"><div class="col-sm-3">' +
-                    '<label class="checkbox-inline"><input name="meals-' + overtimesLength + '[]" type="checkbox" value="1">Kahvaltı</label></div>' +
-                    '<div class="col-sm-3"><label class="checkbox-inline"><input name="meals-' + overtimesLength + '[]" type="checkbox" value="2">Öğle</label></div>' +
-                    '<div class="col-sm-3"><label class="checkbox-inline"><input name="meals-' + overtimesLength + '[]" type="checkbox" value="4">Akşam</label></div>' +
-                    '<input class="meals_arr" name="meals_arr[]" type="hidden" value="0"></div></div></div>');
-
-            $(".js-additional-personnel").select2();
-            $('.number').number(true, 2, ',', '.');
-            $("input[name='meals-" + overtimesLength + "[]']").on("click", setCbHidden);
+                if (myVal == 0) {
+                    overtimeIn.prop('disabled', false);
+                }
+            };
             $("input.overtime-radio").on("click", setRdHidden);
             $('.overtime_input').keyup(function () {
                 $(this).parent().parent().parent().parent().find('.overtime-hidden').val($(this).val());
             });
-        });
+            //END PUANTAJ
 
-        $(personnelWrapper).on("click", ".remove_field", function (e) { //user click on remove text
-            e.preventDefault();
-            $(this).parent().parent().parent().parent().parent().closest('div.row').remove();
-        });
-
-        $('#shiftsMealsForm').on("submit", function (e) {
-            var overtimes = $("input[name='overtime_arr[]']");
-            var personnelHelper = $('#personnel-helper-block');
-            var personnel = $("select[name='personnel[]']");
-            var personnelList = new Array();
-            $(personnelHelper).html();
-            $.each(overtimes, function (index, object) {
-                if ($(object).val().length == 0) {
-                    e.preventDefault();
-                    $(personnelHelper).html('<span class="text-danger">Puantajlar tüm personel için seçili olmalı veya fazla mesailer doldurulmalı!</span>');
-                    return;
-                }
-
-            });
-            $.each(personnel, function (index, object) {
-                var personnelId = parseInt($(object).val());
-                if ($(object).val().length == 0) {
-                    e.preventDefault();
-                    $(personnelHelper).html('<span class="text-danger">Seçili olmayan personel bulunmaktadır!</span>');
-                    return;
-                }
-                if ($.inArray($(personnelId), personnelList) !== -1 !== -1) {
-                    personnelList.push($(personnelId));
-                }
-                else {
-                    e.preventDefault();
-                    $(personnelHelper).html('<span class="text-danger">Aynı personeli iki kere ekleyemezsiniz!</span>');
-                    return;
-                }
-
-
-            });
-
-        });
-
-        function removeFiles(fid, rid) {
-
-            var fileId = fid;
-            var reportId = rid;
-            $.ajax({
-                type: 'POST',
-                url: '{{"/tekil/$site->slug/delete-files"}}',
-                data: {
-                    "fileid": fileId,
-                    "reportid": reportId
-                }
-            }).success(function () {
-                var linkID = "lb-link-" + fid;
-                $('#' + linkID).remove();
-            });
-
-        }
-
-        function removeShiftsMeals(pid) {
-            $.ajax({
-                type: 'POST',
-                url: '{{"/tekil/$site->slug/delete-shifts-meals"}}',
-                data: {
-                    "pid": pid,
-                    "reportid": '{{$report->id}}'
-                }
-            }).success(function () {
-                var linkID = "personnel-div-" + pid;
-                $('#' + linkID).remove();
-            });
-
-        }
-        function removeSubcontractor(subid, subname) {
-
-            var subcontractorId = subid;
-            var reportId = '{{$report->id}}';
-            reportId = parseInt(reportId);
-            $.ajax({
-                type: 'POST',
-                url: '{{"/tekil/$site->slug/delete-report-subcontractor"}}',
-                data: {
-                    "subcontractorid": subcontractorId,
-                    "reportid": reportId
-                }
-            }).success(function () {
-                $('#div-' + subid).remove();
-                $('.js-example-responsive').append(
-                        '<option value="' + subid + '">' + subname.toUpperCase() + '</option>\n'
-                );
-            });
-        }
-
-        function subcontractorToWorkDelete(id) {
-            $.ajax({
-                type: 'POST',
-                url: '{{"/tekil/$site->slug/delete-swunit"}}',
-                data: {
-                    "swid": id
-                }
-            }).success(function () {
-                $('#div-swid' + id).remove();
-            });
-        }
-
-        function staffToWorkDelete(id) {
-            $.ajax({
-                type: 'POST',
-                url: '{{"/tekil/$site->slug/delete-pwunit"}}',
-                data: {
-                    "pwid": id
-                }
-            }).success(function () {
-                $('#div-pwid' + id).remove();
-            });
-        }
-
-        function staffDetach(id) {
-            var reportId = '{{$report->id}}';
-            reportId = parseInt(reportId);
-            $.ajax({
-                type: 'POST',
-                url: '{{"/tekil/$site->slug/detach-staff"}}',
-                data: {
-                    "staffid": id,
-                    "report_id": reportId
-                }
-            }).success(function () {
-                $('#div-staffid' + id).remove();
-            });
-        }
-
-        function equipmentDetach(id) {
-            var reportId = '{{$report->id}}';
-            reportId = parseInt(reportId);
-            $.ajax({
-                type: 'POST',
-                url: '{{"/tekil/$site->slug/detach-equipment"}}',
-                data: {
-                    "equipmentid": id,
-                    "report_id": reportId
-                }
-            }).success(function () {
-                $('#div-equipmentid' + id).remove();
-            });
-        }
-
-        function inmaterialsDelete(id) {
-            $.ajax({
-                type: 'POST',
-                url: '{{"/tekil/$site->slug/delete-inmaterial"}}',
-                data: {
-                    "inmaterialid": id
-                }
-            }).success(function () {
-                $('#div-inmaterialid' + id).remove();
-            });
-        }
-
-        function outmaterialsDelete(id) {
-            $.ajax({
-                type: 'POST',
-                url: '{{"/tekil/$site->slug/delete-outmaterial"}}',
-                data: {
-                    "outmaterialid": id
-                }
-            }).success(function () {
-                $('#div-outmaterialid' + id).remove();
-            });
-        }
-
-        function mainStaffDelete(column) {
-            var reportId = '{{$report->id}}';
-            reportId = parseInt(reportId);
-            $.ajax({
-                type: 'POST',
-                url: '{{"/tekil/$site->slug/delete-management-staff"}}',
-                data: {
-                    "reportid": reportId,
-                    "column": column
-                }
-            }).success(function () {
-                $('#div-' + column).remove();
-            });
-        }
-
-
-        Dropzone.options.fileInsertForm = {
-            addRemoveLinks: true,
-            init: function () {
-                this.on("success", function (file, response) {
-                    file.serverId = response.id;
-                    file.reportId = response.rid;
+            $('#shiftsMealsForm').on("submit", function (e) {
+                var overtimes = $("input[name='overtime_arr[]']");
+                var personnelHelper = $('#personnel-helper-block');
+                var personnel = $("select[name='personnel[]']");
+                var personnelList = new Array();
+                $(personnelHelper).html();
+                $.each(overtimes, function (index, object) {
+                    if ($(object).val().length == 0) {
+                        e.preventDefault();
+                        $(personnelHelper).html('<span class="text-danger">Puantajlar tüm personel için seçili olmalı veya fazla mesailer doldurulmalı!</span>');
+                        return;
+                    }
 
                 });
-                this.on("removedfile", function (file) {
-                    var name = file.name;
+                $.each(personnel, function (index, object) {
+                    var personnelId = parseInt($(object).val());
+                    if ($(object).val().length == 0) {
+                        e.preventDefault();
+                        $(personnelHelper).html('<span class="text-danger">Seçili olmayan personel bulunmaktadır!</span>');
+                        return;
+                    }
+                    if ($.inArray($(personnelId), personnelList) !== -1 !== -1) {
+                        personnelList.push($(personnelId));
+                    }
+                    else {
+                        e.preventDefault();
+                        $(personnelHelper).html('<span class="text-danger">Aynı personeli iki kere ekleyemezsiniz!</span>');
+                        return;
+                    }
 
-                    $.ajax({
-                        type: 'POST',
-                        url: '{{"/tekil/$site->slug/delete-files"}}',
-                        data: {
-                            "fileid": file.serverId,
-                            "reportid": file.reportId
-                        }
+
+                });
+
+            });
+
+            $('.remove-files').on("click", function (e) {
+                e.preventDefault();
+                var fileId = $(this).attr("data-fileId");
+                var reportId = '{{$report->id}}';
+                reportId = parseInt(reportId);
+                $.ajax({
+                    type: 'POST',
+                    url: '{{"/tekil/$site->slug/delete-files"}}',
+                    data: {
+                        "fileid": fileId,
+                        "reportid": reportId
+                    }
+                }).success(function () {
+                    var linkID = "lb-link-" + fid;
+                    $('#' + linkID).remove();
+                });
+
+            });
+
+            function removeSubcontractor(subid, subname) {
+
+                var subcontractorId = subid;
+                var reportId = '{{$report->id}}';
+                reportId = parseInt(reportId);
+                $.ajax({
+                    type: 'POST',
+                    url: '{{"/tekil/$site->slug/delete-report-subcontractor"}}',
+                    data: {
+                        "subcontractorid": subcontractorId,
+                        "reportid": reportId
+                    }
+                }).success(function () {
+                    $('#div-' + subid).remove();
+                    $('.js-example-responsive').append(
+                            '<option value="' + subid + '">' + subname.toUpperCase() + '</option>\n'
+                    );
+                });
+            }
+
+            function subcontractorToWorkDelete(id) {
+                $.ajax({
+                    type: 'POST',
+                    url: '{{"/tekil/$site->slug/delete-swunit"}}',
+                    data: {
+                        "swid": id
+                    }
+                }).success(function () {
+                    $('#div-swid' + id).remove();
+                });
+            }
+
+            function staffToWorkDelete(id) {
+                $.ajax({
+                    type: 'POST',
+                    url: '{{"/tekil/$site->slug/delete-pwunit"}}',
+                    data: {
+                        "pwid": id
+                    }
+                }).success(function () {
+                    $('#div-pwid' + id).remove();
+                });
+            }
+
+            $(".staff-detach").on("click", function (e) {
+                e.preventDefault();
+                var id = $(this).attr("data-personnel");
+                var reportId = '{{$report->id}}';
+                reportId = parseInt(reportId);
+                $.ajax({
+                    type: 'POST',
+                    url: '{{"/tekil/$site->slug/detach-staff"}}',
+                    data: {
+                        "staffid": id,
+                        "report_id": reportId
+                    }
+                }).success(function () {
+                    $('#div-staffid' + id).remove();
+                    $('#personnel-div-' + id).remove();
+                });
+                return false;
+            });
+
+            $(".substaff-detach").on("click", function (e) {
+                e.preventDefault();
+                var id = $(this).attr("data-personnel");
+                var subcontractorId = $(this).attr("data-subcontractor");
+                var reportId = '{{$report->id}}';
+                reportId = parseInt(reportId);
+                $.ajax({
+                    type: 'POST',
+                    url: '{{"/tekil/$site->slug/delete-report-subcontractor"}}',
+                    data: {
+                        "staffid": id,
+                        "subcontractorid": subcontractorId,
+                        "report_id": reportId
+                    }
+                }).success(function () {
+                    $('#div-staffid' + id).remove();
+                    $('#personnel-div-' + id).remove();
+                });
+                return false;
+            });
+
+            function equipmentDetach(id) {
+                var reportId = '{{$report->id}}';
+                reportId = parseInt(reportId);
+                $.ajax({
+                    type: 'POST',
+                    url: '{{"/tekil/$site->slug/detach-equipment"}}',
+                    data: {
+                        "equipmentid": id,
+                        "report_id": reportId
+                    }
+                }).success(function () {
+                    $('#div-equipmentid' + id).remove();
+                });
+            }
+
+            function inmaterialsDelete(id) {
+                $.ajax({
+                    type: 'POST',
+                    url: '{{"/tekil/$site->slug/delete-inmaterial"}}',
+                    data: {
+                        "inmaterialid": id
+                    }
+                }).success(function () {
+                    $('#div-inmaterialid' + id).remove();
+                });
+            }
+
+            function outmaterialsDelete(id) {
+                $.ajax({
+                    type: 'POST',
+                    url: '{{"/tekil/$site->slug/delete-outmaterial"}}',
+                    data: {
+                        "outmaterialid": id
+                    }
+                }).success(function () {
+                    $('#div-outmaterialid' + id).remove();
+                });
+            }
+
+            function mainStaffDelete(column) {
+                var reportId = '{{$report->id}}';
+                reportId = parseInt(reportId);
+                $.ajax({
+                    type: 'POST',
+                    url: '{{"/tekil/$site->slug/delete-management-staff"}}',
+                    data: {
+                        "reportid": reportId,
+                        "column": column
+                    }
+                }).success(function () {
+                    $('#div-' + column).remove();
+                });
+            }
+
+
+            Dropzone.options.fileInsertForm = {
+                addRemoveLinks: true,
+                init: function () {
+                    this.on("success", function (file, response) {
+                        file.serverId = response.id;
+                        file.reportId = response.rid;
+
                     });
-                });
-            }
-        };
-        Dropzone.options.receiptInsertForm = {
-            addRemoveLinks: true,
-            init: function () {
-                this.on("success", function (file, response) {
-                    file.serverId = response.id;
-                    file.reportId = response.rid;
+                    this.on("removedfile", function (file) {
+                        var name = file.name;
 
-                });
-                this.on("removedfile", function (file) {
-                    var name = file.name;
-
-                    $.ajax({
-                        type: 'POST',
-                        url: '{{"/tekil/$site->slug/delete-files"}}',
-                        data: {
-                            "fileid": file.serverId,
-                            "reportid": file.reportId
-                        }
+                        $.ajax({
+                            type: 'POST',
+                            url: '{{"/tekil/$site->slug/delete-files"}}',
+                            data: {
+                                "fileid": file.serverId,
+                                "reportid": file.reportId
+                            }
+                        });
                     });
-                });
-            }
-        };
+                }
+            };
+            Dropzone.options.receiptInsertForm = {
+                addRemoveLinks: true,
+                init: function () {
+                    this.on("success", function (file, response) {
+                        file.serverId = response.id;
+                        file.reportId = response.rid;
 
-        $(document).delegate('*[data-toggle="lightbox"]', 'click', function (event) {
-            event.preventDefault();
-            $(this).ekkoLightbox();
-        });
+                    });
+                    this.on("removedfile", function (file) {
+                        var name = file.name;
 
-        $(".js-example-basic-multiple").select2({
-            placeholder: "Çoklu seçim yapabilirsiniz",
-            allowClear: true
-        });
+                        $.ajax({
+                            type: 'POST',
+                            url: '{{"/tekil/$site->slug/delete-files"}}',
+                            data: {
+                                "fileid": file.serverId,
+                                "reportid": file.reportId
+                            }
+                        });
+                    });
+                }
+            };
 
-        $(document).ready(function () {
-            var managementTotal = 0;
-            var mainContractorTotal = 0;
-            var subcontractorStaffTotal = 0;
-            if ($('#man-tot').length > 0) {
-                $('#man-tot-res').text($('#man-tot').text());
-                managementTotal = parseInt($('#man-tot').text());
-            }
-            else {
-                $('#man-tot-res').text(0);
-            }
-            if ($('#main-con-tot').length > 0) {
-                $('#main-con-tot-res').text($('#main-con-tot').text());
-                mainContractorTotal = parseInt($('#main-con-tot').text());
-            }
-            else {
-                $('#main-con-tot-res').text(0);
-            }
-
-            if ($('.sub-staff-tot').length > 0) {
-                $('.sub-staff-tot').each(function (index, element) {
-                    subcontractorStaffTotal += parseInt($(this).text());
-                });
-                $('#sub-staff-tot-res').text(subcontractorStaffTotal);
-            }
-            else {
-                $('#sub-staff-tot-res').text(0);
-            }
-            $('#gen-tot-res').text(managementTotal + mainContractorTotal + subcontractorStaffTotal);
-
-
-            $("input[name='is_working']").on("click", function () {
-                $("#selectIsWorkingForm").submit();
+            $(document).delegate('*[data-toggle="lightbox"]', 'click', function (event) {
+                event.preventDefault();
+                $(this).ekkoLightbox();
             });
-            $(".js-example-basic-single").select2();
-            $(".js-example-responsive").select2({
-                placeholder: "Alt yüklenici seçiniz",
+
+            $(".js-example-basic-multiple").select2({
+                placeholder: "Çoklu seçim yapabilirsiniz",
                 allowClear: true
             });
-            $(".js-example-responsive").on("select2:select", function () {
-                $(".add-subcontractor_staff-row").show();
-            });
-            $(".js-example-responsive").on("select2:unselect", function () {
-                $(".add-subcontractor_staff-row").hide();
-            });
 
-
-            $('#dateRangePicker').datepicker({
-                autoclose: true,
-                language: 'tr',
+            $(".js-main-per").select2({
+                placeholder: "Çoklu seçim yapabilirsiniz",
+                allowClear: true
             });
 
-            var leftDays = '{{$left}}';
-            var leftWarning = '{{$day_warning}}';
-            leftDays = parseInt(leftDays);
-            leftWarning = parseInt(leftWarning);
-            if (leftDays < leftWarning) {
-                $('#leftDaysModal').modal("show");
-            }
-
-            $("#dateRangePicker").datepicker().on('changeDate', function (ev) {
-
-                if (ev.date.valueOf() > new Date()) {
-                    $(this).closest("div").append('<span class="text-danger">Bugünden ileri bir tarih seçemezsiniz!</span>');
-                    $(this).parent().closest("div").addClass('has-error');
-                    return false;
-
+            $(document).ready(function () {
+                var managementTotal = 0;
+                var mainContractorTotal = 0;
+                var subcontractorStaffTotal = 0;
+                if ($('#man-tot').length > 0) {
+                    $('#man-tot-res').text($('#man-tot').text());
+                    managementTotal = parseInt($('#man-tot').text());
                 }
-                $('#dateRangeForm').submit();
-            });
+                else {
+                    $('#man-tot-res').text(0);
+                }
+                if ($('#main-con-tot').length > 0) {
+                    $('#main-con-tot-res').text($('#main-con-tot').text());
+                    mainContractorTotal = parseInt($('#main-con-tot').text());
+                }
+                else {
+                    $('#main-con-tot-res').text(0);
+                }
 
-            $(".remove_row").on("click", function (e) { //user click on remove text
-                e.preventDefault();
-                $(this).parent().closest('td').parent().closest('tr').remove();
-            });
+                if ($('.sub-staff-tot').length > 0) {
+                    $('.sub-staff-tot').each(function (index, element) {
+                        subcontractorStaffTotal += parseInt($(this).text());
+                    });
+                    $('#sub-staff-tot-res').text(subcontractorStaffTotal);
+                }
+                else {
+                    $('#sub-staff-tot-res').text(0);
+                }
+                $('#gen-tot-res').text(managementTotal + mainContractorTotal + subcontractorStaffTotal);
 
 
-            $(".js-additional-personnel").select2({
-                placeholder: 'Personel seçiniz',
-                allowclear: true
+                $("input[name='is_working']").on("click", function () {
+                    $("#selectIsWorkingForm").submit();
+                });
+                $(".js-example-basic-single").select2();
+                $(".js-example-responsive").select2({
+                    placeholder: "Alt yüklenici seçiniz",
+                    allowClear: true
+                });
+                $(".js-example-responsive").on("select2:select", function () {
+                    $(".add-subcontractor_staff-row").show();
+                });
+                $(".js-example-responsive").on("select2:unselect", function () {
+                    $(".add-subcontractor_staff-row").hide();
+                });
+
+
+                $('#dateRangePicker').datepicker({
+                    autoclose: true,
+                    language: 'tr',
+                });
+
+                var leftDays = '{{$left}}';
+                var leftWarning = '{{$day_warning}}';
+                leftDays = parseInt(leftDays);
+                leftWarning = parseInt(leftWarning);
+                if (leftDays < leftWarning) {
+                    $('#leftDaysModal').modal("show");
+                }
+
+                $("#dateRangePicker").datepicker().on('changeDate', function (ev) {
+
+                    if (ev.date.valueOf() > new Date()) {
+                        $(this).closest("div").append('<span class="text-danger">Bugünden ileri bir tarih seçemezsiniz!</span>');
+                        $(this).parent().closest("div").addClass('has-error');
+                        return false;
+
+                    }
+                    $('#dateRangeForm').submit();
+                });
+
+                $(".remove_row").on("click", function (e) { //user click on remove text
+                    e.preventDefault();
+                    $(this).parent().closest('td').parent().closest('tr').remove();
+                });
+
+
+                $(".js-additional-personnel").select2({
+                    placeholder: 'Personel seçiniz',
+                    allowclear: true
+                });
             });
         });
 
@@ -1226,11 +1177,8 @@ EOT;
 
                                 <div class="row">
                                     <div class="text-center">
-                                        <div class="col-sm-8">
+                                        <div class="col-sm-12">
                                             <span><strong>PERSONEL</strong></span>
-                                        </div>
-                                        <div class="col-sm-2 col-sm-offset-2 text-center">
-                                            <span><strong>SAYISI</strong></span>
                                         </div>
                                     </div>
                                 </div>
@@ -1243,52 +1191,60 @@ EOT;
                                 ]) !!}
                                 {!! Form::hidden('report_id', $report->id) !!}
                                 <div id="staff-insert">
-                                    @foreach($report->staff()->get() as $staff)
-                                        <div class="row" id="div-staffid{{$staff->id}}">
-                                            <div class="col-sm-8">
+
+                                    @if(sizeof($site_report_personnel)>0)
+                                        <div class="row">
+                                            <div class="col-sm-1"></div>
+                                            <div class="col-sm-3"><span style="font-style: italic">TCK No</span></div>
+                                            <div class="col-sm-5"><span style="font-style: italic">Ad Soyad</span></div>
+                                            <div class="col-sm-3"><span style="font-style: italic">İş Kolu</span></div>
+                                        </div>
+                                    @endif
+                                    @for($i = 0; $i < sizeof($site_report_personnel); $i++)
+                                        <?php
+                                        $per = $site_report_personnel[$i];
+                                        $report_person = Personnel::find($per);
+                                        ?>
+                                        <div class="row" id="div-staffid{{$report_person->id}}">
+                                            <div class="col-sm-1"><a href="#"><i
+                                                            class="fa fa-close staff-detach"
+                                                            data-personnel="{{$report_person->id}}"></i></a></div>
+                                            <div class="col-sm-3">
+                                                <span>
+                                                    {{$report_person->tck_no}}
+                                                </span>
+                                            </div>
+                                            <div class="col-sm-5">
+                                                <span>
+                                                    {{\App\Library\TurkishChar::tr_camel($report_person->name)}}
+                                                </span>
+                                            </div>
+                                            <div class="col-sm-3">
+                                                <span>
+                                                    {{\App\Library\TurkishChar::tr_up($report_person->staff->staff)}}
+                                                </span>
+                                                {!! Form::hidden('staffs[]', $report_person->id) !!}
+                                            </div>
+
+                                        </div>
+                                    @endfor
+
+                                        <div class="row">
+                                            <div class="col-sm-12">
                                                 <div class="form-group">
-                                                    <span>{{$staff->staff}}</span>
-                                                    {!! Form::hidden('staffs[]', $staff->id) !!}
+                                                    <select name="staffs[]"
+                                                            class="js-example-basic-multiple form-control" multiple>
+                                                        {!! $main_per_options !!}
+                                                    </select>
                                                 </div>
                                             </div>
 
-                                            <div class="col-sm-3">
-
-                                                <input type="number" class="form-control" step="1"
-                                                       name="contractor-quantity[]"
-                                                       value="{{$staff->pivot->quantity}}"/>
-                                            </div>
-                                            <div class="col-sm-1"><a href="#" onclick="staffDetach({{$staff->id}})"><i
-                                                            class="fa fa-close"></i></a></div>
                                         </div>
-                                    @endforeach
-
-                                    <div class="row">
-                                        <div class="col-sm-8">
-                                            <div class="form-group">
-                                                <select name="staffs[]"
-                                                        class="js-example-basic-single form-control">
-
-                                                    {!! $staff_options !!}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-2 col-sm-offset-2">
-
-                                            <input type="number" step="1" class="form-control"
-                                                   name="contractor-quantity[]"/>
-                                        </div>
-                                    </div>
                                 </div>
 
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <div class="form-group pull-right">
-                                            <a href="#" class="btn btn-primary btn-flat add-staff-row">
-                                                Personel Ekle
-                                            </a>
-
                                             <button type="submit" class="btn btn-success btn-flat ">
                                                 Kaydet
                                             </button>
@@ -1324,64 +1280,92 @@ EOT;
                             </div>
                             <!-- /.box-header -->
                             <div class="box-body">
-
-                                @foreach($subcontractors as $sub)
-                                    <?php
-                                    $sub_row_total = 0;
-                                    ?>
-                                    <div class="row" id="div-{{$sub->id}}">
+                                <div class="row">
+                                    <div class="text-center">
                                         <div class="col-sm-12">
-                                            <div class="row">
-                                                <div class="col-sm-12">
-                                                    <legend>{{$sub->subdetail->name}}
-                                                        @foreach($sub->manufacturing()->get() as $manufacture)
-                                                            <small>({{TurkishChar::tr_up($manufacture->name) }})</small>
-                                                        @endforeach
-                                                    </legend>
-                                                </div>
+                                            <span><strong>PERSONEL</strong></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                @if(sizeof($report_subcontractors)>0)
+                                    <div class="row">
+                                        <div class="col-sm-1"></div>
+                                        <div class="col-sm-3"><span style="font-style: italic">TCK No</span></div>
+                                        <div class="col-sm-3"><span style="font-style: italic">Ad Soyad</span></div>
+                                        <div class="col-sm-2"><span style="font-style: italic">İş Kolu</span></div>
+                                        <div class="col-sm-3"><span style="font-style: italic">Alt Yüklenici</span>
+                                        </div>
+                                    </div>
+                                @endif
+                                @for($i = 0; $i < sizeof($report_subcontractor_arr); $i++)
+                                    @foreach($subcontractor_report_personnel[$i] as $id)
+                                        <?php
+                                        $report_person = Personnel::find($id);
+                                        $sub = \App\Subcontractor::find($report_subcontractor_arr[$i]);
+                                        ?>
+                                        <div class="row" id="div-staffid{{$report_person->id}}">
+                                            <div class="col-sm-1"><a href="#"><i
+                                                            class="fa fa-close substaff-detach"
+                                                            data-personnel="{{$report_person->id}}"
+                                                            data-subcontractor="{{$report_subcontractors[$i]->id}}"></i></a>
                                             </div>
-                                            <div class="row">
-                                                <div class="col-sm-1 text-center">
-                                                    <a class='remove-subcontractor' href='#'
-                                                       onclick='removeSubcontractor("{{$sub->id}}", "{{$sub->subdetail->name}}")'><i
-                                                                class="fa fa-close"></i></a>
-                                                </div>
-                                                <div class="col-sm-10">
-                                                    <div class="row">
-                                                        @foreach($report->substaff()->where('subcontractor_id', $sub->id)->get() as $substaff)
-                                                            <div class="col-sm-1 text-center">
-                                                                <strong>{{$substaff->staff}}</strong>
-                                                                <br>
-                                                                {{$substaff->pivot->quantity}}</div>
-                                                            <?php
-                                                            $sub_row_total += (int)$substaff->pivot->quantity;
-                                                            ?>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                                <div class="col-sm-1"><strong>TOPLAM</strong>
-                                                    <br>
-                                                    <strong>{{$sub_row_total}}</strong>
-                                                </div>
+                                            <div class="col-sm-3">
+                                                <span>
+                                                    {{$report_person->tck_no}}
+                                                </span>
+                                            </div>
+                                            <div class="col-sm-3">
+                                                <span>
+                                                    {{\App\Library\TurkishChar::tr_camel($report_person->name)}}
+                                                </span>
+                                            </div>
+                                            <div class="col-sm-2">
+                                                <span>
+                                                    {{\App\Library\TurkishChar::tr_up($report_person->staff->staff)}}
+                                                </span>
+                                                {!! Form::hidden('substaffs[]', $report_person->id) !!}
+                                            </div>
+                                            <div class="col-sm-3">
+                                                <span>
+                                                    {{\App\Library\TurkishChar::tr_up($sub->subdetail->name)}}
+                                                </span>
+                                                {!! Form::hidden('staffs[]', $report_person->id) !!}
                                             </div>
 
                                         </div>
+                                    @endforeach
+                                @endfor
+
+                                {!! Form::open([
+                                 'url' => "/tekil/$site->slug/save-subcontractor-staff",
+                                 'method' => 'POST',
+                                 'class' => 'form',
+                                 'id' => 'subcontractorStaffInsertForm',
+                                 'role' => 'form form-horizontal'
+                                 ]) !!}
+                                {!! Form::hidden('report_id', $report->id) !!}
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="form-group">
+                                            <select name="substaffs[]"
+                                                    class="js-example-basic-multiple form-control" multiple>
+                                                {!! $subcontractor_personnel_options !!}
+                                            </select>
+                                        </div>
                                     </div>
-                                @endforeach
+
+                                </div>
 
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <div class="form-group pull-right">
-                                            <a href="#substaff-modal" data-toggle="modal"
-                                               class="btn btn-primary btn-flat"
-                                               id="substaff-modal-opener">
-                                                Alt Yüklenici ve Personel Ekle
-                                            </a>
-
-
+                                            <button type="submit" class="btn btn-success btn-flat ">
+                                                Kaydet
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
+                                {!! Form::close() !!}
                             </div>
                         </div>
                     </div>
@@ -2005,6 +1989,7 @@ EOT;
                     </div>
                     <!-- /.box-header -->
                     <div class="box-body">
+                        <p>İlgili personeli puantaj tablosundan çıkarmak için yukarıdaki personel tablolarını kullanınız</p>
                         <div class="row">
                             <div class="col-sm-3 text-center"><strong>PERSONEL</strong></div>
                             <div class="col-sm-5 text-center"><strong>PUANTAJ</strong></div>
@@ -2023,22 +2008,37 @@ EOT;
 
                         </div>
                         <div id="personnel-helper-block"></div>
+                        <?php
+                        $pre_tit = 'in1t';
+                        ?>
                         @for($i = 0; $i < sizeof($report_personnel_id_arr); $i++)
                             <?php
                             $per = $report_personnel_id_arr[$i];
                             $report_person = Personnel::find($per);
                             $report_shift = $report->shift()->where('personnel_id', $report_person->id)->first();
                             $report_meal = $report->meal()->where('personnel_id', $report_person->id)->first();
+
+                            $cur_tit = $report_person->isSitePersonnel() ? 'Ana Yüklenici' : $report_person->personalize->subdetail->name;
+
+                            ?>
+                            @if(!(strpos($cur_tit, $pre_tit) !== false))
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <legend>{{$cur_tit}}</legend>
+                                    </div>
+                                </div>
+                            @endif
+                            <?php
+                            $pre_tit = $cur_tit;
                             ?>
                             <div class="row overtimes-meals-div" id="personnel-div-{{$per}}">
                                 <div class="col-sm-3">
                                     <div class="form-group">
                                         <div class="row">
-                                            <div class="col-sm-2"><a onclick="removeShiftsMeals({{$per}})"
-                                                                     class="remove_field"><i
-                                                            class="fa fa-close"></i></a></div>
-                                            <div class="col-sm-10">
-                                                {{\App\Library\TurkishChar::tr_up($report_person->name) . " (" . \App\Library\TurkishChar::tr_up($report_person->staff()->first()->staff) . ")"}}</div>
+                                            <div class="col-sm-1"></div>
+                                            <div class="col-sm-3">{{$report_person->tck_no}}</div>
+                                            <div class="col-sm-8">
+                                                {{\App\Library\TurkishChar::tr_camel($report_person->name) . " (" . \App\Library\TurkishChar::tr_up($report_person->staff()->first()->staff) . ")"}}</div>
 
                                             {!! Form::hidden('personnel[]', $report_person->id) !!}
                                         </div>
@@ -2062,13 +2062,13 @@ EOT;
                                                     <label class="radio-inline"><input type="radio"
                                                                                        class="overtime-radio"
                                                                                        name="overtime-{{$i}}"
-                                                                                       value="0" {{(int)$report_shift->overtime < 998 ? "checked" : ""}}>Fazla
+                                                                                       value="0" {{(!empty($report_shift->overtime) && (int)$report_shift->overtime < 998) ? "checked" : ""}}>Fazla
                                                         Mesai</label>
                                                 </div>
                                                 <div class="col-sm-6 overtime-input-div">
-                                                    {!! Form::text('overtime', ((int)$report_shift->overtime < 998 ? str_replace('.', ',', $report_shift->overtime) : null), ['class' => 'number form-control overtime_input',
+                                                    {!! Form::text('overtime', ((!empty($report_shift->overtime) && (int)$report_shift->overtime < 998) ? str_replace('.', ',', $report_shift->overtime) : null), ['class' => 'number form-control overtime_input',
                                                                                         'placeholder' => 'Mesai (Saat)',
-                                                                                         (int)$report_shift->overtime < 998 ? "" : "disabled"]) !!}
+                                                                                         (!empty($report_shift->overtime) && (int)$report_shift->overtime < 998) ? "" : "disabled"]) !!}
                                                 </div>
                                             </div>
                                         </div>
@@ -2104,11 +2104,6 @@ EOT;
                             <div class="col-sm-12">
 
                                 <div class="form-group pull-right">
-
-                                    <a class="btn btn-primary btn-flat add-personnel-row">
-                                        Satır Ekle
-                                    </a>
-
                                     <button type="submit" class="btn btn-success btn-flat ">
                                         Kaydet
                                     </button>
@@ -2196,7 +2191,7 @@ EOT;
 
                                         <a id="lb-link-{{$report_site_photo->id}}" href="{{$image}}"
                                            data-toggle="lightbox" data-gallery="reportsitephotos"
-                                           data-footer="<a data-dismiss='modal' class='remove-files' href='#' onclick='removeFiles({{$report_site_photo->id}}, {{$report->id}})'>Dosyayı Sil<a/>"
+                                           data-footer="<a data-dismiss='modal' class='remove-files' href='#' data-fileId='{{$report_site_photo->id}}'>Dosyayı Sil<a/>"
                                            class="col-sm-4">
                                             <img src="{{$image}}" class="img-responsive">
                                             {{$report_site_photo->file()->first()->name}}
@@ -2243,7 +2238,7 @@ EOT;
 
                                         <a id="lb-link-{{$report_site_receipt->id}}" href="{{$image}}"
                                            data-toggle="lightbox" data-gallery="reportsitereceipts"
-                                           data-footer="<a data-dismiss='modal' class='remove-files' href='#' onclick='removeFiles({{$report_site_receipt->id}}, {{$report->id}})'>Dosyayı Sil<a/>"
+                                           data-footer="<a data-dismiss='modal' class='remove-files' href='#' data-fileId='{{$report_site_receipt->id}}'>Dosyayı Sil<a/>"
                                            class="col-sm-4">
                                             <img src="{{$image}}" class="img-responsive">
                                             {{$report_site_receipt->file()->first()->name}}
@@ -2436,83 +2431,6 @@ EOT;
                     <button type="button" class="btn btn-outline pull-right" data-dismiss="modal">Kapat
                     </button>
                 </div>
-            </div>
-            <!-- /.modal-content -->
-        </div>
-        <!-- /.modal-dialog -->
-    </div>
-
-    <div id="substaff-modal" class="modal fade" role="dialog" tabindex="-1"
-         aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">×</span></button>
-                    <h4 class="modal-title">Alt Yüklenici ve Personel Ekle</h4>
-                </div>
-                {!! Form::open([
-                                 'url' => "/tekil/$site->slug/save-subcontractor-staff",
-                                 'method' => 'POST',
-                                 'class' => 'form',
-                                 'id' => 'subcontractorStaffInsertForm',
-                                 'role' => 'form form-horizontal'
-                                 ]) !!}
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <p>Alt yükleniciyi seçtikten sonra personel ekleyebilirsiniz.</p>
-                        </div>
-                    </div>
-
-                    {!! Form::hidden('report_id', $report->id) !!}
-
-
-                    <div class="form-group">
-                        <div class="row">
-                            <div class="col-sm-3">
-                                {!! Form::label('subcontractor', 'Alt Yüklenici: ', ['class' => 'control-label']) !!}
-                            </div>
-                            <div class="col-sm-9">
-                                <select name="subcontractor" class="js-example-responsive form-control"
-                                        style="width: 100%">
-                                    {!! $subcontractor_options !!}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="subcontractor_staff-insert">
-
-                    </div>
-
-                    <div class="row">
-                        <div class="col-sm-6 col-sm-offset-3">
-                            <a href="#" class="btn btn-primary btn-block btn-flat add-subcontractor_staff-row"
-                               style="display: none">
-                                Personel Ekle
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <div class="row">
-                        <div class="col-sm-3">
-                            <button type="button" class="btn btn-warning btn-flat pull-left"
-                                    data-dismiss="modal">Kapat
-                            </button>
-                        </div>
-                        <div class="col-sm-9">
-                            <div class="form-group pull-right">
-
-                                <button type="submit" class="btn btn-success btn-flat ">
-                                    Kaydet
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {!! Form::close() !!}
             </div>
             <!-- /.modal-content -->
         </div>

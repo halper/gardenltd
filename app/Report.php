@@ -42,6 +42,11 @@ class Report extends Model
         return !is_null($this->substaff()->where('subcontractor_id', $subcontractor_id)->where('substaff_id', $id)->first());
     }
 
+    public function detachSubstaff($id, $subcontractor_id, $report_id)
+    {
+        return DB::delete('delete from report_substaff where substaff_id = ? AND subcontractor_id = ? AND report_id = ?', [$id, $subcontractor_id, $report_id]);
+    }
+
 
     public function equipment()
     {

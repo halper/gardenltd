@@ -118,30 +118,46 @@ class TekilController extends Controller
 
     }
 
-    public function postSaveStaff(Request $request)
+    public function postSaveStaff(Site $site, Request $request)
     {
 //        Main contractor
-        $staff_arr = $request->get("staffs");
-        $cont_arr = $request->get("contractor-quantity");
+        $personnel_arr = $this->getDistinct($request->get("staffs"));
 
         $report = Report::find($request->get("report_id"));
         $report->staff()->detach();
-        for ($i = 0; $i < sizeof($staff_arr); $i++) {
-            if (!strlen($cont_arr[$i]) == 0) {
-                $report->staff()->attach($staff_arr[$i], ["quantity" => $cont_arr[$i]]);
-                Session::flash('flash_message', 'İlgili personel eklendi');
+        for ($i = 0; $i < sizeof($personnel_arr); $i++) {
+            $per = Personnel::find($personnel_arr[$i]);
+            $this->createShiftsMealsFromPerRepSite($per, $site, $report);
+
+            /*
+             * quantity nasıl bulunur
+             * Bu personelin staff'ı ilgili raporda ekliyse onun quantity'si alınır
+             * yoksa quantity 1 olur
+             */
+            $quantity = 1;
+            if (!is_null($report->staff($per->staff_id)->first())) {
+                $quantity = (int)$report->staff($per->staff_id)->first()->pivot->quantity + 1;
+                $report->staff()->detach($per->staff_id);
             }
+            $report->staff()->attach($per->staff_id, ["quantity" => $quantity]);
+            Session::flash('flash_message', 'İlgili personel eklendi');
+
         }
         return redirect()->back();
     }
 
-    public function postDetachStaff(Request $request)
+    public function postDetachStaff(Site $site, Request $request)
     {
 //        Main contractor
-        $staff_id = $request->get("staffid");
+        $per = Personnel::find($request->get("staffid"));
         $report = Report::find($request->get("report_id"));
-        $report->staff()->detach($staff_id);
-        return response()->json('success', 200);
+        $quantity = (int)$report->staff($per->staff_id)->first()->pivot->quantity - 1;
+        $report->staff()->detach($per->staff_id);
+        if ($quantity > 0) {
+            $report->staff()->attach($per->staff_id, ["quantity" => $quantity]);
+        }
+        $this->deleteShiftsMealsFromPerRepSite($per, $site, $report);
+        return response('success', 200);
     }
 
     public function postAddManagementStaffs(Site $site, Request $request)
@@ -186,39 +202,47 @@ class TekilController extends Controller
         return response()->json('success', 200);
     }
 
-    public function postSaveSubcontractorStaff(Request $request)
+    public function postSaveSubcontractorStaff(Site $site, Request $request)
     {
 //        Daily report subcontractor staff
-
         $report = Report::find($request->get("report_id"));
+//        Get subcontractor personnel
+        $personnel_arr = $this->getDistinct($request->get("substaffs"));
 
-        if (is_null($request->get("subcontractor_staffs")) || is_null($request->get("substaff-quantity"))) {
-            Session::flash('flash_message_error', 'Taşeron personeli eklemelisiniz');
-            return redirect()->back();
-        }
-        $staffs = $request->get("subcontractor_staffs");
-        $q_arr = $request->get("substaff-quantity");
+        for ($i = 0; $i < sizeof($personnel_arr); $i++) {
+            $per = Personnel::find($personnel_arr[$i]);
+            $this->createShiftsMealsFromPerRepSite($per, $site, $report);
+            $subcontractor = $per->personalize;
+            $quantity = 1;
 
-        for ($i = 0; $i < sizeof($staffs); $i++) {
-            if ($report->hasSubstaff($staffs[$i], $request->get("subcontractor"))) {
-                $report->detachSubstaff($staffs[$i], $request->get("subcontractor"));
+            if ($report->hasSubstaff($per->staff_id, $subcontractor->id)) {
+                $quantity = (int)$report->substaff($per->staff_id)->where('subcontractor_id', $subcontractor->id)
+                        ->first()->pivot->quantity + 1;
+                $report->detachSubstaff($per->staff_id, $subcontractor->id, $report->id);
             }
-            $report->substaff()->attach($staffs[$i], ["quantity" => $q_arr[$i], "subcontractor_id" => $request->get("subcontractor")]);
+            $report->substaff()->attach($per->staff_id, [
+                "quantity" => $quantity,
+                "subcontractor_id" => $subcontractor->id]);
         }
-        Session::flash('flash_message', 'Taşeron personel kaydı başarılı');
+        Session::flash('flash_message', 'Alt yüklenici personel kaydı başarılı');
         return redirect()->back();
     }
 
-    public function postDeleteReportSubcontractor(Request $request)
+    public function postDeleteReportSubcontractor(Site $site, Request $request)
     {
-        $report = Report::find($request->get("reportid"));
-        $subcontractor_id = $request->get("subcontractorid");
-        $substaffs = $report->substaff()->where("subcontractor_id", $subcontractor_id)->get();
-        $report->subcontractor()->detach($subcontractor_id);
-        foreach ($substaffs as $substaff) {
-            $report->substaff()->detach($substaff->id);
+        $per = Personnel::find($request->get("staffid"));
+        $report = Report::find($request->get("report_id"));
+        $subcontractor = Subcontractor::find($request->get("subcontractorid"));
+        $quantity = (int)$report->substaff($per->staff_id)->where('subcontractor_id', $subcontractor->id)
+                ->first()->pivot->quantity - 1;
+        $report->detachSubstaff($per->staff_id, $subcontractor->id, $report->id);
+        if ($quantity > 0) {
+            $report->substaff()->attach($per->staff_id, [
+                "quantity" => $quantity,
+                "subcontractor_id" => $subcontractor->id]);
         }
-        return response()->json('success', 200);
+        $this->deleteShiftsMealsFromPerRepSite($per, $site, $report);
+        return response('success', 200);
     }
 
 
@@ -500,18 +524,6 @@ class TekilController extends Controller
         return redirect()->back();
     }
 
-    public function postDeleteShiftsMeals(Request $request)
-    {
-        $report = Report::find($request->get("reportid"));
-        $pid = $request->get("pid");
-        $meal = $report->meal()->where('personnel_id', $pid)->first();
-        $meal->delete();
-        $shift = $report->shift()->where('personnel_id', $pid)->first();
-        $shift->delete();
-
-        return response('success', 200);
-    }
-
 //    END OF GUNLUK RAPOR PAGE
 
 
@@ -626,7 +638,7 @@ class TekilController extends Controller
         $my_arr = $this->trCurrencyFormatter($request->all());
 
         $fee = Fee::firstOrNew(['subcontractor_id' => $request->get("subcontractor_id")]);
-        foreach($my_arr as $key=>$value){
+        foreach ($my_arr as $key => $value) {
             $fee->$key = $value;
         }
         $fee->save();
@@ -781,6 +793,16 @@ class TekilController extends Controller
 
 //    END OF KASA PAGE
 
+    public function postCheckTck(Request $request)
+    {
+        if (is_null(Personnel::where('tck_no', $request->get('tck_no'))->first())) {
+            return response()->json('unique', 200);
+        } else {
+            return response()->json('found!', 200);
+        }
+
+    }
+
     private function uploadFile($file)
     {
         $directory = public_path() . '/uploads/' . uniqid(rand(), true);
@@ -796,24 +818,52 @@ class TekilController extends Controller
         return null;
     }
 
-    public function postCheckTck(Request $request)
+    private function trCurrencyFormatter($my_arr)
     {
-        if (is_null(Personnel::where('tck_no', $request->get('tck_no'))->first())) {
-            return response()->json('unique', 200);
-        } else {
-            return response()->json('found!', 200);
-        }
-
-    }
-
-    private function trCurrencyFormatter($my_arr){
-        if(array_key_exists("_token", $my_arr)) {
+        if (array_key_exists("_token", $my_arr)) {
             unset($my_arr["_token"]);
         }
-        foreach($my_arr as $key=>$value){
+        foreach ($my_arr as $key => $value) {
             $my_arr[$key] = str_replace(",", ".", str_replace(".", "", $value));
         }
         return $my_arr;
     }
 
+    private function getDistinct($arr)
+    {
+        $my_arr = [];
+        foreach ($arr as $val) {
+            if (!in_array($val, $my_arr)) {
+                array_push($my_arr, $val);
+            }
+        }
+        return $my_arr;
+    }
+
+    private function createShiftsMealsFromPerRepSite($per, $site, $report)
+    {
+        $create_arr = [
+            'personnel_id' => $per->id,
+            'report_id' => $report->id,
+            'site_id' => $site->id
+        ];
+        $shift = Shift::firstOrNew($create_arr);
+        $per->shift()->save($shift);
+        $site->shift()->save($shift);
+        $report->shift()->save($shift);
+        $shift->save();
+        $meal = Meal::firstOrNew($create_arr);
+        $meal->meal = 0;
+        $per->meal()->save($meal);
+        $site->meal()->save($meal);
+        $report->meal()->save($meal);
+        $meal->save();
+}
+
+    private function deleteShiftsMealsFromPerRepSite($per, $site, $report)
+    {
+        Shift::where('personnel_id', $per->id)->where('site_id', $site->id)->where('report_id', $report->id)->delete();
+        Meal::where('personnel_id', $per->id)->where('site_id', $site->id)->where('report_id', $report->id)->delete();
+
+    }
 }

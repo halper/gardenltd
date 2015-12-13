@@ -40,4 +40,19 @@ class Personnel extends Model
         return $this->hasMany('App\Shift');
     }
 
+    public function scopeSitePersonnel($query)
+    {
+        return $query->wherePersonalizeType('App\Site');
+    }
+
+    public function scopeSubcontractorsPersonnel($query)
+    {
+        return $query->wherePersonalizeType('App\Subcontractor');
+    }
+
+    public function isSitePersonnel()
+    {
+        return strpos($this->personalize_type, 'App\Site') !== false;
+    }
+
 }

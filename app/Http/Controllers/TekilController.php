@@ -853,7 +853,6 @@ class TekilController extends Controller
         $report->shift()->save($shift);
         $shift->save();
         $meal = Meal::firstOrNew($create_arr);
-        $meal->meal = 0;
         $per->meal()->save($meal);
         $site->meal()->save($meal);
         $report->meal()->save($meal);

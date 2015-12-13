@@ -328,7 +328,7 @@ function _init() {
 
             var height = $(window).height() - $("body > .header").height();
             $(".wrapper").css("min-height", height + "px");
-            var content = $(".wrapper").height();
+            var content = $(".content").height();
             //If the wrapper height is greater than the window
             if (content > height) {
                 //then set sidebar height to the wrapper

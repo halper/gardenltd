@@ -1,6 +1,8 @@
 <?php
 use App\Library\TurkishChar;use App\Library\Weather;
-use App\Material;use App\Personnel;use App\Site;use Carbon\Carbon;
+use App\Material;use App\Personnel;
+use App\Site;
+use Carbon\Carbon;
 use App\Staff;
 use Illuminate\Support\Facades\Session;
 $my_weather = new Weather;
@@ -134,10 +136,13 @@ foreach ($management_depts->management() as $dept) {
 
 }
 
+$report_overtime_arr = [];
+
 $main_personnel = Personnel::sitePersonnel()->get();
 $main_per_options = '';
 foreach ($main_personnel as $per) {
     $main_per_options .= "<option value=\"$per->id\">" . TurkishChar::tr_up($per->staff()->first()->staff) . ": " . TurkishChar::tr_camel($per->name) . "(" . $per->tck_no . ")</option>";
+    array_push($report_overtime_arr, $per->shift()->where('report_id', $report->id)->first()->overtime->id);
 }
 
 $subcontractor_personnel_options = '';
@@ -149,14 +154,13 @@ foreach ($all_subcontractors as $subcontractor) {
     $subcontractor_personnel_options .= "\">";
     foreach ($subcontractor->personnel()->get() as $per) {
         $subcontractor_personnel_options .= "<option value=\"$per->id\">" . TurkishChar::tr_up($per->staff()->first()->staff) . ": " . TurkishChar::tr_camel($per->name) . "(" . $per->tck_no . ")</option>";
+        array_push($report_overtime_arr, $per->shift()->where('report_id', $report->id)->first()->overtime()->id);
     }
 }
 
 
 $equipment_options = '';
 $equipment_options_js = '';
-
-
 foreach ($site->equipment()->get() as $equipment) {
     if (isset($report_equipment_arr)) {
         if (!in_array($equipment->id, $report_equipment_arr)) {
@@ -201,6 +205,16 @@ foreach ($site_reports as $site_report) {
         break;
     }
 }
+
+$overtime_options = '<option></option>';
+foreach (\App\Overtime::all() as $overtime) {
+    if (isset($report_overtime_arr) && in_array($overtime->id, $report_overtime_arr)) {
+        $overtime_options .= "<option value=\"$overtime->id\" selected>" . TurkishChar::tr_up($overtime->name) . "</option>";
+    } else {
+        $overtime_options .= "<option value=\"$overtime->id\">" . TurkishChar::tr_up($overtime->name) . "</option>";
+    }
+}
+
 
 if (!is_null($report->weather)) {
     if (strpos($report->weather, 'Kapalı') !== false) {
@@ -408,6 +422,10 @@ EOT;
             });
             $("#dateRangePicker > input").val("{{isset($report_date) ? $report_date : App\Library\CarbonHelper::getTurkishDate($today)}}");
 
+            $(".js-overtime-select").select2({
+                placeholder: "Puantaj seçiniz",
+                allowClear: true
+            });
 
             var staffToWorkDoneWrapper = $("#staff-to-work-insert"); //Fields wrapper
             var addStaffToWorkDone = $(".add-staff-to-work-done-row"); //Add button ID
@@ -418,7 +436,7 @@ EOT;
                         '<div class="col-sm-10">' +
                         '<select name="staffs[]" class="js-additional-staff form-control">' +
                         {!! $staff_options_js_all !!}
-                '</select></div></div></div>' +
+                                '</select></div></div></div>' +
                         '<div class="col-sm-1"><input type="number" step="1" class="form-control" name="staff_quantity[]"/></div>' +
                         '<div class="col-sm-1"><input type="text" class="form-control" name="staff_unit[]"/></div>' +
                         '<div class="col-sm-6"><textarea class="form-control" name="staff_work_done[]" rows="3"/></div>' +
@@ -1229,17 +1247,17 @@ EOT;
                                         </div>
                                     @endfor
 
-                                        <div class="row">
-                                            <div class="col-sm-12">
-                                                <div class="form-group">
-                                                    <select name="staffs[]"
-                                                            class="js-example-basic-multiple form-control" multiple>
-                                                        {!! $main_per_options !!}
-                                                    </select>
-                                                </div>
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <select name="staffs[]"
+                                                        class="js-example-basic-multiple form-control" multiple>
+                                                    {!! $main_per_options !!}
+                                                </select>
                                             </div>
-
                                         </div>
+
+                                    </div>
                                 </div>
 
                                 <div class="row">
@@ -1989,7 +2007,8 @@ EOT;
                     </div>
                     <!-- /.box-header -->
                     <div class="box-body">
-                        <p>İlgili personeli puantaj tablosundan çıkarmak için yukarıdaki personel tablolarını kullanınız</p>
+                        <p>İlgili personeli puantaj tablosundan çıkarmak için yukarıdaki personel tablolarını
+                            kullanınız</p>
                         <div class="row">
                             <div class="col-sm-3 text-center"><strong>PERSONEL</strong></div>
                             <div class="col-sm-5 text-center"><strong>PUANTAJ</strong></div>
@@ -2046,33 +2065,20 @@ EOT;
                                 </div>
                                 <div class="col-sm-5">
                                     <div class="row">
-                                        <div class="col-sm-2">
-                                            <label class="radio-inline"><input type="radio" class="overtime-radio"
-                                                                               name="overtime-{{$i}}"
-                                                                               value="999" {{(int)$report_shift->overtime == 999 ? "checked" : ""}}>Tam</label>
-                                        </div>
-                                        <div class="col-sm-2">
-                                            <label class="radio-inline"><input type="radio" class="overtime-radio"
-                                                                               name="overtime-{{$i}}"
-                                                                               value="998" {{(int)$report_shift->overtime == 998 ? "checked" : ""}}>Yarım</label>
-                                        </div>
                                         <div class="col-sm-8">
-                                            <div class="row">
-                                                <div class="col-sm-5">
-                                                    <label class="radio-inline"><input type="radio"
-                                                                                       class="overtime-radio"
-                                                                                       name="overtime-{{$i}}"
-                                                                                       value="0" {{(!empty($report_shift->overtime) && (int)$report_shift->overtime < 998) ? "checked" : ""}}>Fazla
-                                                        Mesai</label>
-                                                </div>
-                                                <div class="col-sm-6 overtime-input-div">
-                                                    {!! Form::text('overtime', ((!empty($report_shift->overtime) && (int)$report_shift->overtime < 998) ? str_replace('.', ',', $report_shift->overtime) : null), ['class' => 'number form-control overtime_input',
-                                                                                        'placeholder' => 'Mesai (Saat)',
-                                                                                         (!empty($report_shift->overtime) && (int)$report_shift->overtime < 998) ? "" : "disabled"]) !!}
-                                                </div>
-                                            </div>
+                                            <select name="overtimes[]"
+                                                    class="js-overtime-select form-control">
+                                                {!! ($overtime_options) !!}
+                                            </select>
                                         </div>
-                                        {!! Form::hidden('overtime_arr[]', $report_shift->overtime, ['class' => 'overtime-hidden']) !!}
+
+                                        <div class="col-sm-4 overtime-input-div">
+                                            {!! Form::text('overtime', (!empty($report_shift->overtime) && stripos($report_shift->overtime->name, "Fazla Mesai") !== false ? str_replace('.', ',', $report_shift->hour) : null), ['class' => 'number form-control overtime_input',
+                                                                                'placeholder' => 'Mesai (Saat)',
+                                                                                 !empty($report_shift->overtime) && stripos($report_shift->overtime->name, "Fazla Mesai") === false ? "" : "disabled"]) !!}
+                                        </div>
+
+                                        {!! Form::hidden('overtime_arr[]', $report_shift->hour, ['class' => 'overtime-hidden']) !!}
                                     </div>
                                 </div>
                                 <div class="col-sm-4">

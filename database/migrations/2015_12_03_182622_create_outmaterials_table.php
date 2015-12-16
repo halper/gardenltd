@@ -17,7 +17,7 @@ class CreateOutmaterialsTable extends Migration
             $table->integer('material_id')->unsigned()->index();
             $table->foreign('material_id')->references('id')->on('materials')->onDelete('cascade')->onUpdate('cascade');
             $table->text('coming_from');
-            $table->double('quantity', 8, 2);
+            $table->double('quantity', 10, 2);
             $table->string('unit');
             $table->text('explanation');
             $table->integer('report_id')->unsigned()->index();

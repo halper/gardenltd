@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Shift extends Model
 {
     //
-    protected $fillable = ['overtime', 'site_id', 'report_id', 'personnel_id'];
+    protected $fillable = ['overtime', 'site_id', 'report_id', 'personnel_id', 'overtime_id'];
 
     public function site()
     {
@@ -22,5 +22,10 @@ class Shift extends Model
     public function report()
     {
         return $this->belongsTo('App\Report');
+    }
+
+    public function overtime()
+    {
+        return $this->belongsTo('App\Overtime');
     }
 }

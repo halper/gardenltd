@@ -124,6 +124,7 @@ class TekilController extends Controller
         $personnel_arr = $this->getDistinct($request->get("staffs"));
 
         $report = Report::find($request->get("report_id"));
+
         $report->staff()->detach();
         for ($i = 0; $i < sizeof($personnel_arr); $i++) {
             $per = Personnel::find($personnel_arr[$i]);
@@ -135,14 +136,13 @@ class TekilController extends Controller
              * yoksa quantity 1 olur
              */
             $quantity = 1;
-            if (!is_null($report->staff($per->staff_id)->first())) {
-                $quantity = (int)$report->staff($per->staff_id)->first()->pivot->quantity + 1;
-                $report->staff()->detach($per->staff_id);
+            if (!is_null($report->staff()->where('staff_id', $per->staff_id)->first())) {
+                $quantity = (int)$report->staff()->where('staff_id', $per->staff_id)->first()->pivot->quantity + 1;
             }
+            $report->staff()->detach($per->staff_id);
             $report->staff()->attach($per->staff_id, ["quantity" => $quantity]);
-            Session::flash('flash_message', 'İlgili personel eklendi');
-
         }
+        Session::flash('flash_message', 'İlgili personel eklendi');
         return redirect()->back();
     }
 
@@ -216,7 +216,7 @@ class TekilController extends Controller
             $quantity = 1;
 
             if ($report->hasSubstaff($per->staff_id, $subcontractor->id)) {
-                $quantity = (int)$report->substaff($per->staff_id)->where('subcontractor_id', $subcontractor->id)
+                $quantity = (int)$report->substaff()->where('substaff_id', $per->staff_id)->where('subcontractor_id', $subcontractor->id)
                         ->first()->pivot->quantity + 1;
                 $report->detachSubstaff($per->staff_id, $subcontractor->id, $report->id);
             }
@@ -233,7 +233,7 @@ class TekilController extends Controller
         $per = Personnel::find($request->get("staffid"));
         $report = Report::find($request->get("report_id"));
         $subcontractor = Subcontractor::find($request->get("subcontractorid"));
-        $quantity = (int)$report->substaff($per->staff_id)->where('subcontractor_id', $subcontractor->id)
+        $quantity = (int)$report->substaff()->where('substaff_id', $per->staff_id)->where('subcontractor_id', $subcontractor->id)
                 ->first()->pivot->quantity - 1;
         $report->detachSubstaff($per->staff_id, $subcontractor->id, $report->id);
         if ($quantity > 0) {
@@ -695,17 +695,28 @@ class TekilController extends Controller
     {
         $this->validate($request, [
             'tck_no' => 'required | size:11',
-            'name' => 'required'
+            'name' => 'required',
+            'contract' => 'required',
+            'wage' => 'required'
         ]);
-        $subcontractor = Subcontractor::find($request->get('subcontractor_id'));
-        $personnel = Personnel::create([
-            'tck_no' => $request->get('tck_no'),
-            'name' => $request->get('name'),
-            'staff_id' => $request->get('staff_id')]);
+        $per_arr = $request->all();
+        $per_arr["wage"] = str_replace(",", ".", $request->get("wage"));
+        if(!empty($request->get("iban"))){
+            $per_arr["iban"] = str_replace(" ", "", $request->get("iban"));
+        }
+        $personnel = Personnel::create($per_arr);
+        $directory = public_path() . '/uploads/' . uniqid(rand(), true);
+        $contract_file = $this->uploadFile($request->file("contract"), $directory);
+        $contract = Contract::create([
+            'contract_date' => $request->get('contract_date'),
+            'contract_start_date' => $request->get('contract_start_date'),
+            'contract_end_date' => $request->get('contract_end_date'),
+        ]);
+        $contract->file()->save($contract_file);
 
         if (!empty($request->file("documents"))) {
             foreach ($request->file("documents") as $file) {
-                $db_file = $this->uploadFile($file);
+                $db_file = $this->uploadFile($file, $directory);
 
                 if ($db_file) {
                     $photo = Photo::create();
@@ -714,6 +725,9 @@ class TekilController extends Controller
                 }
             }
         }
+
+        $personnel->contract()->save($contract);
+        $subcontractor = Subcontractor::find($request->get('subcontractor_id'));
         $subcontractor->personnel()->save($personnel);
 
         Session::flash('flash_message', 'Personel eklendi');
@@ -803,9 +817,11 @@ class TekilController extends Controller
 
     }
 
-    private function uploadFile($file)
+    private function uploadFile($file, $directory = null)
     {
-        $directory = public_path() . '/uploads/' . uniqid(rand(), true);
+        if(empty($directory)) {
+            $directory = public_path() . '/uploads/' . uniqid(rand(), true);
+        }
         $filename = $file->getClientOriginalName();
 
         if ($file->move($directory, $filename))

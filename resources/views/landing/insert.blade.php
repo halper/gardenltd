@@ -58,6 +58,7 @@ foreach ($management_depts->management() as $dept) {
     <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/select2.min.js"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
+    <script src="<?= URL::to('/'); ?>/js/jquery.number.js" type="text/javascript"></script>
     <script>
 
         $("#add-personnel").on("click", function (e) {
@@ -297,6 +298,7 @@ foreach ($management_depts->management() as $dept) {
             $('.dateRangePicker').datepicker({
                 language: 'tr'
             });
+            $('.number').number(true, 2, ',', '.');
         });
 
         $('a[href=#tab_1]').on("shown.bs.tab", function () {

@@ -304,7 +304,7 @@ use App\Library\TurkishChar;
                                             </tr>
                                             <tr>
                                                 @for($j = $i*$number_of_col; $j<sizeof($staff_name_arr) && $j<($i+1)*$number_of_col; $j++)
-                                                    <td class="text-right">{{$staff_quantity_arr[$j]}}</td>
+                                                    <td>{{$staff_quantity_arr[$j]}}</td>
                                                 @endfor
                                             </tr>
 

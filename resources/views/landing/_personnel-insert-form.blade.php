@@ -34,6 +34,18 @@ foreach ($management_depts->management() as $dept) {
     </div>
 </div>
 
+<div class="form-group {{ $errors->has('iban') ? 'has-error' : '' }}">
+    <div class="row">
+        <div class="col-sm-2">
+            {!! Form::label('iban', 'IBAN No: ', ['class' => 'control-label']) !!}
+        </div>
+        <div class="col-sm-6">
+            {!! Form::text('iban', null, ['class' => 'form-control', 'placeholder' => 'Personelin IBAN no.sunu giriniz']) !!}
+
+        </div>
+    </div>
+</div>
+
 <div class="form-group {{ $errors->has('staff_id') ? 'has-error' : '' }}">
     <div class="row">
         <div class="col-sm-2">
@@ -47,10 +59,42 @@ foreach ($management_depts->management() as $dept) {
     </div>
 </div>
 
+<div class="form-group {{ $errors->has('wage') ? 'has-error' : '' }}">
+    <div class="row">
+        <div class="col-sm-2">
+            {!! Form::label('wage', 'Günlük Ücret: ', ['class' => 'control-label']) !!}
+        </div>
+        <div class="col-sm-6">
+            <div class="row">
+            <div class="col-sm-11">
+                {!! Form::text('wage', null, ['class' => 'form-control number', 'placeholder' => 'Personelin günlük ücretini giriniz']) !!}
+        </div>
+                <div class="col-sm-1">
+                    <span class="text-left">TL</span>
+                </div>
+        </div>
+        </div>
+    </div>
+</div>
+
 <div class="form-group">
     <div class="row">
         <div class="col-sm-2">
-            {!! Form::label('documents', 'Ek Dosyalar: ', ['class' => 'control-label']) !!}
+            {!! Form::label('documents', 'İşe Giriş Belgesi:* ', ['class' => 'control-label']) !!}
+        </div>
+        <div class="col-sm-10">
+            <input type="file" name="contract" id="contractToUpload">
+        </div>
+    </div>
+</div>
+{!! Form::hidden('contract_date', '0000-00-00') !!}
+{!! Form::hidden('contract_start_date', '0000-00-00') !!}
+{!! Form::hidden('contract_end_date', '0000-00-00') !!}
+
+<div class="form-group">
+    <div class="row">
+        <div class="col-sm-2">
+            {!! Form::label('documents', 'Ek Belgeler: ', ['class' => 'control-label']) !!}
         </div>
         <div class="col-sm-10">
             <input type="file" name="documents" id="documentsToUpload" multiple>

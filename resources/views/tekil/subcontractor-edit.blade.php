@@ -216,12 +216,13 @@
                     </div>
 
                     <div class="tab-pane" id="tab_6">
-                        {!! Form::model($subcontractor, [
+                        {!! Form::open([
                                                                         'url' => "/tekil/$site->slug/add-subcontractor-personnel",
                                                                         'method' => 'POST',
                                                                         'class' => 'form',
                                                                         'id' => 'subcontractorPersonnelForm',
-                                                                        'role' => 'form'
+                                                                        'role' => 'form',
+                                                                        'files' => true
                                                                         ])!!}
                         {!! Form::hidden('subcontractor_id', $subcontractor->id) !!}
                         <div class="row">

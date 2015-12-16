@@ -20,9 +20,13 @@ class Staff extends Model
         return $this->belongsTo('App\Department');
     }
 
-    public function report()
+    /*public function report()
     {
         return $this->belongsToMany('App\Report')->withPivot('quantity', 'subcontractor_id')->join('subcontractors', 'subcontractor_id', '=', 'subcontractors.id');
+    }*/
+    public function report()
+    {
+        return $this->belongsToMany('App\Report')->withPivot('quantity')->withTimestamps();
     }
 
     public function personnel()

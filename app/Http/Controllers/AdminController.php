@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Contract;
 use App\Department;
 use App\Equipment;
 use App\File;
@@ -173,16 +174,28 @@ class AdminController extends Controller
     {
         $this->validate($request, [
             'tck_no' => 'required | size:11',
-            'name' => 'required'
+            'name' => 'required',
+            'contract' => 'required',
+            'wage' => 'required'
         ]);
-        $personnel = Personnel::create([
-            'tck_no' => $request->get('tck_no'),
-            'name' => $request->get('name'),
-            'staff_id' => $request->get('staff_id')]);
+        $per_arr = $request->all();
+        $per_arr["wage"] = str_replace(",", ".", $request->get("wage"));
+        if(!empty($request->get("iban"))){
+            $per_arr["iban"] = str_replace(" ", "", $request->get("iban"));
+        }
+        $personnel = Personnel::create($per_arr);
+        $directory = public_path() . '/uploads/' . uniqid(rand(), true);
+        $contract_file = $this->uploadFile($request->file("contract"), $directory);
+        $contract = Contract::create([
+            'contract_date' => $request->get('contract_date'),
+            'contract_start_date' => $request->get('contract_start_date'),
+            'contract_end_date' => $request->get('contract_end_date'),
+        ]);
+        $contract->file()->save($contract_file);
 
         if (!empty($request->file("documents"))) {
             foreach ($request->file("documents") as $file) {
-                $db_file = $this->uploadFile($file);
+                $db_file = $this->uploadFile($file, $directory);
 
                 if ($db_file) {
                     $photo = Photo::create();
@@ -191,6 +204,7 @@ class AdminController extends Controller
                 }
             }
         }
+        $personnel->contract()->save($contract);
         (new Site)->personnel()->save($personnel);
 
         Session::flash('flash_message', 'Personel eklendi');
@@ -249,9 +263,11 @@ class AdminController extends Controller
         return !empty($mt) ? response()->json($mt, 200) : response()->json('error', 400);
     }
 
-    private function uploadFile($file)
+    private function uploadFile($file, $directory = null)
     {
-        $directory = public_path() . '/uploads/' . uniqid(rand(), true);
+        if(empty($directory)) {
+            $directory = public_path() . '/uploads/' . uniqid(rand(), true);
+        }
         $filename = $file->getClientOriginalName();
 
         if ($file->move($directory, $filename))

@@ -13,7 +13,7 @@ class Personnel extends Model
 
     protected $dates = ['deleted_at'];
 
-    protected $fillable = ['name', 'tck_no', 'staff_id'];
+    protected $fillable = ['name', 'tck_no', 'staff_id', 'iban', 'wage'];
 
     public function personalize()
     {
@@ -53,6 +53,11 @@ class Personnel extends Model
     public function isSitePersonnel()
     {
         return strpos($this->personalize_type, 'App\Site') !== false;
+    }
+
+    public function contract()
+    {
+        return $this->morphMany('App\Contract', 'contractable');
     }
 
 }

@@ -136,13 +136,10 @@ foreach ($management_depts->management() as $dept) {
 
 }
 
-$report_overtime_arr = [];
-
 $main_personnel = Personnel::sitePersonnel()->get();
 $main_per_options = '';
 foreach ($main_personnel as $per) {
     $main_per_options .= "<option value=\"$per->id\">" . TurkishChar::tr_up($per->staff()->first()->staff) . ": " . TurkishChar::tr_camel($per->name) . "(" . $per->tck_no . ")</option>";
-    array_push($report_overtime_arr, $per->shift()->where('report_id', $report->id)->first()->overtime->id);
 }
 
 $subcontractor_personnel_options = '';
@@ -154,7 +151,6 @@ foreach ($all_subcontractors as $subcontractor) {
     $subcontractor_personnel_options .= "\">";
     foreach ($subcontractor->personnel()->get() as $per) {
         $subcontractor_personnel_options .= "<option value=\"$per->id\">" . TurkishChar::tr_up($per->staff()->first()->staff) . ": " . TurkishChar::tr_camel($per->name) . "(" . $per->tck_no . ")</option>";
-        array_push($report_overtime_arr, $per->shift()->where('report_id', $report->id)->first()->overtime()->id);
     }
 }
 
@@ -203,15 +199,6 @@ foreach ($site_reports as $site_report) {
     $report_no++;
     if ($report->id == $site_report->id) {
         break;
-    }
-}
-
-$overtime_options = '<option></option>';
-foreach (\App\Overtime::all() as $overtime) {
-    if (isset($report_overtime_arr) && in_array($overtime->id, $report_overtime_arr)) {
-        $overtime_options .= "<option value=\"$overtime->id\" selected>" . TurkishChar::tr_up($overtime->name) . "</option>";
-    } else {
-        $overtime_options .= "<option value=\"$overtime->id\">" . TurkishChar::tr_up($overtime->name) . "</option>";
     }
 }
 
@@ -425,6 +412,11 @@ EOT;
             $(".js-overtime-select").select2({
                 placeholder: "Puantaj seçiniz",
                 allowClear: true
+            });
+
+
+            $(".js-overtime-select").on("select2:select", function(e){
+               console.log("select2:select", e);
             });
 
             var staffToWorkDoneWrapper = $("#staff-to-work-insert"); //Fields wrapper
@@ -2038,7 +2030,13 @@ EOT;
                             $report_meal = $report->meal()->where('personnel_id', $report_person->id)->first();
 
                             $cur_tit = $report_person->isSitePersonnel() ? 'Ana Yüklenici' : $report_person->personalize->subdetail->name;
+                            $overtime_options = '<option></option>';
+                            foreach (\App\Overtime::all() as $overtime) {
+                                $overtime_options .= "<option value=\"$overtime->id\"";
+                                $overtime_options .=    (!empty($report_shift->overtime) && ($report_shift->overtime->id == $overtime->id)) ? "selected" : ""
+                                        .">" . TurkishChar::tr_up($overtime->name) . "</option>";
 
+                            }
                             ?>
                             @if(!(strpos($cur_tit, $pre_tit) !== false))
                                 <div class="row">

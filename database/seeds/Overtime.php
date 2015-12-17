@@ -14,16 +14,16 @@ class Overtime extends Seeder
     {
         //
         DB::table('overtimes')->delete();
-        Ot::create(['name' => 'Tam Gün', 'multiplier' => '1.0']);
-        Ot::create(['name' => 'Yarım Gün', 'multiplier' => '0.5']);
-        Ot::create(['name' => 'Fazla Mesai', 'multiplier' => '0.125']);
-        Ot::create(['name' => 'Yıllık İzin', 'multiplier' => '1.0']);
-        Ot::create(['name' => 'Günlük İzin', 'multiplier' => '0']);
-        Ot::create(['name' => 'Haftalık İzin', 'multiplier' => '0']);
-        Ot::create(['name' => 'Ücretsiz İzin', 'multiplier' => '0']);
-        Ot::create(['name' => 'Raporlu', 'multiplier' => '0']);
-        Ot::create(['name' => 'Bayram', 'multiplier' => '2.0']);
-        Ot::create(['name' => 'Geçici Görevli', 'multiplier' => '1.0']);
-        Ot::create(['name' => 'Çalışma Yok', 'multiplier' => '0']);
+        Ot::create(['id' => '1', 'name' => 'Tam Gün', 'multiplier' => '1.0']);
+        Ot::create(['id' => '2', 'name' => 'Yarım Gün', 'multiplier' => '0.5']);
+        Ot::create(['id' => '3', 'name' => 'Fazla Mesai', 'multiplier' => '0.125']);
+        Ot::create(['id' => '4', 'name' => 'Yıllık İzin', 'multiplier' => '1.0']);
+        Ot::create(['id' => '5', 'name' => 'Günlük İzin', 'multiplier' => '0']);
+        Ot::create(['id' => '6', 'name' => 'Haftalık İzin', 'multiplier' => '0']);
+        Ot::create(['id' => '7', 'name' => 'Ücretsiz İzin', 'multiplier' => '0']);
+        Ot::create(['id' => '8', 'name' => 'Raporlu', 'multiplier' => '0']);
+        Ot::create(['id' => '9', 'name' => 'Bayram', 'multiplier' => '2.0']);
+        Ot::create(['id' => '10', 'name' => 'Geçici Görevli', 'multiplier' => '1.0']);
+        Ot::create(['id' => '11', 'name' => 'Çalışma Yok', 'multiplier' => '0']);
     }
 }

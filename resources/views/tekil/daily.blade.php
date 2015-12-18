@@ -190,9 +190,6 @@ foreach (Material::all() as $outmaterial) {
 $subcontractor_staff_options = $staff_options_all;
 $subcontractor_staff_options_js = $staff_options_js_all;
 
-
-
-
 $site_reports = $site->report()->get();
 $report_no = 1;
 foreach ($site_reports as $site_report) {
@@ -201,7 +198,6 @@ foreach ($site_reports as $site_report) {
         break;
     }
 }
-
 
 if (!is_null($report->weather)) {
     if (strpos($report->weather, 'Kapalı') !== false) {
@@ -243,15 +239,15 @@ if (!is_null($report->weather)) {
 @section('page-specific-css')
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.min.css"/>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker3.min.css"/>
-    <link href="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/css/select2.min.css" rel="stylesheet"/>
     <link href="<?= URL::to('/'); ?>/css/dropzone.css" rel="stylesheet"/>
     <link href="<?= URL::to('/'); ?>/css/lightbox.css" rel="stylesheet"/>
     <link href="<?= URL::to('/'); ?>/css/weather-icons.min.css" rel="stylesheet"/>
     <link href="<?= URL::to('/'); ?>/css/weather-icons-wind.css" rel="stylesheet"/>
+    <link href="<?= URL::to('/'); ?>/css/select2.min.css" rel="stylesheet"/>
 @stop
 
 @section('page-specific-js')
-    <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/select2.min.js"></script>
+    <script src="<?= URL::to('/'); ?>/js/select2.min.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/dropzone.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/lightbox.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
@@ -396,6 +392,23 @@ EOT;
     ?>
 
     <script>
+        var setRdHidden = function (pid) {
+            var myOpt = $('#select-' + pid + ' :selected');
+            var hiddenEl = $(myOpt).parent().parent().parent().find('.overtime-hidden');
+            var overtimeIn = $(myOpt).parent().parent().parent().find('.overtime_input');
+            if ($(myOpt).text().match("FAZLA MESAİ")) {
+                overtimeIn.prop('disabled', false);
+            }
+            else {
+                hiddenEl.val('999');
+                overtimeIn.val('');
+                overtimeIn.prop('disabled', true);
+            }
+        };
+
+        function checkForOvertime(pid) {
+            $('#select-' + pid).on("select2:select", setRdHidden(pid));
+        }
         $(document).ready(function () {
             var data = [{id: 0, text: 'İşveren ({!! $site->employer!!})'}, {
                 id: 1,
@@ -409,15 +422,6 @@ EOT;
             });
             $("#dateRangePicker > input").val("{{isset($report_date) ? $report_date : App\Library\CarbonHelper::getTurkishDate($today)}}");
 
-            $(".js-overtime-select").select2({
-                placeholder: "Puantaj seçiniz",
-                allowClear: true
-            });
-
-
-            $(".js-overtime-select").on("select2:select", function(e){
-               console.log("select2:select", e);
-            });
 
             var staffToWorkDoneWrapper = $("#staff-to-work-insert"); //Fields wrapper
             var addStaffToWorkDone = $(".add-staff-to-work-done-row"); //Add button ID
@@ -494,24 +498,20 @@ EOT;
 
 
             //PUANTAJ
-            var setRdHidden = function () {
-                var myVal = parseInt($(this).val());
-                var hiddenEl = $(this).parent().closest("label").parent().closest("div").parent().find('.overtime-hidden');
-                var overtimeIn = $(this).parent().parent().parent().find('.overtime_input');
-                if ($(this).is(':checked') && myVal != 0) {
-                    hiddenEl.val(myVal);
-                    overtimeIn.val('');
-                    overtimeIn.prop('disabled', true);
-                }
+            var overtimeSelect = $(".js-overtime-select");
 
-                if (myVal == 0) {
-                    overtimeIn.prop('disabled', false);
-                }
-            };
-            $("input.overtime-radio").on("click", setRdHidden);
+            overtimeSelect.select2({
+                placeholder: "Puantaj seçiniz",
+                allowClear: true
+            });
+
+
+//            $("input.overtime-radio").on("click", setRdHidden);
             $('.overtime_input').keyup(function () {
                 $(this).parent().parent().parent().parent().find('.overtime-hidden').val($(this).val());
             });
+
+
             //END PUANTAJ
 
             $('#shiftsMealsForm').on("submit", function (e) {
@@ -2001,6 +2001,7 @@ EOT;
                     <div class="box-body">
                         <p>İlgili personeli puantaj tablosundan çıkarmak için yukarıdaki personel tablolarını
                             kullanınız</p>
+
                         <div class="row">
                             <div class="col-sm-3 text-center"><strong>PERSONEL</strong></div>
                             <div class="col-sm-5 text-center"><strong>PUANTAJ</strong></div>
@@ -2021,6 +2022,11 @@ EOT;
                         <div id="personnel-helper-block"></div>
                         <?php
                         $pre_tit = 'in1t';
+                        $overtime_options = '<option></option>';
+
+                        foreach (\App\Overtime::all() as $overtime) {
+                            $overtime_options .= "<option value=\"$overtime->id\">" . TurkishChar::tr_up($overtime->name) . "</option>";
+                        }
                         ?>
                         @for($i = 0; $i < sizeof($report_personnel_id_arr); $i++)
                             <?php
@@ -2030,13 +2036,16 @@ EOT;
                             $report_meal = $report->meal()->where('personnel_id', $report_person->id)->first();
 
                             $cur_tit = $report_person->isSitePersonnel() ? 'Ana Yüklenici' : $report_person->personalize->subdetail->name;
-                            $overtime_options = '<option></option>';
-                            foreach (\App\Overtime::all() as $overtime) {
-                                $overtime_options .= "<option value=\"$overtime->id\"";
-                                $overtime_options .=    (!empty($report_shift->overtime) && ($report_shift->overtime->id == $overtime->id)) ? "selected" : ""
-                                        .">" . TurkishChar::tr_up($overtime->name) . "</option>";
 
+                            if (!is_null($report_shift->overtime)) {
+                                $overtime_options = str_replace(" selected", "", $overtime_options);
+                                $search = "<option value=\"$report_shift->overtime_id\">" . TurkishChar::tr_up($report_shift->overtime->name) . "</option>";
+                                $replace = "<option value='$report_shift->overtime_id' selected>" . TurkishChar::tr_up($report_shift->overtime->name) . "</option>";
+                                $overtime_options = str_replace($search, $replace, $overtime_options);
+                            } else {
+                                $overtime_options = str_replace(" selected", "", $overtime_options);
                             }
+
                             ?>
                             @if(!(strpos($cur_tit, $pre_tit) !== false))
                                 <div class="row">
@@ -2064,16 +2073,17 @@ EOT;
                                 <div class="col-sm-5">
                                     <div class="row">
                                         <div class="col-sm-8">
-                                            <select name="overtimes[]"
+                                            <select name="overtimes[]" id="select-{{$per}}"
+                                                    onchange="checkForOvertime({{$per}})"
                                                     class="js-overtime-select form-control">
-                                                {!! ($overtime_options) !!}
+                                                {!! $overtime_options !!}
                                             </select>
                                         </div>
 
                                         <div class="col-sm-4 overtime-input-div">
                                             {!! Form::text('overtime', (!empty($report_shift->overtime) && stripos($report_shift->overtime->name, "Fazla Mesai") !== false ? str_replace('.', ',', $report_shift->hour) : null), ['class' => 'number form-control overtime_input',
                                                                                 'placeholder' => 'Mesai (Saat)',
-                                                                                 !empty($report_shift->overtime) && stripos($report_shift->overtime->name, "Fazla Mesai") === false ? "" : "disabled"]) !!}
+                                                                                 !empty($report_shift->overtime) && stripos($report_shift->overtime->name, "Fazla Mesai") !== false ? "" : "disabled"]) !!}
                                         </div>
 
                                         {!! Form::hidden('overtime_arr[]', $report_shift->hour, ['class' => 'overtime-hidden']) !!}
@@ -2089,7 +2099,7 @@ EOT;
                                         </div>
                                         <div class="col-sm-3">
                                             <label class="checkbox-inline">
-                                                {!! Form::checkbox("meals-$i"."[]", '2', (!is_null($report_meal) && in_array((int)$report_meal->meal, [2,6,7])) ? true : false, ['class' => 'personnel-row-cb']) !!}
+                                                {!! Form::checkbox("meals-$i"."[]", '2', (!is_null($report_meal) && in_array($report_meal->meal, [2,3,6,7])) ? true : false, ['class' => 'personnel-row-cb']) !!}
                                                 Öğle
                                             </label>
                                         </div>
@@ -2121,7 +2131,7 @@ EOT;
                 </div>
             </div>
         </div>
-        {{--END OF GİDEN MALZEMELER TABLOSU--}}
+        {{--END OF PUANTAJ TABLOSU--}}
 
     @else
 

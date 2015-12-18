@@ -17,6 +17,7 @@ use App\Material;
 use App\Meal;
 use App\Module;
 use App\Outmaterial;
+use App\Overtime;
 use App\Personnel;
 use App\Photo;
 use App\Pwunit;
@@ -502,7 +503,8 @@ class TekilController extends Controller
             }
             $k++;
         }
-        $overtimes = $request->get("overtime_arr");
+        $overtime_ids = $request->get("overtimes"); //overtime ids from overtimes table
+        $overtimes = $request->get("overtime_arr"); //overtimes
         $meals = $request->get("meals_arr");
         $report_id = $request->get("report_id");
 
@@ -510,8 +512,11 @@ class TekilController extends Controller
             $my_arr = ['personnel_id' => $personnel[$i],
                 'report_id' => $report_id,
                 'site_id' => $site->id];
+
+            $overtime = Overtime::find($overtime_ids[$i]);
             $shift = Shift::firstOrNew($my_arr);
-            $shift->overtime = $overtimes[$i];
+            $shift->hour = $overtimes[$i];
+            $shift->overtime()->associate($overtime);
             $shift->save();
 
             $meal = Meal::firstOrNew($my_arr);
@@ -701,7 +706,7 @@ class TekilController extends Controller
         ]);
         $per_arr = $request->all();
         $per_arr["wage"] = str_replace(",", ".", $request->get("wage"));
-        if(!empty($request->get("iban"))){
+        if (!empty($request->get("iban"))) {
             $per_arr["iban"] = str_replace(" ", "", $request->get("iban"));
         }
         $personnel = Personnel::create($per_arr);
@@ -817,9 +822,25 @@ class TekilController extends Controller
 
     }
 
+
+//    START OF PUANTAJ PAGE
+
+    public function getPuantaj(Site $site, Module $modules)
+    {
+        return view('tekil/shift', compact('site', 'modules'));
+    }
+
+
+    /**
+     *
+     * PRIVATE FUNCTIONS
+     *
+     */
+
+
     private function uploadFile($file, $directory = null)
     {
-        if(empty($directory)) {
+        if (empty($directory)) {
             $directory = public_path() . '/uploads/' . uniqid(rand(), true);
         }
         $filename = $file->getClientOriginalName();
@@ -873,7 +894,7 @@ class TekilController extends Controller
         $site->meal()->save($meal);
         $report->meal()->save($meal);
         $meal->save();
-}
+    }
 
     private function deleteShiftsMealsFromPerRepSite($per, $site, $report)
     {

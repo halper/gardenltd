@@ -11,6 +11,7 @@ use App\Fee;
 use App\File;
 use App\Inmaterial;
 use App\Library\CarbonHelper;
+use App\Library\TurkishChar;
 use App\Library\Weather;
 use App\Manufacturing;
 use App\Material;
@@ -828,6 +829,68 @@ class TekilController extends Controller
     public function getPuantaj(Site $site, Module $modules)
     {
         return view('tekil/shift', compact('site', 'modules'));
+    }
+
+    public function postOvertimes(Request $request)
+    {
+        /**
+         * site'in ve taşeronunun personeli lazım
+         * günler lazım
+         * personelin o rapor için shift->overtime->name kısaltılacak
+         * personelin o rapor için shift->overtime->multiplier'ı lazım
+         */
+        $site = Site::find($request->get('sid'));
+        $all_personnel = Personnel::sitePersonnel()->get();
+        foreach ($site->subcontractor()->get() as $subcont) {
+            foreach ($subcont->personnel()->get() as $per)
+                $all_personnel->push($per);
+        }
+        $reports = $site->report()->where('created_at', '>=', $request->get('start_date'))->where('created_at', '<=', $request->get('end_date'))->get();
+
+        $response_arr["personnel"] = $all_personnel->toArray();
+        $i = 0;
+        foreach ($all_personnel as $per) {
+            $days = [];
+            $shift_type = [];
+            $shift_multiplier = [];
+            $overtime = [];
+            foreach ($reports as $rep) {
+                array_push($days, Carbon::parse($rep->created_at)->format('d.m'));
+                if (!is_null($rep->shift()->where('personnel_id', $per->id)->first())) {
+                    $shift = $rep->shift()->where('personnel_id', $per->id)->first();
+                    if (!is_null($shift->overtime()->first())) {
+                        $words = preg_split("/\\s+/", $shift->overtime->name);
+                        $acronym = "";
+
+                        foreach ($words as $w) {
+                            $acronym .= TurkishChar::tr_up($w[0]);
+                        }
+                        array_push($shift_type, $acronym);
+                        array_push($shift_multiplier, $shift->overtime->multiplier);
+                        if (is_null($shift->hour) || empty($shift->hour) || $shift->hour == 999) {
+                            array_push($overtime, '0');
+                        } else {
+                            array_push($overtime, $shift->hour);
+                        }
+                    } else {
+                        array_push($shift_type, 'ÇY');
+                        array_push($shift_multiplier, '0');
+                        array_push($overtime, '0');
+                    }
+                } else {
+                    array_push($shift_type, 'ÇY');
+                    array_push($shift_multiplier, '0');
+                    array_push($overtime, '0');
+                }
+            }
+            $response_arr["personnel"][$i]["type"] = $shift_type;
+            $response_arr["personnel"][$i]["overtime"] = $overtime;
+            $response_arr["personnel"][$i]["multiplier"] = $shift_multiplier;
+            $i++;
+        }
+        $response_arr["days"] = $days;
+        $header = ['Content-Type' => 'application/json; charset=UTF-8'];
+        return response()->json($response_arr, 200, $header, JSON_UNESCAPED_UNICODE);
     }
 
 

@@ -848,14 +848,18 @@ class TekilController extends Controller
         $reports = $site->report()->where('created_at', '>=', $request->get('start_date'))->where('created_at', '<=', $request->get('end_date'))->get();
 
         $response_arr["personnel"] = $all_personnel->toArray();
+        for($i = 0; $i<sizeof($response_arr["personnel"]); $i++){
+            $response_arr["personnel"][$i]["name"] = TurkishChar::tr_camel($response_arr["personnel"][$i]["name"]);
+        }
         $i = 0;
+        $my_days_format = sizeof($reports) > 25 ? 'd.m' : 'd';
         foreach ($all_personnel as $per) {
             $days = [];
             $shift_type = [];
             $shift_multiplier = [];
             $overtime = [];
             foreach ($reports as $rep) {
-                array_push($days, Carbon::parse($rep->created_at)->format('d.m'));
+                array_push($days, Carbon::parse($rep->created_at)->format($my_days_format));
                 if (!is_null($rep->shift()->where('personnel_id', $per->id)->first())) {
                     $shift = $rep->shift()->where('personnel_id', $per->id)->first();
                     if (!is_null($shift->overtime()->first())) {
@@ -863,7 +867,7 @@ class TekilController extends Controller
                         $acronym = "";
 
                         foreach ($words as $w) {
-                            $acronym .= TurkishChar::tr_up($w[0]);
+                            $acronym .= TurkishChar::tr_up(mb_substr($w,0,1,'UTF-8'));
                         }
                         array_push($shift_type, $acronym);
                         array_push($shift_multiplier, $shift->overtime->multiplier);

@@ -2060,6 +2060,17 @@ a > .bg-green:hover {
 .box > .overlay {
     z-index: 1010;
     background: rgba(255, 255, 255, 0.7);
+    border-radius: 3px;
+}
+
+.box .overlay>.fa, .overlay-wrapper .overlay>.fa {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-left: -15px;
+    margin-top: -15px;
+    color: #000;
+    font-size: 30px;
 }
 
 .box > .overlay.dark {

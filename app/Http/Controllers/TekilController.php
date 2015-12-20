@@ -29,6 +29,7 @@ use App\Site;
 use App\Http\Requests;
 use App\Subcontractor;
 use App\Swunit;
+use App\Wage;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -708,9 +709,14 @@ class TekilController extends Controller
         $per_arr = $request->all();
         $per_arr["wage"] = str_replace(",", ".", $request->get("wage"));
         if (!empty($request->get("iban"))) {
-            $per_arr["iban"] = str_replace(" ", "", $request->get("iban"));
+            $per_arr["iban"] = preg_replace("/\\s+/ ", "", $request->get("iban"));
         }
         $personnel = Personnel::create($per_arr);
+        $wage = Wage::create([
+            'wage' => $per_arr["wage"],
+            'since' => Carbon::parse($personnel->created_at)->toDateString()]);
+        $wage->personnel()->associate($personnel);
+        $wage->save();
         $directory = public_path() . '/uploads/' . uniqid(rand(), true);
         $contract_file = $this->uploadFile($request->file("contract"), $directory);
         $contract = Contract::create([
@@ -840,26 +846,49 @@ class TekilController extends Controller
          * personelin o rapor için shift->overtime->multiplier'ı lazım
          */
         $site = Site::find($request->get('sid'));
+        $response_arr["personnel"][0]["name"] = "Garden İnşaat";
         $all_personnel = Personnel::sitePersonnel()->get();
-        foreach ($site->subcontractor()->get() as $subcont) {
-            foreach ($subcont->personnel()->get() as $per)
-                $all_personnel->push($per);
+        for ($i = 0; $i < sizeof($all_personnel); $i++) {
+            $response_arr["personnel"][$i + 1] = $all_personnel[$i]->toArray();
         }
-        $reports = $site->report()->where('created_at', '>=', $request->get('start_date'))->where('created_at', '<=', $request->get('end_date'))->get();
+        $i = sizeof($response_arr["personnel"]);
+        foreach ($site->subcontractor()->get() as $subcont) {
+            $response_arr["personnel"][$i]["name"] = $subcont->subdetail->name;
+            $i++;
+            foreach ($subcont->personnel()->get() as $per) {
+                $response_arr["personnel"][$i] = $per->toArray();
+                $i++;
+                $all_personnel->push($per);
+            }
+        }
 
-        $response_arr["personnel"] = $all_personnel->toArray();
-        for($i = 0; $i<sizeof($response_arr["personnel"]); $i++){
-            $response_arr["personnel"][$i]["name"] = TurkishChar::tr_camel($response_arr["personnel"][$i]["name"]);
+        $reports = $site->report()->where('created_at', '>=', $request->get('start_date'))->where('created_at', '<=', $request->get('end_date'))->get();
+        $group_indexes = [];
+
+        for ($i = 0; $i < sizeof($response_arr["personnel"]); $i++) {
+            if (isset($response_arr["personnel"][$i]["tck_no"])) {
+                $response_arr["personnel"][$i]["name"] = TurkishChar::tr_camel($response_arr["personnel"][$i]["name"]);
+            } else {
+                $response_arr["personnel"][$i]["name"] = TurkishChar::tr_up($response_arr["personnel"][$i]["name"]) ;
+                array_push($group_indexes, $i);
+            }
         }
         $i = 0;
+        $j = 0;
         $my_days_format = sizeof($reports) > 25 ? 'd.m' : 'd';
         foreach ($all_personnel as $per) {
             $days = [];
+            $weekends = [];
             $shift_type = [];
-            $shift_multiplier = [];
-            $overtime = [];
+            $shift_multiplier = 0;
+            $overtime = 0;
+            $pntj_total = 0;
+            $wage_total = 0;
             foreach ($reports as $rep) {
+                $is_weekend = (date('N', strtotime($rep->created_at)) >= 6) ? 1 : 0;
+                array_push($weekends, $is_weekend);
                 array_push($days, Carbon::parse($rep->created_at)->format($my_days_format));
+
                 if (!is_null($rep->shift()->where('personnel_id', $per->id)->first())) {
                     $shift = $rep->shift()->where('personnel_id', $per->id)->first();
                     if (!is_null($shift->overtime()->first())) {
@@ -867,34 +896,73 @@ class TekilController extends Controller
                         $acronym = "";
 
                         foreach ($words as $w) {
-                            $acronym .= TurkishChar::tr_up(mb_substr($w,0,1,'UTF-8'));
+                            $acronym .= TurkishChar::tr_up(mb_substr($w, 0, 1, 'UTF-8'));
                         }
                         array_push($shift_type, $acronym);
-                        array_push($shift_multiplier, $shift->overtime->multiplier);
+                        $shift_multiplier = (double)$shift->overtime->multiplier;
                         if (is_null($shift->hour) || empty($shift->hour) || $shift->hour == 999) {
-                            array_push($overtime, '0');
+                            $overtime = 0;
                         } else {
-                            array_push($overtime, $shift->hour);
+                            $overtime = (double)$shift->hour;
                         }
                     } else {
                         array_push($shift_type, 'ÇY');
-                        array_push($shift_multiplier, '0');
-                        array_push($overtime, '0');
+                        $shift_multiplier = 0;
+                        $overtime = 0;
                     }
                 } else {
                     array_push($shift_type, 'ÇY');
-                    array_push($shift_multiplier, '0');
-                    array_push($overtime, '0');
+                    $shift_multiplier = 0;
+                    $overtime = 0;
+                }
+                if ($overtime > 0) {
+                    if (is_null(Wage::where('personnel_id', $per->id)->orderBy('since', 'DESC')
+                        ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first())) {
+                        $wage_total = 0;
+                    } else {
+                        $wage_total += ($shift_multiplier * $overtime) + (double)Wage::where('personnel_id', $per->id)->orderBy('since', 'DESC')
+                                ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first()->wage;
+                    }
+                    $pntj_total += $shift_multiplier * $overtime;
+                } else {
+                    if (is_null(Wage::where('personnel_id', $per->id)->orderBy('since', 'DESC')
+                        ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first())) {
+                        $wage_total = 0;
+                    } else {
+                        $wage_total += $shift_multiplier * (double)Wage::where('personnel_id', $per->id)->orderBy('since', 'DESC')
+                                ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first()->wage;
+                    }
+                    $pntj_total += $shift_multiplier;
                 }
             }
+            if ($j < sizeof($group_indexes) && $i == $group_indexes[$j]) {
+                $i++;
+                $j++;
+            }
             $response_arr["personnel"][$i]["type"] = $shift_type;
-            $response_arr["personnel"][$i]["overtime"] = $overtime;
-            $response_arr["personnel"][$i]["multiplier"] = $shift_multiplier;
+            $response_arr["personnel"][$i]["wage"] = $wage_total;
+            $response_arr["personnel"][$i]["puantaj"] = $pntj_total;
             $i++;
         }
         $response_arr["days"] = $days;
-        $header = ['Content-Type' => 'application/json; charset=UTF-8'];
-        return response()->json($response_arr, 200, $header, JSON_UNESCAPED_UNICODE);
+        $response_arr["weekends"] = $weekends;
+        for($i = 0; $i<sizeof($group_indexes); $i++){
+            $wage_total = 0;
+            $pntj_total = 0;
+            for($j = $group_indexes[$i]+1; $j<sizeof($response_arr["personnel"]); $j++){
+                if($i+1<sizeof($group_indexes) && $group_indexes[$i+1] == $j){
+                    break;
+                }
+                $wage_total += $response_arr["personnel"][$j]["wage"];
+                $pntj_total += $response_arr["personnel"][$j]["puantaj"];
+            }
+            for ($k = 0; $k<sizeof($reports); $k++){
+                $response_arr["personnel"][$group_indexes[$i]]["type"][$k] = "";
+            }
+            $response_arr["personnel"][$group_indexes[$i]]["wage"] = $wage_total;
+            $response_arr["personnel"][$group_indexes[$i]]["puantaj"] = $pntj_total;
+        }
+        return response()->json($response_arr, 200);
     }
 
 

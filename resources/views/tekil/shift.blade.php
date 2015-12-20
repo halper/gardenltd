@@ -8,13 +8,13 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
 
 @section('page-specific-css')
     <link href="<?= URL::to('/'); ?>/css/daterangepicker.css" rel="stylesheet"/>
-    <link href="<?= URL::to('/'); ?>/css/select2.min.css" rel="stylesheet"/>
+
+
 @stop
 
 @section('page-specific-js')
     <script src="<?= URL::to('/'); ?>/js/moment.min.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/daterangepicker.js" type="text/javascript"></script>
-    <script src="<?= URL::to('/'); ?>/js/select2.min.js" type="text/javascript"></script>
     <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
     <script>
 
@@ -24,6 +24,7 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
         }).controller('PuantajController', function ($scope, $http) {
             $scope.data = null;
             $scope.days = [];
+            $scope.weekends = [];
             $scope.personnel = [];
             $scope.startDate = '';
             $scope.endDate = '';
@@ -48,45 +49,15 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                 }).then(function (response) {
                     $scope.data = response.data;
                     $scope.days = response.data.days;
+                    $scope.weekends = response.data.weekends;
                     $scope.personnel = response.data.personnel;
                 }).finally(function () {
                     $scope.loading = false;
                 });
             }
-        }).filter('pntjTotal', function () {
+        }).filter('trCurrency', function () {
             return function (data) {
-                var sum = 0.0;
-                var i = 0;
-                angular.forEach(data.multiplier, function (v) {
-                    if (data.type[i].toLowerCase().match('fm')) {
-                        sum = sum + parseFloat(data.overtime[i] * v);
-                    }
-                    else {
-                        sum = sum + parseFloat(v);
-                    }
-                    i++;
-                });
-                return sum.toString().replace('.', ',');
-            }
-        }).filter('wageTotal', function () {
-            return function (data) {
-                var sum = 0.0;
-                var i = 0;
-                angular.forEach(data.multiplier, function (v) {
-                    if (data.type[i].toLowerCase().match('fm')) {
-                        sum = sum + parseFloat(data.overtime[i] * v);
-                    }
-                    else {
-                        sum = sum + parseFloat(v);
-                    }
-                    i++;
-                });
-                sum = sum * data.wage;
-                return sum.toString().replace('.', ',');
-            }
-        }).filter('fmCheck', function () {
-            return function (data, index) {
-                return data.type[index].toLowerCase().match('fm') ? "FM (" + data.overtime[index] + ")" : data.type[index];
+                return data.toString().replace('.', ',');
             }
         });
 
@@ -169,19 +140,22 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
 
                                     </div>
                                 </th>
-                                <th ng-repeat="day in days" class="text-center"><% day %></th>
+                                <th ng-repeat="day in days track by $index" class="text-center"
+                                    ng-class="weekends[$index] == 1 && 'bg-green'"><% day %></th>
                                 <th class="text-right">Pntj Top.</th>
                                 <th class="text-right">Ücret Top.</th>
                             </tr>
                             </thead>
                             <tbody>
-                            <tr ng-repeat="person in personnel | filter:name">
-                                <td><% person.name %> (<% person.tck_no %>)</td>
-                                <td ng-repeat="type in person.type track by $index" class="text-center"><% (person | fmCheck:$index) | uppercase
+                            <tr ng-repeat="person in personnel | filter:name:false">
+                                <td ng-if="!person.tck_no"><strong><% person.name %></strong></td>
+                                <td ng-if="person.tck_no" ng-style="person.tck_no && {'padding-left': '15px'}"><% person.name %> (<% person.tck_no %>)</td>
+                                <td ng-repeat="type in person.type track by $index" class="text-center"
+                                    ng-class="weekends[$index] == 1 && 'bg-green'"><% type | uppercase
                                     %>
                                 </td>
-                                <td  class="text-right"><% person | pntjTotal %></td>
-                                <td class="text-right"><% person | wageTotal %></td>
+                                <td  class="text-right"><% person.puantaj | trCurrency %></td>
+                                <td class="text-right"><% person.wage | trCurrency %></td>
                             </tr>
                             </tbody>
                         </table>

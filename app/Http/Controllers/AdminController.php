@@ -18,6 +18,8 @@ use App\Staff;
 use App\Subcontractor;
 use App\Subdetail;
 use App\User;
+use App\Wage;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Http\Requests;
 use Illuminate\Support\Facades\Session;
@@ -180,10 +182,15 @@ class AdminController extends Controller
         ]);
         $per_arr = $request->all();
         $per_arr["wage"] = str_replace(",", ".", $request->get("wage"));
-        if(!empty($request->get("iban"))){
-            $per_arr["iban"] = str_replace(" ", "", $request->get("iban"));
+        if (!empty($request->get("iban"))) {
+            $per_arr["iban"] = preg_replace("/\\s+/ ", "", $request->get("iban"));
         }
         $personnel = Personnel::create($per_arr);
+        $wage = Wage::create([
+            'wage' => $per_arr["wage"],
+            'since' => Carbon::parse($personnel->created_at)->toDateString()]);
+        $wage->personnel()->associate($personnel);
+        $wage->save();
         $directory = public_path() . '/uploads/' . uniqid(rand(), true);
         $contract_file = $this->uploadFile($request->file("contract"), $directory);
         $contract = Contract::create([
@@ -265,7 +272,7 @@ class AdminController extends Controller
 
     private function uploadFile($file, $directory = null)
     {
-        if(empty($directory)) {
+        if (empty($directory)) {
             $directory = public_path() . '/uploads/' . uniqid(rand(), true);
         }
         $filename = $file->getClientOriginalName();

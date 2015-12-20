@@ -77,10 +77,10 @@ foreach ($management_depts->management() as $dept) {
     </div>
 </div>
 
-<div class="form-group">
+<div class="form-group {{ $errors->has('contract') ? 'has-error' : '' }}">
     <div class="row">
         <div class="col-sm-2">
-            {!! Form::label('documents', 'İşe Giriş Belgesi:* ', ['class' => 'control-label']) !!}
+            {!! Form::label('contract', 'İşe Giriş Belgesi:* ', ['class' => 'control-label']) !!}
         </div>
         <div class="col-sm-10">
             <input type="file" name="contract" id="contractToUpload">

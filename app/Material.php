@@ -3,16 +3,12 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Material extends Model
 {
-    protected $table = 'materials';
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
+    use SoftDeletes;
+    protected $dates = ['deleted_at'];
     protected $fillable = ['material'];
 
     public function demands()

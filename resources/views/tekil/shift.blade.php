@@ -17,6 +17,12 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
     <script src="<?= URL::to('/'); ?>/js/daterangepicker.js" type="text/javascript"></script>
     <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
     <script>
+        String.prototype.turkishToLower = function(){
+            var string = this;
+            var letters = { "İ": "i", "I": "ı", "Ş": "ş", "Ğ": "ğ", "Ü": "ü", "Ö": "ö", "Ç": "ç" };
+            string = string.replace(/(([İIŞĞÜÇÖ]))/g, function(letter){ return letters[letter]; });
+            return string.toLowerCase();
+        };
 
         var puantajApp = angular.module('puantajApp', [], function ($interpolateProvider) {
             $interpolateProvider.startSymbol('<%');
@@ -65,16 +71,9 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                     return arr;
                 }
                 var result = [];
-                var groups = [];
+                searchStr = searchStr.turkishToLower();
                 angular.forEach(arr, function (item) {
-                    if (!item.tck_no) {
-                        groups.push(item);
-                    }
-                });
-                searchStr = searchStr.toLowerCase();
-                angular.forEach(arr, function (item) {
-                    if (item.name.toLowerCase().indexOf(searchStr) !== -1) {
-                        console.log(item.name.toLowerCase());
+                    if (!item.tck_no || item.name.turkishToLower().indexOf(searchStr) !== -1) {
                         result.push(item);
                     }
                 });
@@ -149,7 +148,7 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                     </div>
                     <div class="box-body">
                         <div style="overflow: auto">
-                            <table class="table table-responsive table-condensed table-bordered" ng-hide="loading">
+                            <table class="table table-responsive table-condensed table-bordered table-hover" ng-hide="loading">
                                 <thead>
                                 <tr>
                                     <th class="puantaj">
@@ -172,18 +171,26 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                                 </thead>
                                 <tbody>
                                 <tr ng-repeat="person in personnel | searchFor:name track by $index">
-                                    <td class="puantaj" ng-if="!person.tck_no"><strong><% person.name %></strong></td>
+                                    <td class="puantaj" ng-if="!person.tck_no"
+                                        ng-style="!person.tck_no && {'background-color' : '#f0f0f0'}"><strong><% person.name %></strong></td>
                                     <td class="puantaj" ng-if="person.tck_no"
                                         ng-style="person.tck_no && {'padding-left': '15px'}"><% person.name %> (<%
                                         person.tck_no %>)
                                     </td>
-                                    <td><%person.iban%></td>
+                                    <td ng-style="!person.tck_no && {'background-color' : '#f0f0f0'}"><%person.iban%></td>
                                     <td ng-repeat="type in person.type track by $index" class="text-center"
-                                        ng-class="weekends[$index] == 1 && 'bg-light-green'"><% type | uppercase
+                                        ng-class="weekends[$index] == 1 && 'bg-light-green'"
+                                        ng-style="!person.tck_no && {'background-color' : '#f0f0f0'}"><% type | uppercase
                                         %>
                                     </td>
-                                    <td class="text-right"><% person.puantaj | trCurrency %></td>
-                                    <td class="text-right"><% person.wage | trCurrency %></td>
+                                    <td class="text-right"
+                                        ng-style="!person.tck_no && {'background-color' : '#f0f0f0',
+                                         'font-weight':'900',
+                                         'font-size' : 'medium'}"><% person.puantaj | trCurrency %></td>
+                                    <td class="text-right"
+                                        ng-style="!person.tck_no && {'background-color' : '#f0f0f0',
+                                         'font-weight':'900',
+                                         'font-size' : 'medium'}"><% person.wage | trCurrency %></td>
                                 </tr>
                                 </tbody>
                             </table>

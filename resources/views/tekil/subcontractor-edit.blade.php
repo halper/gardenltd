@@ -1,7 +1,7 @@
 @extends('tekil.layout')
 
 @section('page-specific-css')
-    <link href="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/css/select2.min.css" rel="stylesheet"/>
+    <link href="<?= URL::to('/'); ?>/css/select2.min.css" rel="stylesheet"/>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.min.css"/>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker3.min.css"/>
     <link href="<?= URL::to('/'); ?>/css/dropzone.css" rel="stylesheet"/>
@@ -10,7 +10,7 @@
 @stop
 
 @section('page-specific-js')
-    <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/select2.min.js"></script>
+    <script src="<?= URL::to('/'); ?>/js/select2.min.js"></script>
     <script src="<?= URL::to('/'); ?>/js/dropzone.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>

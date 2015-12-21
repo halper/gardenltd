@@ -1,11 +1,11 @@
 @extends('tekil/layout')
 
 @section('page-specific-css')
-    <link href="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/css/select2.min.css" rel="stylesheet"/>
+    <link href="<?= URL::to('/'); ?>/css/select2.min.css" rel="stylesheet"/>
 @stop
 
 @section('page-specific-js')
-    <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/select2.min.js"></script>
+    <script src="<?= URL::to('/'); ?>/js/select2.min.js"></script>
     <script>
         $(".js-example-basic-multiple").select2({
             placeholder: "Eklemek istediğiniz malzemeleri seçiniz",

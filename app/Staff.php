@@ -3,27 +3,23 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Staff extends Model
 {
-    protected $table = 'staffs';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
+    use SoftDeletes;
+    protected $dates = ['deleted_at'];
+
+    protected $table = "staffs";
     protected $fillable = ['staff', 'department_id'];
+
 
     public function department()
     {
         return $this->belongsTo('App\Department');
     }
 
-    /*public function report()
-    {
-        return $this->belongsToMany('App\Report')->withPivot('quantity', 'subcontractor_id')->join('subcontractors', 'subcontractor_id', '=', 'subcontractors.id');
-    }*/
     public function report()
     {
         return $this->belongsToMany('App\Report')->withPivot('quantity')->withTimestamps();

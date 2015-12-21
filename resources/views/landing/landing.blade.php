@@ -54,9 +54,10 @@
                         $page_header = ucfirst($page_header);
                     }
                     $current_path = "";
-                    if (str_contains("duzenle", $tmp)) {
+                    if (str_contains("duzenle", $tmp) || str_contains("personel-duzenle", $tmp)) {
                         $page_header = "Kullanıcı Bilgileri Düzenle";
                     }
+
                     ?>
                     {{$page_header}}
                 </h1>

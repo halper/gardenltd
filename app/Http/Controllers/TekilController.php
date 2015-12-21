@@ -864,7 +864,15 @@ class TekilController extends Controller
 
         $reports = $site->report()->where('created_at', '>=', $request->get('start_date'))->where('created_at', '<=', $request->get('end_date'))->get();
         $group_indexes = [];
+        $my_days_format = sizeof($reports) > 25 ? 'd.m' : 'd';
+        $days = [];
+        $weekends = [];
 
+        foreach ($reports as $rep) {
+            $is_weekend = (date('N', strtotime($rep->created_at)) >= 6) ? 1 : 0;
+            array_push($weekends, $is_weekend);
+            array_push($days, Carbon::parse($rep->created_at)->format($my_days_format));
+        }
         for ($i = 0; $i < sizeof($response_arr["personnel"]); $i++) {
             if (isset($response_arr["personnel"][$i]["tck_no"])) {
                 $response_arr["personnel"][$i]["name"] = TurkishChar::tr_camel($response_arr["personnel"][$i]["name"]);
@@ -875,19 +883,15 @@ class TekilController extends Controller
         }
         $i = 0;
         $j = 0;
-        $my_days_format = sizeof($reports) > 25 ? 'd.m' : 'd';
         foreach ($all_personnel as $per) {
-            $days = [];
-            $weekends = [];
             $shift_type = [];
             $shift_multiplier = 0;
             $overtime = 0;
             $pntj_total = 0;
             $wage_total = 0;
+            $per_wage = Wage::where('personnel_id', $per->id)->orderBy('since', 'DESC')
+                ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first();
             foreach ($reports as $rep) {
-                $is_weekend = (date('N', strtotime($rep->created_at)) >= 6) ? 1 : 0;
-                array_push($weekends, $is_weekend);
-                array_push($days, Carbon::parse($rep->created_at)->format($my_days_format));
 
                 if (!is_null($rep->shift()->where('personnel_id', $per->id)->first())) {
                     $shift = $rep->shift()->where('personnel_id', $per->id)->first();
@@ -907,30 +911,22 @@ class TekilController extends Controller
                         }
                     } else {
                         array_push($shift_type, 'ÇY');
-                        $shift_multiplier = 0;
-                        $overtime = 0;
                     }
                 } else {
                     array_push($shift_type, 'ÇY');
-                    $shift_multiplier = 0;
-                    $overtime = 0;
                 }
                 if ($overtime > 0) {
-                    if (is_null(Wage::where('personnel_id', $per->id)->orderBy('since', 'DESC')
-                        ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first())) {
+                    if (is_null($per_wage)) {
                         $wage_total = 0;
                     } else {
-                        $wage_total += ($shift_multiplier * $overtime) + (double)Wage::where('personnel_id', $per->id)->orderBy('since', 'DESC')
-                                ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first()->wage;
+                        $wage_total += ($shift_multiplier * $overtime) + (double)$per_wage->wage;
                     }
                     $pntj_total += $shift_multiplier * $overtime;
                 } else {
-                    if (is_null(Wage::where('personnel_id', $per->id)->orderBy('since', 'DESC')
-                        ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first())) {
+                    if (is_null($per_wage)) {
                         $wage_total = 0;
                     } else {
-                        $wage_total += $shift_multiplier * (double)Wage::where('personnel_id', $per->id)->orderBy('since', 'DESC')
-                                ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first()->wage;
+                        $wage_total += $shift_multiplier * (double)$per_wage->wage;
                     }
                     $pntj_total += $shift_multiplier;
                 }

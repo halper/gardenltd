@@ -37,7 +37,7 @@
                                 <a href="<?=URL::to("/");?>/admin/ekle">Ekle</a>
                             </div>
                             <div class="col-xs-4 text-center">
-                                <a href="<?=URL::to("/");?>/admin/duzenle">Düzenle</a>
+                                <a href="<?=URL::to("/");?>/admin/guncelle">Düzenle</a>
                             </div>
                         </div>
                         <!-- /.row -->

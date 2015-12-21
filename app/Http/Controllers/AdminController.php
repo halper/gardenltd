@@ -270,6 +270,16 @@ class AdminController extends Controller
         return !empty($mt) ? response()->json($mt, 200) : response()->json('error', 400);
     }
 
+    public function getGuncelle()
+    {
+        return view('landing/modify');
+    }
+
+    public function getPersonelDuzenle(Personnel $personnel)
+    {
+        return view('landing/personnel', compact('personnel'));
+    }
+
     private function uploadFile($file, $directory = null)
     {
         if (empty($directory)) {

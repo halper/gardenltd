@@ -51,10 +51,11 @@ use App\Library\TurkishChar;
             <!-- sidebar menu: : style can be found in sidebar.less -->
             <ul class="sidebar-menu">
                 <li class="header"><a href="/tekil/{{$site->slug}}">{{TurkishChar::tr_up($site->job_name)}}</a></li>
-
                 @foreach($modules->getModules() as $module)
                     @if(Auth::User()->hasAnyPermissionOnModule($module->id) || Auth::User()->isAdmin())
                         <?php
+                            $addr = explode("/", $_SERVER['REQUEST_URI']);
+                            $module_name = $addr[sizeof($addr)-1];
                         if (strpos($module->icon, "ion-") !== false) {
                             $i_icon = "ion ";
                         } else {
@@ -63,7 +64,7 @@ use App\Library\TurkishChar;
                         $i_icon .= $module->icon
                         ?>
 
-                        <li><a href="/tekil/{{$site->slug."/".$module->slug}}" class="menu">
+                        <li {!! strpos($module_name, $module->slug) !==false ? "class='active'" : "" !!}><a href="/tekil/{{$site->slug."/".$module->slug}}" class="menu">
                                 {!! empty($module->icon) ? "" : ("<i class=\"$i_icon\"></i>")!!}
                                 {{ $module->name}}
                             </a></li>
@@ -83,7 +84,9 @@ use App\Library\TurkishChar;
 
         <!-- Main content -->
         <section class="content">
-            @if(Session::has('flash_message') || Session::has('flash_message_important') || Session::has('flash_message_error'))
+
+
+        @if(Session::has('flash_message') || Session::has('flash_message_important') || Session::has('flash_message_error'))
 
                 <div class="alert {{ Session::has('flash_message_error') ? 'alert-danger ' : 'alert-success ' }} fade in alert-box {{ Session::has('flash_message_important') ? 'alert-important' : '' }}">
                     @if(Session::has('flash_message_important') || Session::has('flash_message_error'))

@@ -3,17 +3,14 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Equipment extends Model
 {
     //
-    protected $table = 'equipments';
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
+    use SoftDeletes;
+    protected $table = "equipments";
+    protected $dates = ['deleted_at'];
     protected $fillable = ['name'];
 
     public function site()

@@ -432,6 +432,9 @@ img {
 .bg-green {
     background-color: #00a65a;
 }
+.bg-light-green {
+    background-color: #8BC34A;
+}
 
 .bg-navy {
     background-color: #001f3f !important;
@@ -3734,4 +3737,9 @@ input[type="number"]::-webkit-inner-spin-button {
 
 .input-group-addon{
     font-size: 12px;
+}
+
+th.puantaj, tr.puantaj{
+    min-width: 285px;
+    max-width: 290px;
 }

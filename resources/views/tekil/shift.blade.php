@@ -59,6 +59,27 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
             return function (data) {
                 return data.toString().replace('.', ',');
             }
+        }).filter('searchFor', function () {
+            return function (arr, searchStr) {
+                if (!searchStr) {
+                    return arr;
+                }
+                var result = [];
+                var groups = [];
+                angular.forEach(arr, function (item) {
+                    if (!item.tck_no) {
+                        groups.push(item);
+                    }
+                });
+                searchStr = searchStr.toLowerCase();
+                angular.forEach(arr, function (item) {
+                    if (item.name.toLowerCase().indexOf(searchStr) !== -1) {
+                        console.log(item.name.toLowerCase());
+                        result.push(item);
+                    }
+                });
+                return result;
+            };
         });
 
         function cb(start, end) {
@@ -108,7 +129,7 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                         Tarih Aralığı Seçiniz:
                     </label>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <div id="reportrange" class="pull-right"
                          style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
                         <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
@@ -127,38 +148,46 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                         <h3 class="box-title">Puantajlar Tablosu</h3>
                     </div>
                     <div class="box-body">
-                        <table class="table table-responsive table-condensed table-bordered" ng-hide="loading">
-                            <thead>
-                            <tr>
-                                <th style="max-width: 60px">
-                                    <div class="input-group">
-                                        <input type="text" class="form-control"
-                                               name="personnel-search" ng-model="name"
-                                               value=""
-                                               placeholder="Aramak istediğiniz personeli giriniz"/>
-                                        <span class="input-group-addon add-on"><i class="fa fa-search"></i></span>
+                        <div style="overflow: auto">
+                            <table class="table table-responsive table-condensed table-bordered" ng-hide="loading">
+                                <thead>
+                                <tr>
+                                    <th class="puantaj">
+                                        <div class="input-group">
+                                            <input type="text" class="form-control"
+                                                   name="personnel-search" ng-model="name"
+                                                   value=""
+                                                   placeholder="Aramak istediğiniz personeli giriniz"/>
+                                            <span class="input-group-addon add-on"><i class="fa fa-search"></i></span>
 
-                                    </div>
-                                </th>
-                                <th ng-repeat="day in days track by $index" class="text-center"
-                                    ng-class="weekends[$index] == 1 && 'bg-green'"><% day %></th>
-                                <th class="text-right">Pntj Top.</th>
-                                <th class="text-right">Ücret Top.</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr ng-repeat="person in personnel | filter:name:false">
-                                <td ng-if="!person.tck_no"><strong><% person.name %></strong></td>
-                                <td ng-if="person.tck_no" ng-style="person.tck_no && {'padding-left': '15px'}"><% person.name %> (<% person.tck_no %>)</td>
-                                <td ng-repeat="type in person.type track by $index" class="text-center"
-                                    ng-class="weekends[$index] == 1 && 'bg-green'"><% type | uppercase
-                                    %>
-                                </td>
-                                <td  class="text-right"><% person.puantaj | trCurrency %></td>
-                                <td class="text-right"><% person.wage | trCurrency %></td>
-                            </tr>
-                            </tbody>
-                        </table>
+                                        </div>
+                                    </th>
+                                    <th>IBAN</th>
+                                    <th ng-repeat="day in days track by $index" class="text-center"
+                                        ng-class="weekends[$index] == 1 && 'bg-light-green'"><% day %>
+                                    </th>
+                                    <th class="text-right">Pntj Top.</th>
+                                    <th class="text-right">Ücret Top.</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr ng-repeat="person in personnel | searchFor:name track by $index">
+                                    <td class="puantaj" ng-if="!person.tck_no"><strong><% person.name %></strong></td>
+                                    <td class="puantaj" ng-if="person.tck_no"
+                                        ng-style="person.tck_no && {'padding-left': '15px'}"><% person.name %> (<%
+                                        person.tck_no %>)
+                                    </td>
+                                    <td><%person.iban%></td>
+                                    <td ng-repeat="type in person.type track by $index" class="text-center"
+                                        ng-class="weekends[$index] == 1 && 'bg-light-green'"><% type | uppercase
+                                        %>
+                                    </td>
+                                    <td class="text-right"><% person.puantaj | trCurrency %></td>
+                                    <td class="text-right"><% person.wage | trCurrency %></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                     <!-- /.box-body -->
                     <!-- Loading (remove the following to stop the loading)-->

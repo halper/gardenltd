@@ -885,13 +885,14 @@ class TekilController extends Controller
         $j = 0;
         foreach ($all_personnel as $per) {
             $shift_type = [];
-            $shift_multiplier = 0;
-            $overtime = 0;
+            $overtime_hours_total = 0;
             $pntj_total = 0;
             $wage_total = 0;
             $per_wage = Wage::where('personnel_id', $per->id)->orderBy('since', 'DESC')
                 ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first();
             foreach ($reports as $rep) {
+                $overtime = 0;
+                $shift_multiplier = 0;
 
                 if (!is_null($rep->shift()->where('personnel_id', $per->id)->first())) {
                     $shift = $rep->shift()->where('personnel_id', $per->id)->first();
@@ -919,9 +920,10 @@ class TekilController extends Controller
                     if (is_null($per_wage)) {
                         $wage_total = 0;
                     } else {
-                        $wage_total += ($shift_multiplier * $overtime) + (double)$per_wage->wage;
+                        $wage_total += ($shift_multiplier * $overtime * 1.5) + (double)$per_wage->wage;
                     }
-                    $pntj_total += $shift_multiplier * $overtime;
+                    $overtime_hours_total += $overtime;
+                    $pntj_total += 1;
                 } else {
                     if (is_null($per_wage)) {
                         $wage_total = 0;
@@ -937,7 +939,12 @@ class TekilController extends Controller
             }
             $response_arr["personnel"][$i]["type"] = $shift_type;
             $response_arr["personnel"][$i]["wage"] = $wage_total;
-            $response_arr["personnel"][$i]["puantaj"] = $pntj_total;
+            if($overtime_hours_total > 0){
+                $response_arr["personnel"][$i]["puantaj"] = $pntj_total . "T + $overtime_hours_total"."FM";
+            }
+            else {
+                $response_arr["personnel"][$i]["puantaj"] = $pntj_total;
+            }
             $i++;
         }
         $response_arr["days"] = $days;

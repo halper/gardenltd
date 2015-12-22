@@ -34,8 +34,6 @@ Route::model('user', 'App\User');
 Route::model('personnel', 'App\Personnel');
 
 Route::group(['middleware' => ['auth', 'access']], function() {
-//    Route::get('tekil/{site}/yemek', 'Tekil\ModuleController@getYemek');
-//    Route::get('tekil/{site}', 'TekilController@getSite');
     Route::controller('tekil/{site}', 'TekilController');
 });
 
@@ -54,4 +52,13 @@ Route::group(['middleware' => ['auth', 'admin']], function() {
 });
 
 
+Route::bind('directory', function($directory){
+    return $directory;
+});
+
+Route::bind('filename', function($filename){
+    return $filename;
+});
+
+Route::get('uploads/{directory}/{filename}', 'HomeController@getUploads');
 Route::controller('/', 'HomeController');

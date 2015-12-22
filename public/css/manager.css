@@ -3740,6 +3740,6 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 th.puantaj, tr.puantaj{
-    min-width: 285px;
-    max-width: 290px;
+    min-width: 270px;
+    max-width: 275px;
 }

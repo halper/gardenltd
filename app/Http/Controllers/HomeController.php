@@ -13,5 +13,11 @@ class HomeController extends ManagementController
         return redirect("santiye");
     }
 
+    public function getUploads($directory, $filename)
+    {
+        $file = public_path(). "/uploads/$directory/$filename";
+        return response()->download($file, $filename);
+    }
+
 
 }

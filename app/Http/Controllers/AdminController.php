@@ -280,6 +280,61 @@ class AdminController extends Controller
         return view('landing/personnel', compact('personnel'));
     }
 
+    public function postModifyPersonnel(Request $request)
+    {
+        $per_arr = $request->all();
+        unset($per_arr["_token"]);
+        $per_wage = str_replace(",", ".", $request->get("wage"));
+        unset($per_arr["wage"]);
+        unset($per_arr["id"]);
+        unset($per_arr["contract"]);
+        unset($per_arr["documents"]);
+        if (!empty($request->get("iban"))) {
+            $per_arr["iban"] = preg_replace("/\\s+/ ", "", $request->get("iban"));
+        }
+
+        $per = Personnel::find($request->get("id"));
+        foreach($per_arr as $k => $v){
+            $per->$k = $v;
+        }
+        $per->save();
+        $wage = Wage::create([
+            'wage' => $per_wage,
+            'since' => Carbon::parse($per->updated_at)->toDateString()]);
+        $wage->personnel()->associate($per);
+        $wage->save();
+
+        $directory = public_path() . '/uploads/' . uniqid(rand(), true);
+        if (!empty($request->file("contract"))) {
+            $contract_file = $this->uploadFile($request->file("contract"), $directory);
+            $contract = $per->contract->first();
+            $contract->file()->save($contract_file);
+        }
+
+        if (!empty($request->file("documents"))) {
+            foreach ($request->file("documents") as $file) {
+
+                $db_file = $this->uploadFile($file, $directory);
+
+                if ($db_file) {
+                    $photo = Photo::create();
+                    $photo->file()->save($db_file);
+                    $per->photo()->save($photo);
+                }
+            }
+        }
+
+        Session::flash('flash_message', 'Personel güncellendi');
+        return redirect()->back();
+
+    }
+
+    public function postDeletePersonnelFiles(Request $request)
+    {
+        Photo::find($request->get("fileid"))->delete();
+        return response('success', 200);
+    }
+
     private function uploadFile($file, $directory = null)
     {
         if (empty($directory)) {

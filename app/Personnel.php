@@ -27,7 +27,7 @@ class Personnel extends Model
 
     public function photo()
     {
-        return $this->morphMany('App\Report', 'imageable');
+        return $this->morphMany('App\Photo', 'imageable');
     }
 
     public function meal()
@@ -62,7 +62,7 @@ class Personnel extends Model
 
     public function wage()
     {
-        return $this->hasMany('App/Wage');
+        return $this->hasMany('App\Wage');
     }
 
 }

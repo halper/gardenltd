@@ -24,6 +24,8 @@ foreach (\App\Manufacturing::all() as $manufacture) {
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
     <script>
+
+
         $(document).ready(function () {
             $(".js-example-basic-multiple").select2({
                 placeholder: "Çoklu seçim yapabilirsiniz",

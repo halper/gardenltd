@@ -1,19 +1,24 @@
 <?php
-use App\Library\CarbonHelper;
-use App\Library\TurkishChar;
-use Carbon\Carbon;
 
+use App\Library\CarbonHelper;use Carbon\Carbon;
 $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
+        $mealcost = is_null($site->mealcost()->first()) ? null : $site->mealcost()->orderBy('since', 'DESC')->first();
+
 ?>
+
 @extends('tekil.layout')
 
-@section('page-specific-css')
-    <link href="<?= URL::to('/'); ?>/css/daterangepicker.css" rel="stylesheet"/>
 
+@section('page-specific-css')
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.min.css"/>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker3.min.css"/>
+    <link href="<?= URL::to('/'); ?>/css/daterangepicker.css" rel="stylesheet"/>
 
 @stop
 
 @section('page-specific-js')
+    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
+    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/moment.min.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/daterangepicker.js" type="text/javascript"></script>
     <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
@@ -47,7 +52,6 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
             $scope.personnel = [];
             $scope.startDate = '';
             $scope.endDate = '';
-            $scope.siteId = '{{$site->id}}';
             $scope.name = '';
             $scope.loading = false;
 
@@ -61,10 +65,9 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                     $scope.endDate = $('input[name="end-date"]').val();
                 }
                 $scope.loading = true;
-                $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/overtimes", {
+                $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/meals", {
                     'start_date': $scope.startDate,
-                    'end_date': $scope.endDate,
-                    'sid': $scope.siteId
+                    'end_date': $scope.endDate
                 }).then(function (response) {
                     $scope.data = response.data;
                     $scope.days = response.data.days;
@@ -132,11 +135,66 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
 
             setHeaderHeights();
         });
-
+        $('.dateRangePicker').datepicker({
+            language: 'tr',
+            autoclose: true
+        });
     </script>
 @stop
 
+
 @section('content')
+    {!! Form::open([
+    'url' => "/tekil/$site->slug/update-mealcost",
+    'method' => 'POST',
+    'class' => 'form',
+    'id' => 'mealcostUpdateForm',
+    'role' => 'form'
+    ])!!}
+
+    <div class="form-group {{ $errors->has('since') ? 'has-error' : '' }}">
+        <div class="row">
+            <div class="col-sm-2">
+                {!! Form::label('since', 'Tarih İtibariyle: ', ['class' => 'control-label']) !!}
+            </div>
+            <div class="col-sm-10">
+                <div class="input-group input-append date dateRangePicker">
+                    {!! Form::text('since', empty($mealcost) ? null : \App\Library\CarbonHelper::getTurkishDate($mealcost->since), ['class' => 'form-control', 'placeholder' => 'Ödeme tarihini seçiniz']) !!}
+                    <span class="input-group-addon add-on"><span
+                                class="glyphicon glyphicon-calendar"></span></span>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <div class="row">
+            <div class="col-sm-2">
+                {!! Form::label('breakfast', 'YEMEK ÜCRETLERİ: ', ['class' => 'control-label']) !!}
+            </div>
+            <div class="col-sm-2">
+                {!! Form::text('breakfast', empty($mealcost) ? null :str_replace('.', ',', $mealcost->breakfast), ['class' => 'form-control number', 'placeholder' => 'Kahvaltı Ücreti']) !!}
+            </div>
+            <div class="col-sm-2 col-sm-offset-1">
+                {!! Form::text('lunch', empty($mealcost) ? null :str_replace('.', ',', $mealcost->lunch), ['class' => 'form-control number', 'placeholder' => 'Öğle Yemeği Ücreti']) !!}
+            </div>
+            <div class="col-sm-2 col-sm-offset-1">
+                {!! Form::text('supper', empty($mealcost) ? null :str_replace('.', ',', $mealcost->supper), ['class' => 'form-control number', 'placeholder' => 'Akşam Yemeği Ücreti']) !!}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3 col-md-offset-4">
+            <div class="form-group">
+                <button type="submit" class="btn btn-flat btn-primary btn-block">Ücretleri
+                    Kaydet
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div ng-app="puantajApp" ng-controller="PuantajController" id="angPuantaj">
         <div class="form-group">
             <div class="row">
@@ -161,7 +219,7 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
             <div class="col-sm-12">
                 <div class="box box-primary">
                     <div class="box-header">
-                        <h3 class="box-title">Puantajlar Tablosu</h3>
+                        <h3 class="box-title">Yemek Tablosu</h3>
                     </div>
                     <div class="box-body">
                         <!-- Loading (remove the following to stop the loading)-->
@@ -169,21 +227,7 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                             <i class="fa fa-refresh fa-spin"></i>
                         </div>
                         <!-- end loading -->
-                        <div class="row" ng-hide="loading">
-                            @foreach(\App\Overtime::all() as $ot)
-                                <?php
-                                $words = preg_split("/\\s+/", $ot->name);
-                                $acronym = "";
 
-                                foreach ($words as $w) {
-                                    $acronym .= TurkishChar::tr_up(mb_substr($w, 0, 1, 'UTF-8'));
-                                }
-                                ?>
-                                <div class="col-xs-4 col-sm-2">
-                                    <span>{!! "<strong>$acronym</strong>: $ot->name"!!}</span>
-                                </div>
-                            @endforeach
-                        </div>
 
                         <div ng-hide="loading">
                             <div class="row">
@@ -227,11 +271,10 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                                             <table class="table table-responsive table-condensed table-bordered table-hover">
                                                 <thead>
                                                 <tr>
-                                                    <th>IBAN</th>
                                                     <th ng-repeat="day in days track by $index" class="text-center"
                                                         ng-class="weekends[$index] == 1 && 'bg-light-green'"><% day %>
                                                     </th>
-                                                    <th class="text-right" style="min-width: 68px">Pntj Top.</th>
+                                                    <th class="text-right" style="min-width: 68px">Öğünler (K/Ö/A)</th>
                                                     <th class="text-right" id="wageField" style="min-width: 75px">Ücret
                                                         Top.
                                                     </th>
@@ -239,26 +282,21 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                                                 </thead>
                                                 <tbody>
                                                 <tr ng-repeat="person in personnel | searchFor:name track by $index">
-                                                    <td ng-style="!person.tck_no && {'background-color' : '#f0f0f0'}">
-                                                        <%person.iban%>
-                                                    </td>
                                                     <td ng-repeat="type in person.type track by $index"
                                                         class="text-center"
                                                         ng-class="weekends[$index] == 1 && 'bg-light-green'"
-                                                        ng-style="!person.tck_no && {'background-color' : '#f0f0f0'}"><%
-                                                        type |
-                                                        uppercase
-                                                        %>
+                                                        ng-style="!person.tck_no && {'background-color' : '#f0f0f0'}">
+                                                        <% type %>
                                                     </td>
                                                     <td class="text-right"
                                                         ng-style="!person.tck_no && {'background-color' : '#f0f0f0',
                                          'font-weight':'900',
-                                         'font-size' : 'medium'}"><% person.puantaj | trCurrency %>
+                                         'font-size' : 'medium'}"><% person.meal_total %>
                                                     </td>
                                                     <td class="text-right"
                                                         ng-style="!person.tck_no && {'background-color' : '#f0f0f0',
                                          'font-weight':'900',
-                                         'font-size' : 'medium'}"><% person.wage | trCurrency %>
+                                         'font-size' : 'medium'}"><% person.cost | trCurrency %>
                                                     </td>
                                                 </tr>
                                                 </tbody>
@@ -278,4 +316,6 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
             </div>
         </div>
     </div>
+
+    {!! Form::close() !!}
 @stop

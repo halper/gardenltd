@@ -2091,6 +2091,13 @@ EOT;
                                 </div>
                                 <div class="col-sm-4">
                                     <div class="row col-sm-offset-1">
+                                        @if(!$report_person->isSitePersonnel() && empty($report_person->personalize->fee->first()->has_meal))
+                                            <div class="col-sm-10">
+                                                <span class="text-danger">
+                                                    {{$report_person->personalize->subdetail->name}} için bu şantiyede yemek verilmemektedir!
+                                                </span>
+                                            </div>
+                                        @else
                                         <div class="col-sm-3">
                                             <label class="checkbox-inline">
                                                 {!! Form::checkbox("meals-$i"."[]", '1', (!is_null($report_meal) && (int) $report_meal->meal%2 == 1) ? true : false, ['class' => 'personnel-row-cb']) !!}
@@ -2110,6 +2117,7 @@ EOT;
                                             </label>
                                         </div>
                                         {!! Form::hidden('meals_arr[]', (!is_null($report_meal) ? $report_meal->meal : "0"), ['class' => 'meals_arr']) !!}
+                                            @endif
                                     </div>
                                 </div>
                             </div>

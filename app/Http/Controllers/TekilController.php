@@ -16,6 +16,7 @@ use App\Library\Weather;
 use App\Manufacturing;
 use App\Material;
 use App\Meal;
+use App\Mealcost;
 use App\Module;
 use App\Outmaterial;
 use App\Overtime;
@@ -877,7 +878,7 @@ class TekilController extends Controller
             if (isset($response_arr["personnel"][$i]["tck_no"])) {
                 $response_arr["personnel"][$i]["name"] = TurkishChar::tr_camel($response_arr["personnel"][$i]["name"]);
             } else {
-                $response_arr["personnel"][$i]["name"] = TurkishChar::tr_up($response_arr["personnel"][$i]["name"]) ;
+                $response_arr["personnel"][$i]["name"] = TurkishChar::tr_up($response_arr["personnel"][$i]["name"]);
                 array_push($group_indexes, $i);
             }
         }
@@ -939,31 +940,178 @@ class TekilController extends Controller
             }
             $response_arr["personnel"][$i]["type"] = $shift_type;
             $response_arr["personnel"][$i]["wage"] = $wage_total;
-            if($overtime_hours_total > 0){
-                $response_arr["personnel"][$i]["puantaj"] = $pntj_total . "T + $overtime_hours_total"."FM";
-            }
-            else {
+            if ($overtime_hours_total > 0) {
+                $response_arr["personnel"][$i]["puantaj"] = $pntj_total . "T + $overtime_hours_total" . "FM";
+            } else {
                 $response_arr["personnel"][$i]["puantaj"] = $pntj_total;
             }
             $i++;
         }
         $response_arr["days"] = $days;
         $response_arr["weekends"] = $weekends;
-        for($i = 0; $i<sizeof($group_indexes); $i++){
+        for ($i = 0; $i < sizeof($group_indexes); $i++) {
             $wage_total = 0;
             $pntj_total = 0;
-            for($j = $group_indexes[$i]+1; $j<sizeof($response_arr["personnel"]); $j++){
-                if($i+1<sizeof($group_indexes) && $group_indexes[$i+1] == $j){
+            for ($j = $group_indexes[$i] + 1; $j < sizeof($response_arr["personnel"]); $j++) {
+                if ($i + 1 < sizeof($group_indexes) && $group_indexes[$i + 1] == $j) {
                     break;
                 }
                 $wage_total += $response_arr["personnel"][$j]["wage"];
                 $pntj_total += $response_arr["personnel"][$j]["puantaj"];
             }
-            for ($k = 0; $k<sizeof($reports); $k++){
+            for ($k = 0; $k < sizeof($reports); $k++) {
                 $response_arr["personnel"][$group_indexes[$i]]["type"][$k] = "";
             }
             $response_arr["personnel"][$group_indexes[$i]]["wage"] = $wage_total;
             $response_arr["personnel"][$group_indexes[$i]]["puantaj"] = $pntj_total;
+        }
+        return response()->json($response_arr, 200);
+    }
+
+    public function getYemek(Site $site, Module $modules)
+    {
+        return view('tekil/meal', compact('site', 'modules'));
+    }
+
+    public function postUpdateMealcost(Site $site, Request $request)
+    {
+        $mc_arr = $request->all();
+        unset($mc_arr["_token"]);
+        $mc_arr["since"] = CarbonHelper::getMySQLDate($mc_arr["since"]);
+        foreach ($mc_arr as $key => $value) {
+            $mc_arr[$key] = str_replace(",", ".", str_replace(".", "", $value));
+        }
+        $mc = Mealcost::create($mc_arr);
+        $site->mealcost()->save($mc);
+        Session::flash('flash_message', 'Yemek ücretleri güncellendi');
+        return redirect()->back();
+    }
+
+    public function postMeals(Site $site, Request $request)
+    {
+        /**
+         * site'in ve yemek yiyen taşeronunun personeli lazım
+         * günler lazım
+         * personelin o rapor için meal->meal 1,2,4 öğün isimleri kısaltılacak
+         * personelin o rapor için mealcost->breakfast, lunch, supper fiyatları lazım
+         */
+        $response_arr["personnel"][0]["name"] = "Garden İnşaat";
+        $all_personnel = Personnel::sitePersonnel()->get();
+        for ($i = 0; $i < sizeof($all_personnel); $i++) {
+            $response_arr["personnel"][$i + 1] = $all_personnel[$i]->toArray();
+        }
+        $i = sizeof($response_arr["personnel"]);
+        foreach ($site->subcontractor()->get() as $subcont) {
+            if (!empty($subcont->fee()->first()->has_meal)) {
+                $response_arr["personnel"][$i]["name"] = $subcont->subdetail->name;
+                $i++;
+                foreach ($subcont->personnel()->get() as $per) {
+                    $response_arr["personnel"][$i] = $per->toArray();
+                    $i++;
+                    $all_personnel->push($per);
+                }
+            }
+        }
+
+        $reports = $site->report()->where('created_at', '>=', $request->get('start_date'))->where('created_at', '<=', $request->get('end_date'))->get();
+        $group_indexes = [];
+        $my_days_format = sizeof($reports) > 25 ? 'd.m' : 'd';
+        $days = [];
+        $weekends = [];
+
+        foreach ($reports as $rep) {
+            $is_weekend = (date('N', strtotime($rep->created_at)) >= 6) ? 1 : 0;
+            array_push($weekends, $is_weekend);
+            array_push($days, Carbon::parse($rep->created_at)->format($my_days_format));
+        }
+        for ($i = 0; $i < sizeof($response_arr["personnel"]); $i++) {
+            if (isset($response_arr["personnel"][$i]["tck_no"])) {
+                $response_arr["personnel"][$i]["name"] = TurkishChar::tr_camel($response_arr["personnel"][$i]["name"]);
+            } else {
+                $response_arr["personnel"][$i]["name"] = TurkishChar::tr_up($response_arr["personnel"][$i]["name"]);
+                array_push($group_indexes, $i);
+            }
+        }
+        $i = 0;
+        $j = 0;
+        foreach ($all_personnel as $per) {
+            $report_meal_type = [];
+            $breakfast_total = 0;
+            $lunch_total = 0;
+            $supper_total = 0;
+
+            $breakfast_cost = 0.0;
+            $lunch_cost = 0.0;
+            $supper_cost = 0.0;
+
+            $meal_cost_total = 0.0;
+            
+            foreach ($reports as $rep) {
+                $meal_type = '-';
+                if (!is_null($site->mealcost()->first())) {
+                    $breakfast_cost = (double)$site->mealcost()->orderBy('since', 'DESC')
+                        ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first()->breakfast;
+                    $lunch_cost = (double)$site->mealcost()->orderBy('since', 'DESC')
+                        ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first()->lunch;
+                    $supper_cost = (double)$site->mealcost()->orderBy('since', 'DESC')
+                        ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first()->supper;
+                }
+                if (!is_null($rep->meal()->where('personnel_id', $per->id)->first())) {
+                    $meal = $rep->meal()->where('personnel_id', $per->id)->first();
+                    if ((int)$meal->meal % 2 == 1) {
+                        $meal_type = str_replace('-', '', $meal_type);
+                        $meal_type .= 'K';
+                        $meal_cost_total += $breakfast_cost;
+                        $breakfast_total++;
+                    }
+                    if ((int)$meal->meal != 4 && (int)$meal->meal/2 >= 1) {
+                        $meal_type = str_replace('-', '', $meal_type);
+                        $meal_type .= 'Ö';
+                        $meal_cost_total += $lunch_cost;
+                        $lunch_total++;
+                    }
+                    if ((int)$meal->meal >= 4) {
+                        $meal_type = str_replace('-', '', $meal_type);
+                        $meal_type .= 'A';
+                        $meal_cost_total += $supper_cost;
+                        $supper_total++;
+                    }
+                    
+                }
+                array_push($report_meal_type, $meal_type);
+            }
+            if ($j < sizeof($group_indexes) && $i == $group_indexes[$j]) {
+                $i++;
+                $j++;
+            }
+            $response_arr["personnel"][$i]["type"] = $report_meal_type;
+            $response_arr["personnel"][$i]["cost"] = $meal_cost_total;
+            $response_arr["personnel"][$i]["meal_total"] = "$breakfast_total/$lunch_total/$supper_total";
+            $i++;
+        }
+        $response_arr["days"] = $days;
+        $response_arr["weekends"] = $weekends;
+        for ($i = 0; $i < sizeof($group_indexes); $i++) {
+            $meal_cost_total = 0;
+            $breakfast_total = 0;
+            $lunch_total = 0;
+            $supper_total = 0;
+            
+            for ($j = $group_indexes[$i] + 1; $j < sizeof($response_arr["personnel"]); $j++) {
+                if ($i + 1 < sizeof($group_indexes) && $group_indexes[$i + 1] == $j) {
+                    break;
+                }
+                $meal_cost_total += $response_arr["personnel"][$j]["cost"];
+                $meal_totals = explode("/", $response_arr["personnel"][$j]["meal_total"]);
+                $breakfast_total += (int)$meal_totals[0];
+                $lunch_total += (int)$meal_totals[1];
+                $supper_total += (int)$meal_totals[2];
+            }
+            for ($k = 0; $k < sizeof($reports); $k++) {
+                $response_arr["personnel"][$group_indexes[$i]]["type"][$k] = "";
+            }
+            $response_arr["personnel"][$group_indexes[$i]]["cost"] = $meal_cost_total;
+            $response_arr["personnel"][$group_indexes[$i]]["meal_total"] = "$breakfast_total/$lunch_total/$supper_total";
         }
         return response()->json($response_arr, 200);
     }

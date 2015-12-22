@@ -149,7 +149,7 @@
                                 $my_path = '';
                                 $file_name = '';
 
-                                if (!empty($subcontractor->contract)) {
+                                if (!empty($subcontractor->contract->first())) {
                                     $my_path_arr = explode(DIRECTORY_SEPARATOR, $subcontractor->contract->first()->file->first()->path);
                                     $file_name = $subcontractor->contract->first()->file->first()->name;
                                     $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;

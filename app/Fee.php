@@ -9,7 +9,7 @@ class Fee extends Model
     //
     protected $table = 'fees';
 
-    protected $fillable = ['breakfast', 'lunch', 'supper', 'material',
+    protected $fillable = ['material',
         'equipment', 'oil', 'cleaning', 'labour', 'shelter', 'sgk', 'allrisk',
         'isg', 'contract_tax', 'kdv', 'electricity', 'water', 'subcontractor_id'];
 

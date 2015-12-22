@@ -90,4 +90,9 @@ class Site extends Eloquent implements SluggableInterface
     {
         return $this->hasMany('App\Shift');
     }
+
+    public function mealcost()
+    {
+        return $this->hasMany('App\Mealcost');
+    }
 }

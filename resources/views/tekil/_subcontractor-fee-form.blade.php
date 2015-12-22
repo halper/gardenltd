@@ -14,17 +14,21 @@ $fee = $subcontractor->fee()->first();
 <div class="form-group">
     <div class="row">
         <div class="col-sm-2">
-            {!! Form::label('breakfast', 'YEMEK ÜCRETLERİ: ', ['class' => 'control-label']) !!}
+            {!! Form::label('has_meal', 'YEMEK: ', ['class' => 'control-label']) !!}
         </div>
-        <div class="col-sm-2">
-            {!! Form::text('breakfast', is_null($fee) ? null : str_replace(".", ",", $fee->breakfast), ['class' => 'form-control number', 'placeholder' => 'Kahvaltı Ücreti']) !!}
+        <div class="col-sm-4">
+            <label class="radio-inline">
+            {!! Form::Radio('has_meal', 1, !empty($fee->has_meal)) !!}
+            Var
+            </label>
         </div>
-        <div class="col-sm-2 col-sm-offset-1">
-            {!! Form::text('lunch', is_null($fee) ? null : str_replace(".", ",", $fee->lunch), ['class' => 'form-control number', 'placeholder' => 'Öğle Yemeği Ücreti']) !!}
+<div class="col-sm-4">
+            <label class="radio-inline">
+            {!! Form::Radio('has_meal', 0,  empty($fee->has_meal)) !!}
+            Yok
+            </label>
         </div>
-        <div class="col-sm-2 col-sm-offset-1">
-            {!! Form::text('supper', is_null($fee) ? null : str_replace(".", ",", $fee->supper), ['class' => 'form-control number', 'placeholder' => 'Akşam Yemeği Ücreti']) !!}
-        </div>
+
     </div>
 </div>
 

@@ -9,7 +9,7 @@ class Cost extends Model
     //
     protected $table = 'costs';
 
-    protected $fillable = ['breakfast', 'lunch', 'supper', 'material', 'equipment',
+    protected $fillable = ['material', 'equipment',
         'oil', 'cleaning', 'labour', 'pay_date', 'explanation', 'subcontractor_id'];
 
     public function subcontractor()

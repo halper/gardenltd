@@ -133,6 +133,15 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
             setHeaderHeights();
         });
 
+        $(document).ready(function () {
+            $('[data-toggle=tooltip]').hover(function () {
+                // on mouseenter
+                $(this).tooltip('show');
+            }, function () {
+                // on mouseleave
+                $(this).tooltip('hide');
+            });
+        });
     </script>
 @stop
 
@@ -140,36 +149,21 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
     <div ng-app="puantajApp" ng-controller="PuantajController" id="angPuantaj">
         <div class="form-group">
             <div class="row">
-                <div class="col-xs-6 col-sm-4 col-md-2">
-                    <label>
-                        Tarih Aralığı Seçiniz:
-                    </label>
-                </div>
-                <div class="col-xs-6 col-sm-8 col-md-3">
+                <div class="col-xs-12 col-sm-4 col-md-2" style="min-width: 260px">
                     <div id="reportrange" class="pull-right"
                          style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
                         <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
-                        <span class="text-center"></span> <b style="margin-left: 24px;" class="caret"></b>
+                        <span class="text-center"></span>
                     </div>
                 </div>
                 <input type="hidden" name="start-date" ng-model="startDate">
                 <input type="hidden" name="end-date" ng-model="endDate">
-            </div>
-        </div>
 
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="box box-primary">
-                    <div class="box-header">
-                        <h3 class="box-title">Puantajlar Tablosu</h3>
-                    </div>
-                    <div class="box-body">
-                        <!-- Loading (remove the following to stop the loading)-->
-                        <div class="overlay" ng-show="loading">
-                            <i class="fa fa-refresh fa-spin"></i>
-                        </div>
-                        <!-- end loading -->
-                        <div class="row" ng-hide="loading">
+                <div class="col-xs-12 col-sm-8 col-md-9">
+
+                    <table class="table-responsive table-extra-condensed">
+                        <tbody>
+                        <tr>
                             @foreach(\App\Overtime::all() as $ot)
                                 <?php
                                 $words = preg_split("/\\s+/", $ot->name);
@@ -179,103 +173,110 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                                     $acronym .= TurkishChar::tr_up(mb_substr($w, 0, 1, 'UTF-8'));
                                 }
                                 ?>
-                                <div class="col-xs-4 col-sm-2">
-                                    <span>{!! "<strong>$acronym</strong>: $ot->name"!!}</span>
-                                </div>
+
+                                <td>
+                                    <small>{!! "<strong>$acronym</strong>: $ot->name"!!}</small>
+                                </td>
+
                             @endforeach
+                        </tr>
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="box box-primary">
+                    <div class="box-body">
+                        <!-- Loading (remove the following to stop the loading)-->
+                        <div class="overlay" ng-show="loading">
+                            <i class="fa fa-refresh fa-spin"></i>
                         </div>
+                        <!-- end loading -->
+
 
                         <div ng-hide="loading">
                             <div class="row">
-                                <div class="col-md-12">
-                                    <div class="row">
-                                        <div class="col-xs-6 col-sm-4 col-md-3">
-                                            <table class="table table-responsive table-condensed table-bordered table-hover">
-                                                <thead>
-                                                <tr>
-                                                    <th class="puantaj" id="searchField">
-                                                        <div class="input-group">
-                                                            <input type="text" class="form-control"
-                                                                   name="personnel-search" ng-model="name"
-                                                                   value=""
-                                                                   placeholder="Personel Ara"/>
+
+                                <div class="col-md-12" style="overflow: auto">
+                                    <table class="table table-responsive table-extra-condensed dark-bordered table-striped">
+                                        <thead>
+                                        <tr style="font-size: smaller">
+                                            <th class="puantaj" id="searchField">
+                                                <div class="input-group">
+                                                    <input type="text" style="width: 100%"
+                                                           name="personnel-search" ng-model="name"
+                                                           value=""
+                                                           placeholder="Personel Ara"/>
                                                             <span class="input-group-addon add-on"><i
                                                                         class="fa fa-search"></i></span>
 
-                                                        </div>
-                                                    </th>
-                                                </tr>
-                                                </thead>
-                                                <tbody>
-                                                <tr ng-repeat="person in personnel | searchFor:name track by $index">
-                                                    <td class="puantaj" ng-if="!person.tck_no"
-                                                        ng-style="!person.tck_no && {'background-color' : '#f0f0f0',
+                                                </div>
+                                            </th>
+                                            <th ng-repeat="day in days track by $index" class="text-center rotate"
+                                                ng-class="weekends[$index] == 1 && 'garden-orange'"><% day %>
+                                            </th>
+                                            <th class="text-right" style="min-width: 58px">Pntj Top.</th>
+                                            <th class="text-right" id="wageField" style="min-width: 65px">Ücret
+                                                Top.
+                                            </th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr ng-repeat="person in personnel | searchFor:name track by $index">
+
+                                            <td class="puantaj"
+                                                ng-style="(!person.tck_no && {'background-color' : '#00a9ff',
                                          'font-weight':'900',
-                                         'font-size' : 'medium'}"><strong><%
-                                                            person.name %></strong></td>
-                                                    <td class="puantaj" ng-if="person.tck_no"
-                                                        ng-style="person.tck_no && {'padding-left': '15px'}"><%
-                                                        person.name %>
-                                                        (<%
-                                                        person.tck_no %>)
-                                                    </td>
-                                                </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        <div class="col-xs-6 col-sm-8 col-md-9" style="overflow: auto; padding-left: 0">
-                                            <table class="table table-responsive table-condensed table-bordered table-hover">
-                                                <thead>
-                                                <tr>
-                                                    <th>IBAN</th>
-                                                    <th ng-repeat="day in days track by $index" class="text-center"
-                                                        ng-class="weekends[$index] == 1 && 'bg-light-green'"><% day %>
-                                                    </th>
-                                                    <th class="text-right" style="min-width: 68px">Pntj Top.</th>
-                                                    <th class="text-right" id="wageField" style="min-width: 75px">Ücret
-                                                        Top.
-                                                    </th>
-                                                </tr>
-                                                </thead>
-                                                <tbody>
-                                                <tr ng-repeat="person in personnel | searchFor:name track by $index">
-                                                    <td ng-style="!person.tck_no && {'background-color' : '#f0f0f0'}">
-                                                        <%person.iban%>
-                                                    </td>
-                                                    <td ng-repeat="type in person.type track by $index"
-                                                        class="text-center"
-                                                        ng-class="weekends[$index] == 1 && 'bg-light-green'"
-                                                        ng-style="!person.tck_no && {'background-color' : '#f0f0f0'}"><%
-                                                        type |
-                                                        uppercase
-                                                        %>
-                                                    </td>
-                                                    <td class="text-right"
-                                                        ng-style="!person.tck_no && {'background-color' : '#f0f0f0',
+                                         'font-size' : '14px'}) || (person.tck_no && {'padding-left': '20px', 'font-size':'13px'})"
+                                            >
+                                                <span ng-if="person.tck_no && person.iban" data-toggle="tooltip"
+                                                      data-original-title="TCK NO:<% person.tck_no %>
+                                                      IBAN:<% person.iban %>"
+                                                      data-placement="right"><% person.name %></span>
+                                                <span ng-if="person.tck_no && !person.iban" data-toggle="tooltip"
+                                                      data-original-title="TCK NO:<% person.tck_no %>"
+                                                      data-placement="right"><% person.name %></span>
+                                                <span ng-if="!person.tck_no"><% person.name %></span></td>
+                                            <td ng-repeat="type in person.type track by $index"
+                                                class="text-center"
+                                                style="font-size: 11px"
+                                                ng-class="weekends[$index] == 1 && 'garden-orange'"
+                                                ng-style="!person.tck_no && {'background-color' : '#00a9ff'}"><%
+                                                type |
+                                                uppercase
+                                                %>
+                                            </td>
+                                            <td class="text-right"
+                                                ng-style="!person.tck_no && {'background-color' : '#00a9ff',
                                          'font-weight':'900',
-                                         'font-size' : 'medium'}"><% person.puantaj | trCurrency %>
-                                                    </td>
-                                                    <td class="text-right"
-                                                        ng-style="!person.tck_no && {'background-color' : '#f0f0f0',
+                                         'font-size' : 'small'}"><% person.puantaj | trCurrency %>
+                                            </td>
+                                            <td class="text-right"
+                                                ng-style="!person.tck_no && {'background-color' : '#00a9ff',
                                          'font-weight':'900',
-                                         'font-size' : 'medium'}"><% person.wage | trCurrency %>
-                                                    </td>
-                                                </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
+                                         'font-size' : 'small'}"><% person.wage | trCurrency %>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
-                            <!-- /.box-body -->
-
                         </div>
 
                     </div>
-                </div>
+                    <!-- /.box-body -->
 
+                </div>
 
             </div>
         </div>
+
+
+    </div>
+    </div>
     </div>
 @stop

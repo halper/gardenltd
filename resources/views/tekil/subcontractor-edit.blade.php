@@ -122,7 +122,6 @@
                     <li class="active"><a href="#tab_1" data-toggle="tab">Alt Yüklenici Sözleşme Bilgileri</a></li>
                     <li><a href="#tab_2" data-toggle="tab">Ücretler ve Oranlar</a></li>
                     <li><a href="#tab_3" data-toggle="tab">Ek Ödemeler</a></li>
-                    <li><a href="#tab_4" data-toggle="tab">Yemek Ücretleri</a></li>
                     <li><a href="#tab_5" data-toggle="tab">Ek Belgeler</a></li>
                     <li><a href="#tab_6" data-toggle="tab">Personel Ekle</a></li>
 
@@ -192,16 +191,6 @@
                         <div class="row">
                             <div class="col-xs-12">
                                 @include('tekil._subcontractor-cost-form')
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <!-- /.tab-pane -->
-                    <div class="tab-pane" id="tab_4">
-                        <div class="row">
-                            <div class="col-xs-12">
-                                @include('tekil._subcontractor-meal-form')
                             </div>
                         </div>
                     </div>

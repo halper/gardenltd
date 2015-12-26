@@ -973,18 +973,13 @@ class TekilController extends Controller
         return view('tekil/meal', compact('site', 'modules'));
     }
 
-    public function postUpdateMealcost(Site $site, Request $request)
+    public function postInsertMealcost(Site $site, Request $request)
     {
         $mc_arr = $request->all();
-        unset($mc_arr["_token"]);
         $mc_arr["since"] = CarbonHelper::getMySQLDate($mc_arr["since"]);
-        foreach ($mc_arr as $key => $value) {
-            $mc_arr[$key] = str_replace(",", ".", str_replace(".", "", $value));
-        }
         $mc = Mealcost::create($mc_arr);
         $site->mealcost()->save($mc);
-        Session::flash('flash_message', 'Yemek ücretleri güncellendi');
-        return redirect()->back();
+        return response('success', 200);
     }
 
     public function postMeals(Site $site, Request $request)
@@ -1045,7 +1040,7 @@ class TekilController extends Controller
             $supper_cost = 0.0;
 
             $meal_cost_total = 0.0;
-            
+
             foreach ($reports as $rep) {
                 $meal_type = '-';
                 if (!is_null($site->mealcost()->first())) {
@@ -1064,7 +1059,7 @@ class TekilController extends Controller
                         $meal_cost_total += $breakfast_cost;
                         $breakfast_total++;
                     }
-                    if ((int)$meal->meal != 4 && (int)$meal->meal/2 >= 1) {
+                    if ((int)$meal->meal != 4 && (int)$meal->meal / 2 >= 1) {
                         $meal_type = str_replace('-', '', $meal_type);
                         $meal_type .= 'Ö';
                         $meal_cost_total += $lunch_cost;
@@ -1076,8 +1071,12 @@ class TekilController extends Controller
                         $meal_cost_total += $supper_cost;
                         $supper_total++;
                     }
-                    
+
                 }
+                if (strpos($meal_type, 'KÖA') !== false) {
+                    $meal_type = 'F';
+                }
+
                 array_push($report_meal_type, $meal_type);
             }
             if ($j < sizeof($group_indexes) && $i == $group_indexes[$j]) {
@@ -1096,7 +1095,7 @@ class TekilController extends Controller
             $breakfast_total = 0;
             $lunch_total = 0;
             $supper_total = 0;
-            
+
             for ($j = $group_indexes[$i] + 1; $j < sizeof($response_arr["personnel"]); $j++) {
                 if ($i + 1 < sizeof($group_indexes) && $group_indexes[$i + 1] == $j) {
                     break;
@@ -1114,6 +1113,25 @@ class TekilController extends Controller
             $response_arr["personnel"][$group_indexes[$i]]["meal_total"] = "$breakfast_total/$lunch_total/$supper_total";
         }
         return response()->json($response_arr, 200);
+    }
+
+    public function getMealcosts(Site $site)
+    {
+        $mc = Mealcost::where('site_id', $site->id)->orderBy('since', 'DESC')->take(10)->get();
+        $mc_arr = $mc->toArray();
+        for($i = 0; $i<sizeof($mc_arr); $i++){
+        $mc_arr[$i]['since'] = CarbonHelper::getTurkishDate($mc_arr[$i]['since']);
+    }
+        return response()->json($mc_arr, 200);
+    }
+
+    public function postDeleteMealcosts(Request $request)
+    {
+        $mc_arr = $request->get("meal");
+        $mc_arr['since'] = CarbonHelper::getMySQLDate($mc_arr['since']);
+        $mc = Mealcost::find($mc_arr)->first();
+        $mc->delete();
+        return response('success', 200);
     }
 
 

@@ -94,7 +94,7 @@ foreach ($management_depts->management() as $dept) {
 <div class="form-group">
     <div class="row">
         <div class="col-sm-2">
-            {!! Form::label('documents', 'Ek Belgeler: ', ['class' => 'control-label']) !!}
+            {!! Form::label('documents[]', 'Ek Belgeler: ', ['class' => 'control-label']) !!}
         </div>
         <div class="col-sm-10">
             <input type="file" name="documents" id="documentsToUpload" multiple>

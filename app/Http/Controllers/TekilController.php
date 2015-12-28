@@ -61,7 +61,7 @@ class TekilController extends Controller
             $report = session()->get('report');
         }
         $yesterdays_report = $site->report()->where('created_at', Carbon::yesterday()->toDateString())->first();
-        if (is_null($yesterdays_report->weather)) {
+        if (!is_null($yesterdays_report) && is_null($yesterdays_report->weather)) {
             $wt = new Weather(1);
             $yesterdays_report->weather = $wt->getDescription();
             $yesterdays_report->temp_min = $wt->getMin();
@@ -838,7 +838,7 @@ class TekilController extends Controller
         return view('tekil/shift', compact('site', 'modules'));
     }
 
-    public function postOvertimes(Request $request)
+    public function postOvertimes(Site $site, Request $request)
     {
         /**
          * site'in ve taşeronunun personeli lazım
@@ -846,7 +846,7 @@ class TekilController extends Controller
          * personelin o rapor için shift->overtime->name kısaltılacak
          * personelin o rapor için shift->overtime->multiplier'ı lazım
          */
-        $site = Site::find($request->get('sid'));
+        $total_date = $this->getTotalDate($request->get('start_date'), $request->get('end_date'));
         $response_arr["personnel"][0]["name"] = "Garden İnşaat";
         $all_personnel = Personnel::sitePersonnel()->get();
         for ($i = 0; $i < sizeof($all_personnel); $i++) {
@@ -863,16 +863,16 @@ class TekilController extends Controller
             }
         }
 
-        $reports = $site->report()->where('created_at', '>=', $request->get('start_date'))->where('created_at', '<=', $request->get('end_date'))->get();
         $group_indexes = [];
-        $my_days_format = sizeof($reports) > 25 ? 'd.m' : 'd';
+        $my_days_format = sizeof($total_date) > 25 ? 'd.m' : 'd';
         $days = [];
         $weekends = [];
 
-        foreach ($reports as $rep) {
-            $is_weekend = (date('N', strtotime($rep->created_at)) >= 6) ? 1 : 0;
+        for ($x = $total_date; $x >= 0; $x--) {
+            $rep_date = Carbon::now()->subDays($x)->toDateString();
+            $is_weekend = (date('N', strtotime($rep_date)) >= 6) ? 1 : 0;
             array_push($weekends, $is_weekend);
-            array_push($days, Carbon::parse($rep->created_at)->format($my_days_format));
+            array_push($days, Carbon::parse($rep_date)->format($my_days_format));
         }
         for ($i = 0; $i < sizeof($response_arr["personnel"]); $i++) {
             if (isset($response_arr["personnel"][$i]["tck_no"])) {
@@ -889,49 +889,55 @@ class TekilController extends Controller
             $overtime_hours_total = 0;
             $pntj_total = 0;
             $wage_total = 0;
-            $per_wage = Wage::where('personnel_id', $per->id)->orderBy('since', 'DESC')
-                ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first();
-            foreach ($reports as $rep) {
+            for ($x = $total_date; $x >= 0; $x--) {
+                $rep_date = Carbon::now()->subDays($x)->toDateString();
+                $rep = $site->report()->where('created_at', '=', $rep_date)->first();
+                $per_wage = Wage::where('personnel_id', $per->id)->orderBy('since', 'DESC')
+                    ->where('since', '<=', $rep_date)->first();
+
                 $overtime = 0;
                 $shift_multiplier = 0;
+                if (!is_null($rep)) {
+                    if (!is_null($rep->shift()->where('personnel_id', $per->id)->first())) {
+                        $shift = $rep->shift()->where('personnel_id', $per->id)->first();
+                        if (!is_null($shift->overtime()->first())) {
+                            $words = preg_split("/\\s+/", $shift->overtime->name);
+                            $acronym = "";
 
-                if (!is_null($rep->shift()->where('personnel_id', $per->id)->first())) {
-                    $shift = $rep->shift()->where('personnel_id', $per->id)->first();
-                    if (!is_null($shift->overtime()->first())) {
-                        $words = preg_split("/\\s+/", $shift->overtime->name);
-                        $acronym = "";
-
-                        foreach ($words as $w) {
-                            $acronym .= TurkishChar::tr_up(mb_substr($w, 0, 1, 'UTF-8'));
-                        }
-                        array_push($shift_type, $acronym);
-                        $shift_multiplier = (double)$shift->overtime->multiplier;
-                        if (is_null($shift->hour) || empty($shift->hour) || $shift->hour == 999) {
-                            $overtime = 0;
+                            foreach ($words as $w) {
+                                $acronym .= TurkishChar::tr_up(mb_substr($w, 0, 1, 'UTF-8'));
+                            }
+                            array_push($shift_type, $acronym);
+                            $shift_multiplier = (double)$shift->overtime->multiplier;
+                            if (is_null($shift->hour) || empty($shift->hour) || $shift->hour == 999) {
+                                $overtime = 0;
+                            } else {
+                                $overtime = (double)$shift->hour;
+                            }
                         } else {
-                            $overtime = (double)$shift->hour;
+                            array_push($shift_type, 'ÇY');
                         }
                     } else {
                         array_push($shift_type, 'ÇY');
                     }
+                    if ($overtime > 0) {
+                        if (is_null($per_wage)) {
+                            $wage_total += 0;
+                        } else {
+                            $wage_total += ($shift_multiplier * $overtime * 1.5) + (double)$per_wage->wage;
+                        }
+                        $overtime_hours_total += $overtime;
+                        $pntj_total += 1;
+                    } else {
+                        if (is_null($per_wage)) {
+                            $wage_total = 0;
+                        } else {
+                            $wage_total += $shift_multiplier * (double)$per_wage->wage;
+                        }
+                        $pntj_total += $shift_multiplier;
+                    }
                 } else {
                     array_push($shift_type, 'ÇY');
-                }
-                if ($overtime > 0) {
-                    if (is_null($per_wage)) {
-                        $wage_total = 0;
-                    } else {
-                        $wage_total += ($shift_multiplier * $overtime * 1.5) + (double)$per_wage->wage;
-                    }
-                    $overtime_hours_total += $overtime;
-                    $pntj_total += 1;
-                } else {
-                    if (is_null($per_wage)) {
-                        $wage_total = 0;
-                    } else {
-                        $wage_total += $shift_multiplier * (double)$per_wage->wage;
-                    }
-                    $pntj_total += $shift_multiplier;
                 }
             }
             if ($j < sizeof($group_indexes) && $i == $group_indexes[$j]) {
@@ -959,7 +965,7 @@ class TekilController extends Controller
                 $wage_total += $response_arr["personnel"][$j]["wage"];
                 $pntj_total += $response_arr["personnel"][$j]["puantaj"];
             }
-            for ($k = 0; $k < sizeof($reports); $k++) {
+            for ($k = 0; $k < sizeof($days); $k++) {
                 $response_arr["personnel"][$group_indexes[$i]]["type"][$k] = "";
             }
             $response_arr["personnel"][$group_indexes[$i]]["wage"] = $wage_total;
@@ -982,8 +988,20 @@ class TekilController extends Controller
         return response('success', 200);
     }
 
+    private function getTotalDate($start_date, $end_date)
+    {
+        $start_date = date_create($start_date);
+
+        $end_date = date_create($end_date);
+        $total_date = str_replace("+", "", date_diff($start_date, $end_date)->format("%R%a"));
+        return (int)$total_date;
+    }
+
     public function postMeals(Site $site, Request $request)
     {
+
+        $total_date = $this->getTotalDate($request->get('start_date'), $request->get('end_date'));
+
         /**
          * site'in ve yemek yiyen taşeronunun personeli lazım
          * günler lazım
@@ -1008,16 +1026,17 @@ class TekilController extends Controller
             }
         }
 
-        $reports = $site->report()->where('created_at', '>=', $request->get('start_date'))->where('created_at', '<=', $request->get('end_date'))->get();
+
         $group_indexes = [];
-        $my_days_format = sizeof($reports) > 25 ? 'd.m' : 'd';
+        $my_days_format = sizeof($total_date) > 25 ? 'd.m' : 'd';
         $days = [];
         $weekends = [];
 
-        foreach ($reports as $rep) {
-            $is_weekend = (date('N', strtotime($rep->created_at)) >= 6) ? 1 : 0;
+        for ($x = $total_date; $x >= 0; $x--) {
+            $rep_date = Carbon::now()->subDays($x)->toDateString();
+            $is_weekend = (date('N', strtotime($rep_date)) >= 6) ? 1 : 0;
             array_push($weekends, $is_weekend);
-            array_push($days, Carbon::parse($rep->created_at)->format($my_days_format));
+            array_push($days, Carbon::parse($rep_date)->format($my_days_format));
         }
         for ($i = 0; $i < sizeof($response_arr["personnel"]); $i++) {
             if (isset($response_arr["personnel"][$i]["tck_no"])) {
@@ -1041,43 +1060,49 @@ class TekilController extends Controller
 
             $meal_cost_total = 0.0;
 
-            foreach ($reports as $rep) {
+            for ($x = $total_date; $x >= 0; $x--) {
+                $rep_date = Carbon::now()->subDays($x)->toDateString();
+                $rep = $site->report()->where('created_at', '=', $rep_date)->first();
                 $meal_type = '-';
-                if (!is_null($site->mealcost()->first())) {
-                    $breakfast_cost = (double)$site->mealcost()->orderBy('since', 'DESC')
-                        ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first()->breakfast;
-                    $lunch_cost = (double)$site->mealcost()->orderBy('since', 'DESC')
-                        ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first()->lunch;
-                    $supper_cost = (double)$site->mealcost()->orderBy('since', 'DESC')
-                        ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first()->supper;
-                }
-                if (!is_null($rep->meal()->where('personnel_id', $per->id)->first())) {
-                    $meal = $rep->meal()->where('personnel_id', $per->id)->first();
-                    if ((int)$meal->meal % 2 == 1) {
-                        $meal_type = str_replace('-', '', $meal_type);
-                        $meal_type .= 'K';
-                        $meal_cost_total += $breakfast_cost;
-                        $breakfast_total++;
+                if (!is_null($rep)) {
+                    if (!is_null($site->mealcost()->first())) {
+                        $breakfast_cost = (double)$site->mealcost()->orderBy('since', 'DESC')
+                            ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first()->breakfast;
+                        $lunch_cost = (double)$site->mealcost()->orderBy('since', 'DESC')
+                            ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first()->lunch;
+                        $supper_cost = (double)$site->mealcost()->orderBy('since', 'DESC')
+                            ->where('since', '<=', Carbon::parse($rep->created_at)->toDateString())->first()->supper;
                     }
-                    if ((int)$meal->meal != 4 && (int)$meal->meal / 2 >= 1) {
-                        $meal_type = str_replace('-', '', $meal_type);
-                        $meal_type .= 'Ö';
-                        $meal_cost_total += $lunch_cost;
-                        $lunch_total++;
+                    if (!is_null($rep->meal()->where('personnel_id', $per->id)->first())) {
+                        $meal = $rep->meal()->where('personnel_id', $per->id)->first();
+                        if ((int)$meal->meal % 2 == 1) {
+                            $meal_type = str_replace('-', '', $meal_type);
+                            $meal_type .= 'K';
+                            $meal_cost_total += $breakfast_cost;
+                            $breakfast_total++;
+                        }
+                        if ((int)$meal->meal != 4 && (int)$meal->meal / 2 >= 1) {
+                            $meal_type = str_replace('-', '', $meal_type);
+                            $meal_type .= 'Ö';
+                            $meal_cost_total += $lunch_cost;
+                            $lunch_total++;
+                        }
+                        if ((int)$meal->meal >= 4) {
+                            $meal_type = str_replace('-', '', $meal_type);
+                            $meal_type .= 'A';
+                            $meal_cost_total += $supper_cost;
+                            $supper_total++;
+                        }
+
                     }
-                    if ((int)$meal->meal >= 4) {
-                        $meal_type = str_replace('-', '', $meal_type);
-                        $meal_type .= 'A';
-                        $meal_cost_total += $supper_cost;
-                        $supper_total++;
+                    if (strpos($meal_type, 'KÖA') !== false) {
+                        $meal_type = 'F';
                     }
 
+                    array_push($report_meal_type, $meal_type);
+                } else {
+                    array_push($report_meal_type, 'ÇY');
                 }
-                if (strpos($meal_type, 'KÖA') !== false) {
-                    $meal_type = 'F';
-                }
-
-                array_push($report_meal_type, $meal_type);
             }
             if ($j < sizeof($group_indexes) && $i == $group_indexes[$j]) {
                 $i++;
@@ -1106,7 +1131,7 @@ class TekilController extends Controller
                 $lunch_total += (int)$meal_totals[1];
                 $supper_total += (int)$meal_totals[2];
             }
-            for ($k = 0; $k < sizeof($reports); $k++) {
+            for ($k = 0; $k < sizeof($days); $k++) {
                 $response_arr["personnel"][$group_indexes[$i]]["type"][$k] = "";
             }
             $response_arr["personnel"][$group_indexes[$i]]["cost"] = $meal_cost_total;
@@ -1119,9 +1144,9 @@ class TekilController extends Controller
     {
         $mc = Mealcost::where('site_id', $site->id)->orderBy('since', 'DESC')->take(10)->get();
         $mc_arr = $mc->toArray();
-        for($i = 0; $i<sizeof($mc_arr); $i++){
-        $mc_arr[$i]['since'] = CarbonHelper::getTurkishDate($mc_arr[$i]['since']);
-    }
+        for ($i = 0; $i < sizeof($mc_arr); $i++) {
+            $mc_arr[$i]['since'] = CarbonHelper::getTurkishDate($mc_arr[$i]['since']);
+        }
         return response()->json($mc_arr, 200);
     }
 

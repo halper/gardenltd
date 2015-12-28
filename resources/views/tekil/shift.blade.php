@@ -47,7 +47,6 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
             $scope.personnel = [];
             $scope.startDate = '';
             $scope.endDate = '';
-            $scope.siteId = '{{$site->id}}';
             $scope.name = '';
             $scope.loading = false;
 
@@ -63,8 +62,7 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                 $scope.loading = true;
                 $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/overtimes", {
                     'start_date': $scope.startDate,
-                    'end_date': $scope.endDate,
-                    'sid': $scope.siteId
+                    'end_date': $scope.endDate
                 }).then(function (response) {
                     $scope.data = response.data;
                     $scope.days = response.data.days;

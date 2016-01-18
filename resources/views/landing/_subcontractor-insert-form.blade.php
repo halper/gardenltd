@@ -106,7 +106,7 @@ foreach (\App\MobileCode::all() as $mobile) {
 <div class="form-group {{ $errors->has('phone') ? 'has-error' : '' }}">
     <div class="row">
         <div class="col-sm-2">
-            {!! Form::label('phone', 'Telefon numarası:* ', ['class' => 'control-label']) !!}
+            {!! Form::label('phone', 'Telefon numarası: ', ['class' => 'control-label']) !!}
         </div>
         <div class="col-sm-2">
             <select name="area_code_id"
@@ -125,7 +125,7 @@ foreach (\App\MobileCode::all() as $mobile) {
 <div class="form-group {{ $errors->has('fax') ? 'has-error' : '' }}">
     <div class="row">
         <div class="col-sm-2">
-            {!! Form::label('fax', 'Fax numarası:* ', ['class' => 'control-label']) !!}
+            {!! Form::label('fax', 'Fax numarası: ', ['class' => 'control-label']) !!}
         </div>
         <div class="col-sm-2">
             <select name="fax_code_id"

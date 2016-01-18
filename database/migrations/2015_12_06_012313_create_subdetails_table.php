@@ -21,12 +21,12 @@ class CreateSubdetailsTable extends Migration
             $table->foreign('city_id')->references('id')->on('cities')->onDelete('cascade')->onUpdate('cascade');
             $table->string('official');
             $table->string('title');
-            $table->integer('area_code_id')->unsigned()->index();
+            $table->integer('area_code_id')->unsigned()->index()->null();
             $table->foreign('area_code_id')->references('id')->on('area_codes')->onDelete('cascade')->onUpdate('cascade');
-            $table->integer('phone');
-            $table->integer('fax_code_id')->unsigned()->index();
+            $table->integer('phone')->null();
+            $table->integer('fax_code_id')->unsigned()->index()->null();
             $table->foreign('fax_code_id')->references('id')->on('area_codes')->onDelete('cascade')->onUpdate('cascade');
-            $table->integer('fax');
+            $table->integer('fax')->null();
             $table->integer('mobile_code_id')->unsigned()->index();
             $table->foreign('mobile_code_id')->references('id')->on('mobile_codes')->onDelete('cascade')->onUpdate('cascade');
             $table->integer('mobile');

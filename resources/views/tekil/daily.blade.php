@@ -143,8 +143,10 @@ foreach ($main_personnel as $per) {
 }
 
 $subcontractor_personnel_options = '';
+$subcontractor_options = "'<option></option>'+\n";
 foreach ($all_subcontractors as $subcontractor) {
     $subcontractor_personnel_options .= "<optgroup label=\"" . $subcontractor->subdetail->name;
+    $subcontractor_options .= "'<option value=\"$subcontractor->id\">" . TurkishChar::tr_camel($subcontractor->subdetail->name) . "</option>'+\n";
     foreach ($subcontractor->manufacturing()->get() as $manufacture) {
         $subcontractor_personnel_options .= " (" . TurkishChar::tr_up($manufacture->name) . ")";
     }
@@ -445,6 +447,33 @@ EOT;
             });
 
             $(staffToWorkDoneWrapper).on("click", ".remove_field", function (e) { //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
+            });
+
+//            subcontractor gelecek
+            var subcontractorToWorkDoneWrapper = $("#subcontractor-to-work-insert"); //Fields wrapper
+            var addsubcontractorToWorkDone = $(".add-subcontractor-to-work-done-row"); //Add button ID
+
+            $(addsubcontractorToWorkDone).click(function (e) { //on add input button click
+                $(subcontractorToWorkDoneWrapper).append('<div class="form-group"><div class="row"><div class="col-sm-2">' +
+                        '<div class="row"><div class="col-sm-2"><a href="#" class="remove_field"><i class="fa fa-close"></i></a></div>' +
+                        '<div class="col-sm-10">' +
+                        '<select name="subcontractors[]" class="js-additional-subcontractor form-control">' +
+                        {!! $subcontractor_options !!}
+                                '</select></div></div></div>' +
+                        '<div class="col-sm-1"><input type="number" step="1" class="form-control" name="subcontractor_quantity[]"/></div>' +
+                        '<div class="col-sm-1"><input type="text" class="form-control" name="subcontractor_unit[]"/></div>' +
+                        '<div class="col-sm-6"><textarea class="form-control" name="subcontractor_work_done[]" rows="3"/></div>' +
+                        '<div class="col-sm-1"><input type="text" class="number form-control" name="subcontractor_planned[]"/></div>' +
+                        '<div class="col-sm-1"><input type="text" class="number form-control" name="subcontractor_done[]"/></div>' +
+                        '</div></div>'); //add input box
+                $(".js-additional-subcontractor").select2();
+                $('.number').number(true, 2, ',', '.');
+
+            });
+
+            $(subcontractorToWorkDoneWrapper).on("click", ".remove_field", function (e) { //user click on remove text
                 e.preventDefault();
                 $(this).parent().closest('div.row').parent().closest('div.form-group').remove();
             });
@@ -2098,26 +2127,26 @@ EOT;
                                                 </span>
                                             </div>
                                         @else
-                                        <div class="col-sm-3">
-                                            <label class="checkbox-inline">
-                                                {!! Form::checkbox("meals-$i"."[]", '1', (!is_null($report_meal) && (int) $report_meal->meal%2 == 1) ? true : false, ['class' => 'personnel-row-cb']) !!}
-                                                Kahvaltı
-                                            </label>
-                                        </div>
-                                        <div class="col-sm-3">
-                                            <label class="checkbox-inline">
-                                                {!! Form::checkbox("meals-$i"."[]", '2', (!is_null($report_meal) && in_array($report_meal->meal, [2,3,6,7])) ? true : false, ['class' => 'personnel-row-cb']) !!}
-                                                Öğle
-                                            </label>
-                                        </div>
-                                        <div class="col-sm-3">
-                                            <label class="checkbox-inline">
-                                                {!! Form::checkbox("meals-$i"."[]", '4', (!is_null($report_meal) && (int)$report_meal->meal>=4) ? true : false, ['class' => 'personnel-row-cb']) !!}
-                                                Akşam
-                                            </label>
-                                        </div>
-                                        {!! Form::hidden('meals_arr[]', (!is_null($report_meal) ? $report_meal->meal : "0"), ['class' => 'meals_arr']) !!}
-                                            @endif
+                                            <div class="col-sm-3">
+                                                <label class="checkbox-inline">
+                                                    {!! Form::checkbox("meals-$i"."[]", '1', (!is_null($report_meal) && (int) $report_meal->meal%2 == 1) ? true : false, ['class' => 'personnel-row-cb']) !!}
+                                                    Kahvaltı
+                                                </label>
+                                            </div>
+                                            <div class="col-sm-3">
+                                                <label class="checkbox-inline">
+                                                    {!! Form::checkbox("meals-$i"."[]", '2', (!is_null($report_meal) && in_array($report_meal->meal, [2,3,6,7])) ? true : false, ['class' => 'personnel-row-cb']) !!}
+                                                    Öğle
+                                                </label>
+                                            </div>
+                                            <div class="col-sm-3">
+                                                <label class="checkbox-inline">
+                                                    {!! Form::checkbox("meals-$i"."[]", '4', (!is_null($report_meal) && (int)$report_meal->meal>=4) ? true : false, ['class' => 'personnel-row-cb']) !!}
+                                                    Akşam
+                                                </label>
+                                            </div>
+                                            {!! Form::hidden('meals_arr[]', (!is_null($report_meal) ? $report_meal->meal : "0"), ['class' => 'meals_arr']) !!}
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -2207,11 +2236,13 @@ EOT;
                                         } elseif (strpos($report_site_photo->file()->first()->name, 'doc') !== false) {
                                             $image = URL::to('/') . "/img/word.png";
                                         } else {
-                                            $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_photo->name;
+                                            $image = URL::to('/') . "/img/doc.png";
                                         }
+                                        $image_path = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_photo->file()->first()->name;
+
                                         ?>
 
-                                        <a id="lb-link-{{$report_site_photo->id}}" href="{{$image}}"
+                                        <a id="lb-link-{{$report_site_photo->id}}" href="{{$image_path}}"
                                            data-toggle="lightbox" data-gallery="reportsitephotos"
                                            data-footer="<a data-dismiss='modal' class='remove-files' href='#' data-fileId='{{$report_site_photo->id}}'>Dosyayı Sil<a/>"
                                            class="col-sm-4">
@@ -2256,9 +2287,10 @@ EOT;
                                         } elseif (strpos($report_site_receipt->file()->first()->name, 'doc') !== false) {
                                             $image = URL::to('/') . "/img/word.png";
                                         }
+                                        $image_path = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->file()->first()->name
                                         ?>
 
-                                        <a id="lb-link-{{$report_site_receipt->id}}" href="{{$image}}"
+                                        <a id="lb-link-{{$report_site_receipt->id}}" href="{{$image_path}}"
                                            data-toggle="lightbox" data-gallery="reportsitereceipts"
                                            data-footer="<a data-dismiss='modal' class='remove-files' href='#' data-fileId='{{$report_site_receipt->id}}'>Dosyayı Sil<a/>"
                                            class="col-sm-4">
@@ -2285,11 +2317,13 @@ EOT;
                                     } elseif (strpos($report_site_photo->file()->first()->name, 'doc') !== false) {
                                         $image = URL::to('/') . "/img/word.png";
                                     } else {
-                                        $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_photo->file()->first()->name;
+                                        $image = URL::to('/') . "/img/doc.png";
                                     }
+                                    $image_path = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_photo->file()->first()->name;
+
                                     ?>
 
-                                    <a id="lb-link-{{$report_site_photo->id}}" href="{{$image}}"
+                                    <a id="lb-link-{{$report_site_photo->id}}" href="{{$image_path}}"
                                        data-toggle="lightbox" data-gallery="reportsitephotos"
                                        class="col-sm-4">
                                         <img src="{{$image}}" class="img-responsive">
@@ -2312,9 +2346,11 @@ EOT;
                                     } elseif (strpos($report_site_receipt->file()->first()->name, 'doc') !== false) {
                                         $image = URL::to('/') . "/img/word.png";
                                     }
+                                    $image_path = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->file()->first()->name;
+
                                     ?>
 
-                                    <a id="lb-link-{{$report_site_receipt->id}}" href="{{$image}}"
+                                    <a id="lb-link-{{$report_site_receipt->id}}" href="{{$image_path}}"
                                        data-toggle="lightbox" data-gallery="reportsitereceipts"
                                        class="col-sm-4">
                                         <img src="{{$image}}" class="img-responsive">

@@ -39,8 +39,15 @@ foreach (\App\Manufacturing::all() as $manufacture) {
         $(document).on("click", ".subcontractorDelBut", function (e) {
             e.preventDefault();
             var mySubcontractorName = $(this).data('name');
+            var myUserId = $(this).data('id');
+            var myForm = $('.modal-footer #subcontractorDeleteForm');
             var myP = $('.modal-body .userDel');
             myP.html("<em>" + mySubcontractorName + "</em> adlı alt yükleniciyi silmek istediğinize emin misiniz?");
+            $('<input>').attr({
+                type: 'hidden',
+                name: 'subDeleteIn',
+                value: myUserId
+            }).appendTo(myForm);
             $('#deleteSubcontractorConfirm').modal('show');
         });
 

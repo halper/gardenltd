@@ -468,7 +468,7 @@ use App\Library\TurkishChar;
                                 <td>{{$staffs->find($pw->staff_id)->staff}}</td>
                                 <td>{{$pw->quantity}}</td>
                                 <td>{{$pw->unit}}</td>
-                                <td class="number">{{str_replace(".", ",", $pw->works_done)}}</td>
+                                <td>{{$pw->works_done}}</td>
                                 <td class="number">{{str_replace(".", ",", $pw->planned)}}</td>
                                 <td class="number">{{str_replace(".", ",", $pw->done)}}</td>
                                 <td class="number">%{{str_replace(".", ",", $pw_work_done_in_percent)}}</td>
@@ -491,13 +491,13 @@ use App\Library\TurkishChar;
                                     <tr class="bg-warning" style="text-align: center">
                                         @endif
                                         <td>{{$i++}}</td>
-                                        <td>{{\App\Subcontractor::find($sw->subcontractor_id)->name}}</td>
+                                        <td>{{\App\Subcontractor::find($sw->subcontractor_id)->subdetail->name}}</td>
                                         <td>{{$sw->quantity}}</td>
                                         <td>{{$sw->unit}}</td>
-                                        <td class="number">{{$sw->works_done}}</td>
-                                        <td class="number">{{$sw->planned}}</td>
-                                        <td class="number">{{$sw->done}}</td>
-                                        <td class="number">%{{$sw_work_done_in_percent}}</td>
+                                        <td>{{$sw->works_done}}</td>
+                                        <td class="number">{{str_replace(".", ",", $sw->planned)}}</td>
+                                        <td class="number">{{str_replace(".", ",", $sw->done)}}</td>
+                                        <td class="number">%{{str_replace(".", ",", $sw_work_done_in_percent)}}</td>
                                     </tr>
 
                                     @endforeach

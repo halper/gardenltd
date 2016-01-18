@@ -228,17 +228,19 @@ class AdminController extends Controller
             'city_id' => 'required',
             'official' => 'required',
             'title' => 'required',
-            'area_code_id' => 'required',
-            'phone' => 'required | size:7',
-            'fax_code_id' => 'required',
-            'fax' => 'required | size:7',
             'mobile_code_id' => 'required',
             'mobile' => 'required | size:7',
             'email' => 'email',
             'tax_number' => 'required'
         ]);
+        $sub_arr = $request->all();
+        foreach($sub_arr as $v => $k){
+            if(empty($k)){
+                unset($sub_arr[$v]);
+            }
+        }
 
-        $subcontractor = Subdetail::create($request->all());
+        $subcontractor = Subdetail::create($sub_arr);
 
         Session::flash('flash_message', "Alt yüklenici ($subcontractor->name) kaydı oluşturuldu");
 

@@ -568,9 +568,10 @@ class TekilController extends Controller
 
     }
 
-    public function patchDelSubcontractor(Site $site)
+    public function patchDelSubcontractor(Request $request)
     {
-        $site->subcontractor()->delete();
+        $sub_id = $request->get("subDeleteIn");
+        Subcontractor::find($sub_id)->delete();
         Session::flash('flash_message', "Taşeron kayıtları güncellendi");
         return redirect()->back();
     }

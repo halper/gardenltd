@@ -7,6 +7,7 @@ use App\Department;
 use App\Equipment;
 use App\File;
 use App\Library\CarbonHelper;
+use App\Library\TurkishChar;
 use App\Manufacturing;
 use App\Material;
 use App\Module;
@@ -294,7 +295,7 @@ class AdminController extends Controller
         }
 
         $per = Personnel::find($request->get("id"));
-        foreach($per_arr as $k => $v){
+        foreach ($per_arr as $k => $v) {
             $per->$k = $v;
         }
         $per->save();
@@ -333,6 +334,76 @@ class AdminController extends Controller
     {
         Photo::find($request->get("fileid"))->delete();
         return response('success', 200);
+    }
+
+    public function postDelPersonnel(Request $request)
+    {
+        Personnel::find($request->get('userDeleteIn'))->delete();
+        Session::flash('flash_message', 'Personel silindi');
+        return redirect()->back();
+    }
+
+    public function getAltyukleniciDuzenle(Subdetail $subdetail)
+    {
+        return view('landing/subcontractor', compact('subdetail'));
+    }
+
+    public function postModifySubcontractor(Request $request)
+    {
+        $sub_arr = $request->all();
+        $sub = Subdetail::find($request->get('id'));
+        unset($sub_arr["_token"]);
+        unset($sub_arr["id"]);
+        foreach ($sub_arr as $k => $v) {
+            $sub->$k = $v;
+        }
+        $sub->save();
+
+        Session::flash('flash_message', 'Alt yüklenici güncellendi');
+        return redirect()->back();
+
+    }
+
+    public function postDelSubcontractor(Request $request)
+    {
+        Subdetail::find($request->get('userDeleteIn'))->delete();
+        Session::flash('flash_message', 'Alt yüklenici silindi');
+        return redirect()->back();
+    }
+
+    public function postModifyDepartment(Request $request)
+    {
+        $eq = Department::find($request->get("pk"));
+        return $this->modifyEntry($eq, $request);
+    }
+
+    public function postModifyMaterial(Request $request)
+    {
+        $eq = Material::find($request->get("pk"));
+        return $this->modifyEntry($eq, $request);
+    }
+
+    public function postModifyEquipment(Request $request)
+    {
+        $eq = Equipment::find($request->get("pk"));
+        return $this->modifyEntry($eq, $request);
+    }
+
+    public function getDepartments(){
+        return Department::all()->toJson();
+    }
+
+    private function modifyEntry($eq, $request)
+    {
+        if (!empty($eq)) {
+            if (empty($request->get("value"))) {
+                $eq->delete();
+            } else {
+                $eq->name = TurkishChar::tr_up($request->get("value"));
+                $eq->save();
+            }
+        }
+        return response(200);
     }
 
     private function uploadFile($file, $directory = null)

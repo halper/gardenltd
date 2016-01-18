@@ -80,7 +80,7 @@ $mealcost = is_null($site->mealcost()->first()) ? null : $site->mealcost()->orde
             }
         }).filter('trCurrency', function () {
             return function (data) {
-                return data.toString().replace('.', ',');
+                return $.number(data, 2, ',', '.');
             }
         }).filter('searchFor', function () {
             return function (arr, searchStr) {
@@ -283,7 +283,7 @@ $mealcost = is_null($site->mealcost()->first()) ? null : $site->mealcost()->orde
                                                 <td class="text-right"
                                                     ng-style="!person.tck_no && {'background-color' : '#00a9ff',
                                          'font-weight':'900',
-                                         'font-size' : 'small'}"><% person.cost | trCurrency %>
+                                         'font-size' : 'small'}"><% person.cost %>
                                                 </td>
                                             </tr>
                                             </tbody>

@@ -51,7 +51,7 @@ use App\Library\TurkishChar;
             'role' => 'form'
             ]) !!}
 
-            <div class="col-xs-6 date text-center">
+            <div class="col-xs-6 date text-center hidden-print">
                 <div class="input-group input-append date" id="dateRangePicker">
                     <input type="text" class="text-center" name="date" style="line-height: 22px; height:22px"
                            autocomplete="false"/>
@@ -59,6 +59,9 @@ use App\Library\TurkishChar;
                 </div>
             </div>
             {!! Form::close() !!}
+            <div class="col-xs-6 text-right visible-print">
+                {{\App\Library\CarbonHelper::getTurkishDate($report->created_at)}}
+            </div>
             <div class="col-xs-6 text-center">
                 <?php
                 $creation = strtotime($report->updated_at);
@@ -71,36 +74,38 @@ use App\Library\TurkishChar;
     </div>
 </div>
 <div class="table-responsive">
-    <table class="table table-condensed table-bordered">
+    <table class="table table-exxxtra-condensed table-bordered" style="font-size: smaller">
 
         <tbody>
 
         <tr>
-            <td><strong>İŞİN SÜRESİ</strong></td>
-            <td>{{$total_date}} gün</td>
-            <td class="text-center"><strong>KALAN SÜRE:</strong></td>
-            <td></td>
-            <td><strong>HAVA</strong></td>
-            <td class="text-center"
-                style="color: #fff; background-color: rgb(0, 102, 204); font-size: 20px;">{!! $weather_symbol !!}</td>
-            <td class="text-center">{!! !is_null($report->weather) ? $report->weather : $my_weather->getDescription() !!}</td>
-            <td class="text-center">{!! !is_null($report->temp_min) ? $report->temp_min ."<sup>o</sup>C / ". $report->temp_max : $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
+            <td style="vertical-align: middle;"><strong>İŞİN SÜRESİ</strong></td>
+            <td  style="vertical-align: middle;">{{$total_date}} gün</td>
+            <td  style="vertical-align: middle;" class="text-center"><strong>KALAN SÜRE:</strong></td>
+            <td  style="vertical-align: middle;"></td>
+            <td  style="vertical-align: middle;"><strong>HAVA</strong></td>
+            <td  class="text-center"
+                style="vertical-align: middle; color: #fff; background-color: rgb(0, 102, 204); font-size: 16px;">{!! $weather_symbol !!}</td>
+            <td  style="vertical-align: middle;" class="text-center">{!! !is_null($report->weather) ? $report->weather : $my_weather->getDescription() !!}</td>
+            <td  style="vertical-align: middle;" class="text-center">{!! !is_null($report->temp_min) ? str_replace('.', ',', $report->temp_min) ."<sup>o</sup>C / ". str_replace('.', ',', $report->temp_max) : $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
                 <sup>o</sup>C
             </td>
 
         </tr>
-        <tr>
-            <td><strong>GEÇEN SÜRE</strong></td>
-            <td>{{$total_date - $left}} gün</td>
-            <td class="text-center" {{$left<$day_warning ? "style=background-color:red;color:white" : ""}}>{{$left}}
+        <tr style="vertical-align: middle;">
+            <td  style="vertical-align: middle;"><strong>GEÇEN SÜRE</strong></td>
+            <td  style="vertical-align: middle;">{{$total_date - $left}} gün</td>
+            <td  style="vertical-align: middle;" class="text-center" {{$left<$day_warning ? "style=background-color:red;color:white" : ""}}>{{$left}}
                 gün
             </td>
-            <td></td>
-            <td><strong>RÜZGAR</strong></td>
-            <td class="text-center">{{ !is_null($report->weather) ? $report->wind :$my_weather->getWind()}} m/s</td>
-            <td class="text-center" style="font-size: 20px; margin-top: 0; margin-bottom: 0"><i
-                        class="wi wi-wind towards-{{ !is_null($report->weather) ? $report->degree :$my_weather->getDirection()}}-deg"></i></td>
-            <td class="text-center" style="background-color: {{$report->is_working == 1 ? "rgb(0,128,0)" : "red"}}">
+            <td  style="vertical-align: middle;"></td>
+            <td  style="vertical-align: middle;"><strong>RÜZGAR</strong></td>
+            <td  style="vertical-align: middle;" class="text-center">{{ !is_null($report->weather) ? str_replace('.', ',', $report->wind) : $my_weather->getWind()}} m/s</td>
+            <td  class="text-center"
+                 style="vertical-align: middle; font-size: 18px; margin-top: 0; margin-bottom: 0"><i
+                        class="wi wi-wind towards-{{ !is_null($report->weather) ? $report->degree :$my_weather->getDirection()}}-deg"></i>
+            </td>
+            <td  class="text-center" style="vertical-align: middle; background-color: {{$report->is_working == 1 ? "rgb(0,128,0)" : "red"}}">
                 <strong>ÇALIŞMA {{$report->is_working == 1 ? "VAR":"YOK"}}</strong></td>
         </tr>
 
@@ -113,85 +118,80 @@ use App\Library\TurkishChar;
         <div class="row">
             <div class="col-xs-12">
                 <div class="table-responsive">
-                    <table class="table table-condensed table-bordered">
+                    <table class="table table-exxxtra-condensed table-bordered" style="font-size: smaller">
                         <thead>
                         <tr style="background-color: rgb(127,127,127)">
                             <th class="col-sm-10">PERSONEL İCMALİ</th>
-                            <th class="col-sm-2">TOPLAM</th>
+                            <th class="col-sm-2" style="text-align: right">TOPLAM</th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr>
                             <td>YÖNETİM/DENETİM PERSONEL TOPLAMI</td>
-                            <td id="man-tot-res"></td>
+                            <td id="man-tot-res" class="text-right"></td>
                         </tr>
                         <tr>
                             <td>ANA YÜKLENİCİ PERSONEL TOPLAMI</td>
-                            <td id="main-con-tot-res"></td>
+                            <td id="main-con-tot-res" class="text-right"></td>
                         </tr>
                         <tr>
                             <td>ALT YÜKLENİCİLER PERSONEL TOPLAMI</td>
-                            <td id="sub-staff-tot-res"></td>
+                            <td id="sub-staff-tot-res" class="text-right"></td>
                         </tr>
                         <tr>
                             <td>GENEL TOPLAM</td>
-                            <td id="gen-tot-res"></td>
+                            <td id="gen-tot-res" class="text-right"></td>
                         </tr>
 
                         </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
 
-        @if((int)$report->building_control_staff + (int) $report->management_staff + (int) $report->employer_staff > 0)
-            <div class="row">
-                <div class="col-xs-12">
-                    <div class="table-responsive">
-                        <table class="table table-condensed table-bordered">
+
+                        @if((int)$report->building_control_staff + (int) $report->management_staff + (int) $report->employer_staff > 0)
+
                             <thead>
                             <tr style="background-color: rgb(127,127,127)">
                                 <th class="col-sm-10">YÖNETİM/DENETİM PERSONEL TABLOSU</th>
-                                <th class="col-sm-2">ADET</th>
+                                <th class="col-sm-2" style="text-align: right">ADET</th>
                             </tr>
                             </thead>
                             <tbody>
                             @if(!empty($report->employer_staff))
                                 <tr>
-                                    <td><strong>İŞVEREN ({{$site->employer}})</strong></td>
+                                    <td>İŞVEREN ({{$site->employer}})</td>
                                     <td class="text-right">{{$report->employer_staff}}</td>
                                 </tr>
                             @endif
                             @if(!empty($report->management_staff))
                                 <tr>
-                                    <td><strong>PROJE YÖNETİM({{$site->management_name}})</strong></td>
+                                    <td>PROJE YÖNETİM({{$site->management_name}})</td>
                                     <td class="text-right">{{$report->management_staff}}</td>
                                 </tr>
                             @endif
                             @if(!empty($report->building_control_staff))
                                 <tr>
-                                    <td><strong>YAPI DENETİM({{$site->building_control}})</strong></td>
+                                    <td>YAPI DENETİM({{$site->building_control}})</td>
                                     <td class="text-right">{{$report->building_control_staff}}</td>
                                 </tr>
                             @endif
                             @if(!empty($report->isg_staff))
                                 <tr>
-                                    <td><strong>İSG({{$site->isg}})</strong></td>
+                                    <td>İSG({{$site->isg}})</td>
                                     <td class="text-right">{{$report->isg_staff}}</td>
                                 </tr>
                             @endif
 
                             <tr>
-                                <td><strong>TOPLAM</strong></td>
-                                <td id="man-tot" class="text-right">{{(int)$report->building_control_staff + (int) $report->management_staff + (int) $report->employer_staff + (int) $report->isg_staff}}</td>
+                                <td>TOPLAM</td>
+                                <td id="man-tot"
+                                    class="text-right">{{(int)$report->building_control_staff + (int) $report->management_staff + (int) $report->employer_staff + (int) $report->isg_staff}}</td>
                             </tr>
 
                             </tbody>
-                        </table>
-                    </div>
+                        @endif
+                    </table>
                 </div>
             </div>
-        @endif
+        </div>
 
 
         {{--Main contractor table--}}
@@ -226,26 +226,30 @@ use App\Library\TurkishChar;
 
                 <div class="col-sm-12">
                     <div class="table-responsive">
-                        <table class="table table-bordered table-condensed">
-                            <tbody class="text-center">
+                        <table class="table table-bordered table-exxxtra-condensed" style="font-size: smaller">
+                            <tbody style="text-align: center">
 
                             @for($i = 0; $i<$table_count; $i++)
                                 <tr>
                                     @for($j = $i*$number_of_col; $j<sizeof($staff_name_arr) && $j<($i+1)*$number_of_col; $j++)
-                                        <th>{{$staff_name_arr[$j]}}</th>
+                                        <th style="text-align: center">{{$staff_name_arr[$j]}}</th>
                                     @endfor
                                 </tr>
 
                                 <tr>
                                     @for($j = $i*$number_of_col; $j<sizeof($staff_name_arr) && $j<($i+1)*$number_of_col; $j++)
-                                        <td class="text-right">{{$staff_quantity_arr[$j]}}</td>
+                                        <td>{{$staff_quantity_arr[$j]}}</td>
                                     @endfor
                                 </tr>
                             @endfor
                             <tr>
-                                <td><strong>TOPLAM</strong></td>
-                                @for($i = 0; $i<$extra_column; $i++)
-                                    <td></td>
+
+                                @for($i = 0; $i<=$extra_column; $i++)
+                                    @if($i+1 > $extra_column)
+                                        <td><strong>TOPLAM</strong></td>
+                                    @else
+                                        <td></td>
+                                    @endif
                                 @endfor
                                 <td id="main-con-tot" class="text-right">{{$main_contractor_total}}</td>
                             </tr>
@@ -284,7 +288,7 @@ use App\Library\TurkishChar;
                         }
                         ?>
                         <div class="col-sm-12">
-                            <legend>{{$sub->subdetail->name}}
+                            <legend style="font-size: 18px; margin-bottom: 2px">{{$sub->subdetail->name}}
                                 @foreach($sub->manufacturing()->get() as $manufacture)
                                     <small>({{TurkishChar::tr_up($manufacture->name) }})</small>
                                 @endforeach
@@ -294,12 +298,13 @@ use App\Library\TurkishChar;
                         <div class="row">
                             <div class="col-sm-12">
                                 <div class="table-responsive">
-                                    <table class="table table-bordered table-condensed">
-                                        <tbody class="text-center">
+                                    <table class="table table-bordered table-exxxtra-condensed"
+                                           style="font-size: smaller">
+                                        <tbody style="text-align: center">
                                         @for($i = 0; $i<$row_count; $i++)
                                             <tr>
                                                 @for($j = $i*$number_of_col; $j<sizeof($staff_name_arr) && $j<($i+1)*$number_of_col; $j++)
-                                                    <th>{{$staff_name_arr[$j]}}</th>
+                                                    <th style="text-align: center">{{$staff_name_arr[$j]}}</th>
                                                 @endfor
                                             </tr>
                                             <tr>
@@ -310,9 +315,12 @@ use App\Library\TurkishChar;
 
                                         @endfor
                                         <tr>
-                                            <td><strong>TOPLAM</strong></td>
-                                            @for($i = 0; $i<$extra_column; $i++)
-                                                <td></td>
+                                            @for($i = 0; $i<=$extra_column; $i++)
+                                                @if($i+1 > $extra_column)
+                                                    <td><strong>TOPLAM</strong></td>
+                                                @else
+                                                    <td></td>
+                                                @endif
                                             @endfor
                                             <td class="sub-staff-tot text-right">{{$sub_row_total}}</td>
                                         </tr>
@@ -374,14 +382,14 @@ use App\Library\TurkishChar;
                 ?>
                 @if($equipment_total>0)
                     <div class="table-responsive">
-                        <table class="table table-bordered table-condensed">
+                        <table class="table table-bordered table-exxxtra-condensed" style="font-size: smaller">
                             <thead>
                             <tr>
-                                <th>EKİPMAN ADI</th>
-                                <th>ÇALIŞAN</th>
-                                <th>MEVCUT</th>
-                                <th>ARIZALI</th>
-                                <th>TOPLAM</th>
+                                <th style="text-align: center">EKİPMAN ADI</th>
+                                <th style="text-align: center">ÇALIŞAN</th>
+                                <th style="text-align: center">MEVCUT</th>
+                                <th style="text-align: center">ARIZALI</th>
+                                <th style="text-align: center">TOPLAM</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -389,22 +397,22 @@ use App\Library\TurkishChar;
                             $equipment_total = 0;
                             ?>
                             @foreach ($report->equipment()->get() as $eq)
-                                <tr>
+                                <tr style="text-align: center">
                                     <td>{{$eq->name}}</td>
-                                    <td class="text-right">{{$eq->pivot->present}}</td>
-                                    <td class="text-right">{{$eq->pivot->working}}</td>
-                                    <td class="text-right">{{$eq->pivot->broken}}</td>
-                                    <td class="text-right">{{$eq->pivot->present + $eq->pivot->working + $eq->pivot->broken}}</td>
+                                    <td>{{$eq->pivot->present}}</td>
+                                    <td>{{$eq->pivot->working}}</td>
+                                    <td>{{$eq->pivot->broken}}</td>
+                                    <td>{{$eq->pivot->present + $eq->pivot->working + $eq->pivot->broken}}</td>
                                 </tr>
                                 <?php
                                 $equipment_total += (int)$eq->pivot->present + (int)$eq->pivot->working + (int)$eq->pivot->broken;
                                 ?>
                             @endforeach
                             <tr>
-                                <td><strong>TOPLAM</strong></td>
                                 <td></td>
                                 <td></td>
                                 <td></td>
+                                <td class="text-right"><strong>TOPLAM</strong></td>
                                 <td class="text-right">{{$equipment_total}}</td>
                             </tr>
                             </tbody>
@@ -426,17 +434,17 @@ use App\Library\TurkishChar;
                 <span><strong>YAPILAN İŞLER</strong></span>
             </div>
             <div class="table-responsive">
-                <table class="table table-bordered table-condensed">
+                <table class="table table-bordered table-exxxtra-condensed" style="font-size: smaller">
                     <thead>
                     <tr>
-                        <th>S.N</th>
-                        <th>ÇALIŞAN BİRİM</th>
-                        <th>KİŞİ SAYISI</th>
-                        <th>ÖLÇÜ BİRİMİ</th>
-                        <th>YAPILAN İŞLER</th>
-                        <th>PLANLANAN</th>
-                        <th>YAPILAN</th>
-                        <th>YÜZDE</th>
+                        <th style="text-align: center">S.N</th>
+                        <th style="text-align: center">ÇALIŞAN BİRİM</th>
+                        <th style="text-align: center">KİŞİ SAYISI</th>
+                        <th style="text-align: center">ÖLÇÜ BİRİMİ</th>
+                        <th style="text-align: center">YAPILAN İŞLER</th>
+                        <th style="text-align: center">PLANLANAN</th>
+                        <th style="text-align: center">YAPILAN</th>
+                        <th style="text-align: center">YÜZDE</th>
 
                     </tr>
                     </thead>
@@ -450,20 +458,20 @@ use App\Library\TurkishChar;
                         ?>
 
                         @if($pw_work_done_in_percent>100)
-                            <tr class="bg-success">
+                            <tr class="bg-success" style="text-align: center">
                         @elseif($pw_work_done_in_percent<100)
-                            <tr class="bg-danger">
+                            <tr class="bg-danger" style="text-align: center">
                         @elseif($pw_work_done_in_percent == 100)
-                            <tr class="bg-warning">
+                            <tr class="bg-warning" style="text-align: center">
                                 @endif
                                 <td>{{$i++}}</td>
                                 <td>{{$staffs->find($pw->staff_id)->staff}}</td>
-                                <td class="text-right">{{$pw->quantity}}</td>
+                                <td>{{$pw->quantity}}</td>
                                 <td>{{$pw->unit}}</td>
-                                <td class="number text-right">{{str_replace(".", ",", $pw->works_done)}}</td>
-                                <td class="number text-right">{{str_replace(".", ",", $pw->planned)}}</td>
-                                <td class="number text-right">{{str_replace(".", ",", $pw->done)}}</td>
-                                <td class="number text-right">%{{str_replace(".", ",", $pw_work_done_in_percent)}}</td>
+                                <td class="number">{{str_replace(".", ",", $pw->works_done)}}</td>
+                                <td class="number">{{str_replace(".", ",", $pw->planned)}}</td>
+                                <td class="number">{{str_replace(".", ",", $pw->done)}}</td>
+                                <td class="number">%{{str_replace(".", ",", $pw_work_done_in_percent)}}</td>
                             </tr>
 
                             @endforeach
@@ -476,20 +484,20 @@ use App\Library\TurkishChar;
                                 ?>
 
                                 @if($sw_work_done_in_percent>100)
-                                    <tr class="bg-success">
+                                    <tr class="bg-success" style="text-align: center">
                                 @elseif($sw_work_done_in_percent<100)
-                                    <tr class="bg-danger">
+                                    <tr class="bg-danger" style="text-align: center">
                                 @elseif($sw_work_done_in_percent == 100)
-                                    <tr class="bg-warning">
+                                    <tr class="bg-warning" style="text-align: center">
                                         @endif
                                         <td>{{$i++}}</td>
                                         <td>{{\App\Subcontractor::find($sw->subcontractor_id)->name}}</td>
-                                        <td class="text-right">{{$sw->quantity}}</td>
+                                        <td>{{$sw->quantity}}</td>
                                         <td>{{$sw->unit}}</td>
-                                        <td class="number text-right">{{$sw->works_done}}</td>
-                                        <td class="number text-right">{{$sw->planned}}</td>
-                                        <td class="number text-right">{{$sw->done}}</td>
-                                        <td class="number text-right">%{{$sw_work_done_in_percent}}</td>
+                                        <td class="number">{{$sw->works_done}}</td>
+                                        <td class="number">{{$sw->planned}}</td>
+                                        <td class="number">{{$sw->done}}</td>
+                                        <td class="number">%{{$sw_work_done_in_percent}}</td>
                                     </tr>
 
                                     @endforeach
@@ -509,35 +517,36 @@ use App\Library\TurkishChar;
                 <span><strong>GELEN MALZEMELER</strong></span>
             </div>
             <div class="table-responsive">
-                <table class="table table-bordered table-condensed">
+                <table class="table table-bordered table-exxxtra-condensed" style="font-size: smaller">
                     <thead>
                     <tr>
-                        <th>S.N</th>
-                        <th>GELEN MALZEME</th>
-                        <th>GELDİĞİ YER</th>
-                        <th>BİRİM</th>
-                        <th>MİK.</th>
-                        <th>AÇIKLAMASI</th>
+                        <th style="text-align: center">S.N</th>
+                        <th style="text-align: center">GELEN MALZEME</th>
+                        <th style="text-align: center">GELDİĞİ YER</th>
+                        <th style="text-align: center">BİRİM</th>
+                        <th style="text-align: center">MİK.</th>
+                        <th style="text-align: center">AÇIKLAMASI</th>
                     </tr>
                     </thead>
                     <tbody>
 
                     @for($i = 1; $i<=sizeof($inmaterials); $i++)
 
-                        <tr>
+                        <tr style="text-align: center">
                             <td>{{$i}}</td>
                             <td>{{TurkishChar::tr_up(\App\Material::find($inmaterials[$i-1]->material_id)->material)}}</td>
                             <td>{{TurkishChar::tr_up($inmaterials[$i-1]->coming_from)}}</td>
                             <td>{{TurkishChar::tr_up($inmaterials[$i-1]->unit)}}</td>
-                            <td class="number text-right">{{str_replace(".", ",", $inmaterials[$i-1]->quantity)}}</td>
-                            <td>{{$inmaterials[$i-1]->explanation}}</td>
+                            <td class="number">{{str_replace(".", ",", $inmaterials[$i-1]->quantity)}}</td>
+                            <td class="text-left">{{$inmaterials[$i-1]->explanation}}</td>
                         </tr>
 
                     @endfor
-
                     </tbody>
+
                 </table>
             </div>
+
         @endif
     </div>
 </div>
@@ -550,37 +559,39 @@ use App\Library\TurkishChar;
             <div class="text-center" style="background-color: rgb(127,127,127)">
                 <span><strong>GÖNDERİLEN MALZEMELER</strong></span>
             </div>
-            <div class="table-responsive">
-                <table class="table table-bordered table-condensed">
-                    <thead>
-                    <tr>
-                        <th>S.N</th>
-                        <th>GİDEN MALZEME</th>
-                        <th>GİTTİĞİ YER</th>
-                        <th>BİRİM</th>
-                        <th>MİK.</th>
-                        <th>AÇIKLAMASI</th>
-                    </tr>
-                    </thead>
-                    <tbody>
 
-                    @for($i = 1; $i<=sizeof($outmaterials); $i++)
+                <div class="table-responsive">
+                    <table class="table table-bordered table-exxxtra-condensed" style="font-size: smaller">
 
+                        <thead>
                         <tr>
-                            <td>{{$i}}</td>
-                            <td>{{TurkishChar::tr_up(\App\Material::find($outmaterials[$i-1]->material_id)->material)}}</td>
-                            <td>{{TurkishChar::tr_up($outmaterials[$i-1]->coming_from)}}</td>
-                            <td>{{TurkishChar::tr_up($outmaterials[$i-1]->unit)}}</td>
-                            <td class="number text-right">{{str_replace(".", ",", $outmaterials[$i-1]->quantity)}}</td>
-                            <td>{{$outmaterials[$i-1]->explanation}}</td>
+                            <th style="text-align: center">S.N</th>
+                            <th style="text-align: center">GİDEN MALZEME</th>
+                            <th style="text-align: center">GİTTİĞİ YER</th>
+                            <th style="text-align: center">BİRİM</th>
+                            <th style="text-align: center">MİK.</th>
+                            <th style="text-align: center">AÇIKLAMASI</th>
                         </tr>
+                        </thead>
+                        <tbody>
 
-                    @endfor
+                        @for($i = 1; $i<=sizeof($outmaterials); $i++)
 
-                    </tbody>
-                </table>
-            </div>
-        @endif
+                            <tr style="text-align: center">
+                                <td>{{$i}}</td>
+                                <td>{{TurkishChar::tr_up(\App\Material::find($outmaterials[$i-1]->material_id)->material)}}</td>
+                                <td>{{TurkishChar::tr_up($outmaterials[$i-1]->coming_from)}}</td>
+                                <td>{{TurkishChar::tr_up($outmaterials[$i-1]->unit)}}</td>
+                                <td class="number">{{str_replace(".", ",", $outmaterials[$i-1]->quantity)}}</td>
+                                <td class="text-left">{{$outmaterials[$i-1]->explanation}}</td>
+                            </tr>
+
+                        @endfor
+
+                        </tbody>
+                    </table>
+                </div>
+            @endif
     </div>
 </div>
 {{--END OF GELEN MALZEMELER TABLE--}}

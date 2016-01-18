@@ -256,7 +256,7 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                                             <td class="text-right"
                                                 ng-style="!person.tck_no && {'background-color' : '#00a9ff',
                                          'font-weight':'900',
-                                         'font-size' : 'small'}"><% person.wage | trCurrency %>
+                                         'font-size' : 'small'}"><% person.wage %>
                                             </td>
                                         </tr>
                                         </tbody>

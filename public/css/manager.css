@@ -3770,12 +3770,24 @@ th.puantaj, tr.puantaj {
 }
 
 table.table-extra-condensed > tbody > tr,
-table.table-extra-condensed > tbody > tr > td {
+table.table-extra-condensed > tbody > tr > td,
+table.table-extra-condensed > tbody > tr > th
+{
     padding: 2px 1px;
 }
 
 table.table-extra-condensed > thead > tr > th {
     padding: 4px 1px;
+}
+table.table-exxxtra-condensed > tbody > tr,
+table.table-exxxtra-condensed > tbody > tr > td,
+table.table-exxxtra-condensed > tbody > tr > th
+{
+    padding: 0 1px;
+}
+
+table.table-exxxtra-condensed > thead > tr > th {
+    padding: 0 1px;
 }
 
 #searchField > div > span {

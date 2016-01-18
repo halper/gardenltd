@@ -32,6 +32,7 @@ Route::bind('module', function($slug){
 
 Route::model('user', 'App\User');
 Route::model('personnel', 'App\Personnel');
+Route::model('subdetail', 'App\Subdetail');
 
 Route::group(['middleware' => ['auth', 'access']], function() {
     Route::controller('tekil/{site}', 'TekilController');
@@ -48,6 +49,7 @@ Route::group(['middleware' => ['auth', 'admin']], function() {
     Route::patch('admin/sites/{user}', 'AdminController@editSitePermissions');
     Route::patch('admin/modules/{user}', 'AdminController@editModulePermissions');
     Route::get('admin/personel-duzenle/{personnel}', 'AdminController@getPersonelDuzenle');
+    Route::get('admin/altyuklenici-duzenle/{subdetail}', 'AdminController@getAltyukleniciDuzenle');
     Route::controller('admin', 'AdminController');
 });
 

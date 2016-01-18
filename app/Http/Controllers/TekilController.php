@@ -958,18 +958,25 @@ class TekilController extends Controller
         for ($i = 0; $i < sizeof($group_indexes); $i++) {
             $wage_total = 0;
             $pntj_total = 0;
+            $os_total = 0;
             for ($j = $group_indexes[$i] + 1; $j < sizeof($response_arr["personnel"]); $j++) {
                 if ($i + 1 < sizeof($group_indexes) && $group_indexes[$i + 1] == $j) {
                     break;
                 }
                 $wage_total += $response_arr["personnel"][$j]["wage"];
-                $pntj_total += $response_arr["personnel"][$j]["puantaj"];
+                $extra = explode('T + ', $response_arr["personnel"][$j]["puantaj"]);
+                $pntj_total += (double)$extra[0];
+                if(sizeof($extra)>1)
+                $os_total += (double)(str_replace("FM", "", $extra[1]));
             }
             for ($k = 0; $k < sizeof($days); $k++) {
                 $response_arr["personnel"][$group_indexes[$i]]["type"][$k] = "";
             }
             $response_arr["personnel"][$group_indexes[$i]]["wage"] = $wage_total;
-            $response_arr["personnel"][$group_indexes[$i]]["puantaj"] = $pntj_total;
+            $response_arr["personnel"][$group_indexes[$i]]["puantaj"] = $os_total > 0 ? $pntj_total . "T + $os_total" . "FM" : $pntj_total;
+        }
+        for($i = 0; $i < sizeof($response_arr["personnel"]); $i++){
+            $response_arr["personnel"][$i]["wage"] = number_format($response_arr["personnel"][$i]["wage"], 2, ',', '.') . "TL";
         }
         return response()->json($response_arr, 200);
     }
@@ -1136,6 +1143,10 @@ class TekilController extends Controller
             }
             $response_arr["personnel"][$group_indexes[$i]]["cost"] = $meal_cost_total;
             $response_arr["personnel"][$group_indexes[$i]]["meal_total"] = "$breakfast_total/$lunch_total/$supper_total";
+        }
+
+        for($j = 0; $j < sizeof($response_arr["personnel"]); $j++){
+            $response_arr["personnel"][$j]["cost"] = number_format($response_arr["personnel"][$j]["cost"],2,',','.') . "TL";
         }
         return response()->json($response_arr, 200);
     }

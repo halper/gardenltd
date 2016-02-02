@@ -23,4 +23,14 @@ class Meal extends Model
     {
         return $this->belongsTo('App\Report');
     }
+
+    public function scopeOfReport($query, $rid)
+    {
+        return $query->where('report_id', '=', $rid);
+    }
+
+    public function scopeOfPersonnel($query, $pid)
+    {
+        return $query->where('report_id', '=', $pid);
+    }
 }

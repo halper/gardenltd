@@ -60,14 +60,14 @@ class Subcontractor extends Model
         return $this->morphMany('App\Personnel', 'personalize');
     }
 
-    public function cost()
-    {
-        return $this->hasOne('App\Cost');
-    }
-
     public function fee()
     {
         return $this->hasMany('App\Fee');
+    }
+
+    public function payment()
+    {
+        return $this->hasMany('App\Payment');
     }
 
 }

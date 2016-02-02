@@ -4,7 +4,7 @@ $management_depts = new \App\Department();
 
 foreach ($management_depts->management() as $dept) {
     $staff_options .= "<optgroup label=\"$dept->department\">";
-    foreach ($dept->staff()->get() as $staff) {
+    foreach ($dept->staff()->notGarden()->get() as $staff) {
         $staff_options .= "<option value=\"$staff->id\">" . \App\Library\TurkishChar::tr_up($staff->staff) . "</option>";
     }
 }
@@ -59,6 +59,7 @@ foreach ($management_depts->management() as $dept) {
     </div>
 </div>
 
+@if(isset($wage_exists))
 <div class="form-group {{ $errors->has('wage') ? 'has-error' : '' }}">
     <div class="row">
         <div class="col-sm-2">
@@ -76,6 +77,7 @@ foreach ($management_depts->management() as $dept) {
         </div>
     </div>
 </div>
+@endif
 
 <div class="form-group {{ $errors->has('contract') ? 'has-error' : '' }}">
     <div class="row">

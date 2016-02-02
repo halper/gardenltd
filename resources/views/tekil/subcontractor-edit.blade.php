@@ -1,3 +1,8 @@
+<?php
+use Carbon\Carbon;
+$personnel = $subcontractor->personnel()->get();
+$today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
+?>
 @extends('tekil.layout')
 
 @section('page-specific-css')
@@ -17,6 +22,22 @@
     <script src="<?= URL::to('/'); ?>/js/lightbox.js" type="text/javascript"></script>
 
     <script>
+
+        $(document).on("click", ".userDelBut", function (e) {
+
+            e.preventDefault();
+            var myUserId = $(this).data('id');
+            var myUserName = $(this).data('name');
+            var myForm = $('.modal-footer #userDeleteForm');
+            var myP = $('.modal-body .userDel');
+            myP.html("<em>" + myUserName + "</em> adlı kullanıcıyı silmek istediğinize emin misiniz?");
+            $('<input>').attr({
+                type: 'hidden',
+                name: 'userDeleteIn',
+                value: myUserId
+            }).appendTo(myForm);
+            $('#deleteUserConfirm').modal('show');
+        });
 
         $('a[href=#tab_6]').on("shown.bs.tab", function () {
             $(".staff-select").select2({
@@ -109,6 +130,7 @@
             language: 'tr',
             autoclose: true
         });
+        $(".dateRangePicker > input").val("{{$today}}");
     </script>
 @stop
 
@@ -124,6 +146,7 @@
                     <li><a href="#tab_3" data-toggle="tab">Ek Ödemeler</a></li>
                     <li><a href="#tab_5" data-toggle="tab">Ek Belgeler</a></li>
                     <li><a href="#tab_6" data-toggle="tab">Personel Ekle</a></li>
+                    <li><a href="#tab_7" data-toggle="tab">Personel Düzenle</a></li>
 
                 </ul>
                 <div class="tab-content">
@@ -148,7 +171,7 @@
                                 $my_path = '';
                                 $file_name = '';
 
-                                if (!empty($subcontractor->contract->first())) {
+                                if (!empty($subcontractor->contract->first()) && !empty($subcontractor->contract->first()->file->first())) {
                                     $my_path_arr = explode(DIRECTORY_SEPARATOR, $subcontractor->contract->first()->file->first()->path);
                                     $file_name = $subcontractor->contract->first()->file->first()->name;
                                     $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
@@ -217,18 +240,61 @@
                         <div class="row">
                             <div class="col-sm-12">
 
-                                @include('landing._personnel-insert-form')
+                                @include('landing._personnel-insert-form', ['wage_exists' => true])
 
                             </div>
                         </div>
                         {!! Form::close() !!}
                     </div>
+
+                    <div class="tab-pane" id="tab_7">
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <table class="table table-striped">
+                                    <thead>
+                                    <tr>
+                                        <th>Adı-Soyadı</th>
+                                        <th>TCK No</th>
+                                        <th>Kullanıcı İşlemleri</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+
+                                    @foreach($personnel as $per)
+                                        <tr>
+                                            <td>{{ \App\Library\TurkishChar::tr_camel($per->name) }}</td>
+                                            <td>{{ $per->tck_no }}</td>
+
+                                            <td>
+                                                <div class="row">
+                                                    <div class="col-sm-3">
+                                                        <a href="{{"$subcontractor->id/personel-duzenle/$per->id"}}"
+                                                           class="btn btn-flat btn-warning btn-sm">Düzenle</a>
+                                                    </div>
+                                                    <div class="col-sm-2">
+                                                        <?php
+                                                        echo '<button type="button" class="btn btn-flat btn-danger btn-sm userDelBut" data-id="' . $per->id . '" data-name="' . $per->name . '" data-toggle="modal" data-target="#deleteUserConfirm">Sil</button>';
+                                                        ?>
+                                                    </div>
+                                                </div>
+
+                                            </td>
+
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+
                 </div>
             </div>
         </div>
     </div>
 
-    @if(!is_null($subcontractor->cost) && sizeof($costs)>0)
+    @if(!($subcontractor->payment()->get()->isEmpty()))
         <div class="row">
             <div class="col-xs-12 col-md-12">
                 <div class="box box-success box-solid">
@@ -250,34 +316,59 @@
                                 <thead>
                                 <tr>
                                     <th>TARİH</th>
-                                    <th>MALZEME</th>
-                                    <th>AKARYAKIT</th>
-                                    <th>İŞÇİLİK</th>
-                                    <th>İŞ MAKİNASI</th>
-                                    <th>TEMİZLİK</th>
+                                    <th>ÖDEME</th>
+                                    <th>MİKTAR</th>
+                                    <th>ÖDEME TİPİ</th>
                                     <th>AÇIKLAMA</th>
                                 </tr>
                                 </thead>
                                 <tbody>
-                                @foreach ($costs as $cost)
+                                @foreach ($subcontractor->payment()->get() as $payment)
                                     <tr>
-                                        <td>{{ \App\Library\CarbonHelper::getTurkishDate($cost->pay_date) }}</td>
-                                        <td>{{ $cost->material }} TL</td>
-                                        <td>{{ $cost->oil }} TL</td>
-                                        <td>{{ $cost->labour }} TL</td>
-                                        <td>{{ $cost->equipment }} TL</td>
-                                        <td>{{ $cost->cleaning }} TL</td>
-                                        <td>{{ $cost->explanation }}</td>
+                                        <td>{{ \App\Library\CarbonHelper::getTurkishDate($payment->payment_date) }}</td>
+                                        <td>{{ $payment->name }}</td>
+                                        <td>{{ \App\Library\TurkishChar::convertToTRcurrency($payment->amount) }} TL</td>
+                                        <td>{{ empty($payment->method) ? '-' : $payment->method }}</td>
+                                        <td>{{ $payment->detail }}</td>
                                     </tr>
                                 @endforeach
                                 </tbody>
                             </table>
                         </div>
-                        {!! $costs->render() !!}
+
                     </div>
                 </div>
             </div>
         </div>
     @endif
+
+    <div id="deleteUserConfirm" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Personel Sil</h4>
+                </div>
+                <div class="modal-body">
+                    <p class="userDel"></p>
+                </div>
+                <div class="modal-footer">
+                    {!! Form::open([
+                    'url' => '/tekil/del-personnel',
+                    'method' => 'POST',
+                    'class' => 'form',
+                    'id' => 'userDeleteForm',
+                    'role' => 'form'
+                    ]) !!}
+                    <button type="submit" class="btn btn-flat btn-warning">Sil</button>
+                    <button type="button" class="btn btn-flat btn-default" data-dismiss="modal">İptal</button>
+                    {!! Form::close() !!}
+                </div>
+            </div>
+
+        </div>
+    </div>
 
 @stop

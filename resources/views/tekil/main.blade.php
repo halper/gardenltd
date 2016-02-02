@@ -14,7 +14,12 @@
     $left = str_replace("+", "", date_diff($now, $end_date)->format("%R%a"));
     $total = str_replace("+", "", date_diff($start_date, $end_date)->format("%R%a"));
     $passed = str_replace("+", "", date_diff($start_date, $now)->format("%R%a"));
-
+    $hakedis = $site->contract_worth;
+    $total_allowance = 0.0;
+    foreach($site->allowance()->get() as $allowance){
+        $total_allowance += $allowance->amount;
+    }
+            $left_allowance = $hakedis-$total_allowance;
 
 
     $java_func = <<<EOF
@@ -50,8 +55,8 @@
         $(function() {
 
             var followData = [
-                {label: " Hakedişler", data: 75, color: "#006dcc"},
-                {label: " Kalan", data: 25, color: "#5bc0de"}
+                {label: " Hakedişler", data: $total_allowance, color: "#006dcc"},
+                {label: " Kalan", data: $left_allowance, color: "#5bc0de"}
             ];
             $.plot("#finance-status-chart", followData, {
                 series: {
@@ -186,7 +191,7 @@ EOF;
 
                     </div>
                     <p>
-                        Hakedişler ve kalan miktarları gelecek.
+                        Hakedişler: <strong>{{$total_allowance}}TL</strong>, Kalan: <strong>{{$left_allowance}}TL</strong>
                     </p>
                 </div>
             </div>
@@ -194,59 +199,5 @@ EOF;
     </div>
     <!-- END OF CHARTS -->
 
-    <?php
-    $i = 0;
-    $i_modulus = 0;
-    ?>
-    @foreach($modules->getModules() as $module)
-        @if(Auth::User()->hasAnyPermissionOnModule($module->id) || Auth::User()->isAdmin())
-        <?php
-        if (strpos($module->icon, "ion-") !== false) {
-            $i_icon = "ion ";
-        } else {
-            $i_icon = "fa ";
-        }
-        $i_icon .= $module->icon;
 
-        $i_modulus = $i % 4;
-        $i = $i + 1;
-        $box_bg = "bg-";
-
-        switch ($i_modulus) {
-            case(0):
-                $box_bg .= "aqua";
-                break;
-            case(1):
-                $box_bg .= "green";
-                break;
-            case(2):
-                $box_bg .= "yellow";
-                break;
-            case(3):
-                $box_bg .= "red";
-                break;
-        }
-
-
-        ?>
-{!! $i_modulus == 0 ? "<div class=\"row\">" : "" !!}
-        <div class="col-lg-3 col-xs-6">
-            <!-- small box -->
-            <div class="small-box {{$box_bg}}">
-                <div class="inner">
-                    <h3>{{$module->name}}</h3>
-                </div>
-                <div class="icon">
-                    {!! empty($module->icon) ? "" : ("<i class=\"$i_icon\"></i>")!!}
-                </div>
-                <a href="{{$site->slug . "/" . $module->slug}}" class="small-box-footer">
-                    Detaylar <i class="fa fa-arrow-circle-right"></i>
-                </a>
-            </div>
-        </div>
-        {!! $i_modulus == 3 ? "</div>" : "" !!}
-        @endif
-
-    @endforeach
-    {!! $i_modulus != 3 ? "</div>" : "" !!}
 @stop

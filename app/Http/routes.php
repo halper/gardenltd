@@ -31,17 +31,30 @@ Route::bind('module', function($slug){
 });
 
 Route::model('user', 'App\User');
+Route::model('smdemand', 'App\Smdemand');
+Route::model('demand', 'App\Demand');
 Route::model('personnel', 'App\Personnel');
 Route::model('subdetail', 'App\Subdetail');
+Route::model('subcontractor', 'App\Subcontractor');
 
 Route::group(['middleware' => ['auth', 'access']], function() {
+    Route::get('tekil/{site}/baglanti-malzeme-duzenle/{smdemand}', 'TekilController@getBaglantiMalzemeDuzenle');
+    Route::get('tekil/{site}/talep-duzenle/{demand}', 'TekilController@getTalepDuzenle');
+    Route::get('tekil/{site}/talep-sevket/{demand}', 'TekilController@getTalepSevket');
+    Route::get('tekil/{site}/alt-yuklenici-duzenle/{subcontractor}', 'TekilController@getAltYukleniciDuzenle');
+    Route::get('tekil/{site}/alt-yuklenici-duzenle/{subcontractor}/personel-duzenle/{personnel}', 'TekilController@getPersonelDuzenle');
     Route::controller('tekil/{site}', 'TekilController');
 });
 
 
+Route::get('santiye/retrieve-stocks', 'SantiyeController@getStocks');
+Route::get('santiye-duzenle/{site}', 'SantiyeController@editSite');
+Route::post('santiye/modify-stock', 'SantiyeController@updateStock');
 Route::controller('santiye', 'SantiyeController');
+
 Route::group(['middleware' => ['auth', 'admin']], function() {
     Route::get('admin/duzenle/{user}', 'AdminController@edit');
+    Route::get('admin/talep-onay/{demand}', 'AdminController@approve');
     Route::get('admin/duzenle', function(){
         return new RedirectResponse(url('/admin'));
     });
@@ -63,4 +76,7 @@ Route::bind('filename', function($filename){
 });
 
 Route::get('uploads/{directory}/{filename}', 'HomeController@getUploads');
+Route::get('/home', function(){
+   return redirect('santiye');
+});
 Route::controller('/', 'HomeController');

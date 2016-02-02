@@ -103,4 +103,14 @@ class Report extends Model
         return $this->hasMany('App\Meal');
     }
 
+    public function scopeDateRange($query, $start, $end)
+    {
+        return $query->where('created_at', '>=', $start)->where('created_at', '<=', $end);
+    }
+
+    public function scopeOfDate($query, $date)
+    {
+        return $query->whereDate('created_at', '=', $date);
+    }
+
 }

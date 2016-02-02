@@ -112,7 +112,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                                                     $file_name = '';
 
 
-                                                    if (!is_null($sub->contract->first())) {
+                                                    if ($contract_entry_exists && !is_null($sub->contract->first()->file->first())) {
                                                         $my_path_arr = explode(DIRECTORY_SEPARATOR, $sub->contract->first()->file->first()->path);
                                                         $file_name = $sub->contract->first()->file->first()->name;
                                                         $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
@@ -165,7 +165,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                                                     ])!!}
 
 
-                                    @foreach(App\Subdetail::all() as $subcontractor)
+                                    @foreach(\App\Subdetail::all() as $subcontractor)
 
                                         @if(!is_null($site->subcontractor()->onlyTrashed()->where('subdetail_id', $subcontractor->id)->first()))
                                             <div class="col-md-4 col-xs-6">
@@ -176,6 +176,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                                                     ])
                                                     !!}{{ $subcontractor->name}}</label>
                                             </div>
+
                                         @elseif(!$site->hasSubcontractor($subcontractor->id))
                                             <div class="col-md-4 col-xs-6">
                                                 <label class="checkbox-inline">

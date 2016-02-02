@@ -17,8 +17,7 @@ use App\Library\TurkishChar;
 <div class="row">
     <div class="col-sm-12 text-center">
         <div style="background-color: rgb(255,204,0)">
-            <span><strong>MKE Kırıkkale Hurda Müdürlüğünde P1,P2,P3 ve P5 Parselleri Geçirimsiz Saha Betonu ve Altyapısı
-                    İşi</strong></span>
+            <span><strong>{{$site->job_name}}</strong></span>
         </div>
     </div>
 </div>
@@ -80,32 +79,39 @@ use App\Library\TurkishChar;
 
         <tr>
             <td style="vertical-align: middle;"><strong>İŞİN SÜRESİ</strong></td>
-            <td  style="vertical-align: middle;">{{$total_date}} gün</td>
-            <td  style="vertical-align: middle;" class="text-center"><strong>KALAN SÜRE:</strong></td>
-            <td  style="vertical-align: middle;"></td>
-            <td  style="vertical-align: middle;"><strong>HAVA</strong></td>
-            <td  class="text-center"
+            <td style="vertical-align: middle;">{{$total_date}} gün</td>
+            <td style="vertical-align: middle;" class="text-center"><strong>KALAN SÜRE:</strong></td>
+            <td style="vertical-align: middle;"></td>
+            <td style="vertical-align: middle;"><strong>HAVA</strong></td>
+            <td class="text-center"
                 style="vertical-align: middle; color: #fff; background-color: rgb(0, 102, 204); font-size: 16px;">{!! $weather_symbol !!}</td>
-            <td  style="vertical-align: middle;" class="text-center">{!! !is_null($report->weather) ? $report->weather : $my_weather->getDescription() !!}</td>
-            <td  style="vertical-align: middle;" class="text-center">{!! !is_null($report->temp_min) ? str_replace('.', ',', $report->temp_min) ."<sup>o</sup>C / ". str_replace('.', ',', $report->temp_max) : $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
+            <td style="vertical-align: middle;"
+                class="text-center">{!! !is_null($report->weather) ? $report->weather : $my_weather->getDescription() !!}</td>
+            <td style="vertical-align: middle;"
+                class="text-center">{!! !is_null($report->temp_min) ? str_replace('.', ',', $report->temp_min) ."<sup>o</sup>C / ". str_replace('.', ',', $report->temp_max) : $my_weather->getMin() ."<sup>o</sup>C / ". $my_weather->getMax() !!}
                 <sup>o</sup>C
             </td>
 
         </tr>
         <tr style="vertical-align: middle;">
-            <td  style="vertical-align: middle;"><strong>GEÇEN SÜRE</strong></td>
-            <td  style="vertical-align: middle;">{{$total_date - $left}} gün</td>
-            <td  style="vertical-align: middle;" class="text-center" {{$left<$day_warning ? "style=background-color:red;color:white" : ""}}>{{$left}}
+            <td style="vertical-align: middle;"><strong>GEÇEN SÜRE</strong></td>
+            <td style="vertical-align: middle;">{{$total_date - $left}} gün</td>
+            <td style="vertical-align: middle;"
+                class="text-center" {{$left<$day_warning ? "style=background-color:red;color:white" : ""}}>{{$left}}
                 gün
             </td>
-            <td  style="vertical-align: middle;"></td>
-            <td  style="vertical-align: middle;"><strong>RÜZGAR</strong></td>
-            <td  style="vertical-align: middle;" class="text-center">{{ !is_null($report->weather) ? str_replace('.', ',', $report->wind) : $my_weather->getWind()}} m/s</td>
-            <td  class="text-center"
-                 style="vertical-align: middle; font-size: 18px; margin-top: 0; margin-bottom: 0"><i
+            <td style="vertical-align: middle;"></td>
+            <td style="vertical-align: middle;"><strong>RÜZGAR</strong></td>
+            <td style="vertical-align: middle;"
+                class="text-center">{{ !is_null($report->weather) ? str_replace('.', ',', $report->wind) : $my_weather->getWind()}}
+                m/s
+            </td>
+            <td class="text-center"
+                style="vertical-align: middle; font-size: 18px; margin-top: 0; margin-bottom: 0"><i
                         class="wi wi-wind towards-{{ !is_null($report->weather) ? $report->degree :$my_weather->getDirection()}}-deg"></i>
             </td>
-            <td  class="text-center" style="vertical-align: middle; background-color: {{$report->is_working == 1 ? "rgb(0,128,0)" : "red"}}">
+            <td class="text-center"
+                style="vertical-align: middle; background-color: {{$report->is_working == 1 ? "rgb(0,128,0)" : "red"}}">
                 <strong>ÇALIŞMA {{$report->is_working == 1 ? "VAR":"YOK"}}</strong></td>
         </tr>
 
@@ -441,9 +447,9 @@ use App\Library\TurkishChar;
                         <th style="text-align: center">ÇALIŞAN BİRİM</th>
                         <th style="text-align: center">KİŞİ SAYISI</th>
                         <th style="text-align: center">ÖLÇÜ BİRİMİ</th>
-                        <th style="text-align: center">YAPILAN İŞLER</th>
                         <th style="text-align: center">PLANLANAN</th>
                         <th style="text-align: center">YAPILAN</th>
+                        <th style="text-align: center">YAPILAN İŞLER</th>
                         <th style="text-align: center">YÜZDE</th>
 
                     </tr>
@@ -465,12 +471,12 @@ use App\Library\TurkishChar;
                             <tr class="bg-warning" style="text-align: center">
                                 @endif
                                 <td>{{$i++}}</td>
-                                <td>{{$staffs->find($pw->staff_id)->staff}}</td>
+                                <td>{{$pw->staff->staff}}</td>
                                 <td>{{$pw->quantity}}</td>
                                 <td>{{$pw->unit}}</td>
-                                <td>{{$pw->works_done}}</td>
                                 <td class="number">{{str_replace(".", ",", $pw->planned)}}</td>
                                 <td class="number">{{str_replace(".", ",", $pw->done)}}</td>
+                                <td>{{$pw->works_done}}</td>
                                 <td class="number">%{{str_replace(".", ",", $pw_work_done_in_percent)}}</td>
                             </tr>
 
@@ -478,7 +484,6 @@ use App\Library\TurkishChar;
 
                             @foreach($report->swunit()->get() as $sw)
                                 <?php
-
                                 $sw_work_done_in_percent = ((int)$sw->planned == 0 || is_null($sw->planned)) ? 0 : 100 * (int)$sw->done / (int)$sw->planned;
 
                                 ?>
@@ -491,12 +496,12 @@ use App\Library\TurkishChar;
                                     <tr class="bg-warning" style="text-align: center">
                                         @endif
                                         <td>{{$i++}}</td>
-                                        <td>{{\App\Subcontractor::find($sw->subcontractor_id)->subdetail->name}}</td>
+                                        <td>{{$sw->subcontractor->subdetail->name}}</td>
                                         <td>{{$sw->quantity}}</td>
                                         <td>{{$sw->unit}}</td>
-                                        <td>{{$sw->works_done}}</td>
                                         <td class="number">{{str_replace(".", ",", $sw->planned)}}</td>
                                         <td class="number">{{str_replace(".", ",", $sw->done)}}</td>
+                                        <td>{{$sw->works_done}}</td>
                                         <td class="number">%{{str_replace(".", ",", $sw_work_done_in_percent)}}</td>
                                     </tr>
 
@@ -522,23 +527,47 @@ use App\Library\TurkishChar;
                     <tr>
                         <th style="text-align: center">S.N</th>
                         <th style="text-align: center">GELEN MALZEME</th>
-                        <th style="text-align: center">GELDİĞİ YER</th>
                         <th style="text-align: center">BİRİM</th>
                         <th style="text-align: center">MİK.</th>
                         <th style="text-align: center">AÇIKLAMASI</th>
                     </tr>
                     </thead>
                     <tbody>
+                    <?php
 
-                    @for($i = 1; $i<=sizeof($inmaterials); $i++)
+                    $inmat_ordered_arr = [];
+                    $id_arr = [];
+                    $inmat_ordered = $report->inmaterial()->orderBy('material_id', 'DESC')->get();
+
+                    $i = 0;
+                    $j = 0;
+                    foreach ($inmat_ordered as $in) {
+                        if (!in_array($in->material->id, $id_arr)) {
+                            array_push($id_arr, $in->material->id);
+                            array_push($inmat_ordered_arr, [
+                                    "unit" => $in->unit,
+                                    "quantity" => (double)$in->quantity,
+                                    "name" => $in->material->material,
+                                    "explanation" => $in->explanation
+                            ]);
+                            $i = 1;
+                            $j++;
+                        } else {
+                            $inmat_ordered_arr[$j - 1]["explanation"] = "$i adet teslimat yapılmıştır.";
+                            $inmat_ordered_arr[$j - 1]["quantity"] += (double)$in->quantity;
+                        }
+                        $i++;
+                    }
+                    ?>
+
+                    @for($i = 1; $i<=sizeof($inmat_ordered_arr); $i++)
 
                         <tr style="text-align: center">
                             <td>{{$i}}</td>
-                            <td>{{TurkishChar::tr_up(\App\Material::find($inmaterials[$i-1]->material_id)->material)}}</td>
-                            <td>{{TurkishChar::tr_up($inmaterials[$i-1]->coming_from)}}</td>
-                            <td>{{TurkishChar::tr_up($inmaterials[$i-1]->unit)}}</td>
-                            <td class="number">{{str_replace(".", ",", $inmaterials[$i-1]->quantity)}}</td>
-                            <td class="text-left">{{$inmaterials[$i-1]->explanation}}</td>
+                            <td>{{TurkishChar::tr_up($inmat_ordered_arr[$i-1]["name"])}}</td>
+                            <td>{{TurkishChar::tr_up($inmat_ordered_arr[$i-1]["unit"])}}</td>
+                            <td class="number">{{str_replace(".", ",", $inmat_ordered_arr[$i-1]["quantity"])}}</td>
+                            <td class="text-left">{{$inmat_ordered_arr[$i-1]["explanation"]}}</td>
                         </tr>
 
                     @endfor
@@ -560,38 +589,38 @@ use App\Library\TurkishChar;
                 <span><strong>GÖNDERİLEN MALZEMELER</strong></span>
             </div>
 
-                <div class="table-responsive">
-                    <table class="table table-bordered table-exxxtra-condensed" style="font-size: smaller">
+            <div class="table-responsive">
+                <table class="table table-bordered table-exxxtra-condensed" style="font-size: smaller">
 
-                        <thead>
-                        <tr>
-                            <th style="text-align: center">S.N</th>
-                            <th style="text-align: center">GİDEN MALZEME</th>
-                            <th style="text-align: center">GİTTİĞİ YER</th>
-                            <th style="text-align: center">BİRİM</th>
-                            <th style="text-align: center">MİK.</th>
-                            <th style="text-align: center">AÇIKLAMASI</th>
+                    <thead>
+                    <tr>
+                        <th style="text-align: center">S.N</th>
+                        <th style="text-align: center">GİDEN MALZEME</th>
+                        <th style="text-align: center">GİTTİĞİ YER</th>
+                        <th style="text-align: center">BİRİM</th>
+                        <th style="text-align: center">MİK.</th>
+                        <th style="text-align: center">AÇIKLAMASI</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+
+                    @for($i = 1; $i<=sizeof($outmaterials); $i++)
+
+                        <tr style="text-align: center">
+                            <td>{{$i}}</td>
+                            <td>{{TurkishChar::tr_up(\App\Material::find($outmaterials[$i-1]->material_id)->material)}}</td>
+                            <td>{{TurkishChar::tr_up($outmaterials[$i-1]->coming_from)}}</td>
+                            <td>{{TurkishChar::tr_up($outmaterials[$i-1]->unit)}}</td>
+                            <td class="number">{{str_replace(".", ",", $outmaterials[$i-1]->quantity)}}</td>
+                            <td class="text-left">{{$outmaterials[$i-1]->explanation}}</td>
                         </tr>
-                        </thead>
-                        <tbody>
 
-                        @for($i = 1; $i<=sizeof($outmaterials); $i++)
+                    @endfor
 
-                            <tr style="text-align: center">
-                                <td>{{$i}}</td>
-                                <td>{{TurkishChar::tr_up(\App\Material::find($outmaterials[$i-1]->material_id)->material)}}</td>
-                                <td>{{TurkishChar::tr_up($outmaterials[$i-1]->coming_from)}}</td>
-                                <td>{{TurkishChar::tr_up($outmaterials[$i-1]->unit)}}</td>
-                                <td class="number">{{str_replace(".", ",", $outmaterials[$i-1]->quantity)}}</td>
-                                <td class="text-left">{{$outmaterials[$i-1]->explanation}}</td>
-                            </tr>
-
-                        @endfor
-
-                        </tbody>
-                    </table>
-                </div>
-            @endif
+                    </tbody>
+                </table>
+            </div>
+        @endif
     </div>
 </div>
 {{--END OF GELEN MALZEMELER TABLE--}}

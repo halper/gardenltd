@@ -28,4 +28,14 @@ class Shift extends Model
     {
         return $this->belongsTo('App\Overtime');
     }
+
+    public function scopeOfReport($query, $rid)
+    {
+        return $query->where('report_id', '=', $rid);
+    }
+
+    public function scopeOfPersonnel($query, $pid)
+    {
+        return $query->where('report_id', '=', $pid);
+    }
 }

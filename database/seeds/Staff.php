@@ -26,6 +26,12 @@ class StaffsTableSeeder extends Seeder
     public function run()
     {
         DB::table('staffs')->delete();
+
+        St::create(array(
+            'staff' => 'Garden Personel',
+            'department_id' => '1',
+            'id' => '1',
+        ));
         St::create(array(
             'staff' => 'Proje Müdürü',
             'department_id' => '1',

@@ -14,9 +14,9 @@ class CreateMealcostsTable extends Migration
     {
         Schema::create('mealcosts', function (Blueprint $table) {
             $table->increments('id');
-            $table->double('breakfast', 6, 3)->nullable();
-            $table->double('lunch', 6, 3)->nullable();
-            $table->double('supper', 6, 3)->nullable();
+            $table->double('breakfast', 12, 3)->nullable();
+            $table->double('lunch', 12, 3)->nullable();
+            $table->double('supper', 12, 3)->nullable();
             $table->date('since')->nullable();
             $table->unsignedInteger('site_id')->index()->nullable();
             $table->foreign('site_id')->references('id')->on('sites')->onDelete('cascade')->onUpdate('cascade');

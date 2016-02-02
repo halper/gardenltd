@@ -45,6 +45,11 @@ class Personnel extends Model
         return $query->wherePersonalizeType('App\Site');
     }
 
+    public function scopeIsSitePersonnel($query)
+    {
+        return !empty($query->wherePersonalizeType('App\Site'));
+    }
+
     public function scopeSubcontractorsPersonnel($query)
     {
         return $query->wherePersonalizeType('App\Subcontractor');

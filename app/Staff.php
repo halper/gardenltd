@@ -34,4 +34,14 @@ class Staff extends Model
     {
         return $this->morphMany('App\Work', 'workable');
     }
+
+    public function scopeAllStaff($query)
+    {
+        return $this->scopeNotGarden($query)->get();
+    }
+
+    public function scopeNotGarden($query)
+    {
+        return $query->where('id', '>', '1');
+    }
 }

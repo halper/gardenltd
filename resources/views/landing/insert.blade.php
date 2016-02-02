@@ -1,7 +1,7 @@
 <?php
 $sites = \App\Site::getSites();
 $eq_json = json_encode(\App\Equipment::all());
-$staffs = \App\Staff::all();
+$staffs = \App\Staff::allStaff();
 $staff_json = [];
 $site_options = '<option></option>';
 
@@ -23,7 +23,7 @@ $management_depts = new \App\Department();
 
 foreach ($management_depts->management() as $dept) {
     $staff_options .= "<optgroup label=\"$dept->department\">";
-    foreach ($dept->staff()->get() as $staff) {
+    foreach ($dept->staff()->notGarden()->get() as $staff) {
         $staff_options .= "<option value=\"$staff->id\">" . \App\Library\TurkishChar::tr_up($staff->staff) . "</option>";
     }
 }
@@ -46,7 +46,14 @@ foreach ($management_depts->management() as $dept) {
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/jquery.number.js" type="text/javascript"></script>
     <script>
-
+        String.prototype.turkishToLower = function () {
+            var string = this;
+            var letters = {"İ": "i", "I": "ı", "Ş": "ş", "Ğ": "ğ", "Ü": "ü", "Ö": "ö", "Ç": "ç"};
+            string = string.replace(/(([İIŞĞÜÇÖ]))/g, function (letter) {
+                return letters[letter];
+            });
+            return string.toLowerCase();
+        };
         $("#add-personnel").on("click", function (e) {
             e.preventDefault();
             var tckInput = $('input[name=tck_no]');
@@ -100,10 +107,10 @@ foreach ($management_depts->management() as $dept) {
                 if (!$('input[name="equipment"]').val()) {
                     return;
                 }
-                $scope.name = $filter('trUp')($scope.name);
+                var name = $scope.name.turkishToLower();
                 var addToArray = true;
                 for (var i = 0; i < $scope.presentEquipments.length; i++) {
-                    if ($scope.presentEquipments[i].name === $scope.name) {
+                    if ($scope.presentEquipments[i].name.turkishToLower() === name) {
                         addToArray = false;
                     }
                 }
@@ -113,6 +120,7 @@ foreach ($management_depts->management() as $dept) {
 
                     return;
                 }
+                $scope.name = $filter('trUp')($scope.name);
                 $http.post("<?=URL::to('/');?>/admin/add-equipment", {
                     'name': $scope.name
                 }).success(function (response) {
@@ -150,6 +158,81 @@ foreach ($management_depts->management() as $dept) {
             $scope.newDept = '';
             $scope.newMat = '';
 
+            $scope.stocks = [];
+            $scope.newStock = '';
+            $scope.stockError = '';
+            $scope.stockName = '';
+            $scope.stockUnit = '';
+            $scope.stockTotal = '';
+
+            $scope.getStocks = function () {
+                $http.get("<?=URL::to('/');?>/admin/retrieve-stocks")
+                        .then(function (response) {
+                            $scope.stocks = response.data;
+                        });
+            };
+
+            $scope.addStock = function () {
+                var arrayCheck = false;
+                var tempName = $scope.stockName.turkishToLower();
+                $scope.stockName = $filter('trUp')($scope.stockName);
+                angular.forEach($scope.stocks, function (value, index) {
+                    if (value.name.turkishToLower() === tempName) {
+                        $scope.stockError = $scope.stockName + " mevcut demirbaşlarınız arasında yer almakta!";
+                        arrayCheck = true;
+                    }
+                });
+                if (arrayCheck) {
+                    return;
+                }
+                $http.post("<?=URL::to('/');?>/admin/add-stock", {
+                    name: $scope.stockName,
+                    unit: $scope.stockUnit,
+                    total: $scope.stockTotal
+                }).then(function (response) {
+                    $scope.stocks.push({
+                        name: $scope.stockName,
+                        unit: $scope.stockUnit,
+                        total: $scope.stockTotal
+                    });
+                    $scope.stockName = '';
+                    $scope.stockUnit = '';
+                    $scope.stockTotal = '';
+                });
+            };
+
+            $scope.manufacturings = [];
+            $scope.newMan = '';
+            $scope.manError = '';
+
+            $scope.getManufacturings = function () {
+                $http.get("<?=URL::to('/');?>/admin/retrieve-manufacturings")
+                        .then(function (response) {
+                            $scope.manufacturings = response.data;
+                        });
+            };
+
+            $scope.addManufacturing = function () {
+                var arrayCheck = false;
+                var tempName = $scope.manufacturing_name.turkishToLower();
+                $scope.manufacturing_name = $filter('trUp')($scope.manufacturing_name);
+                angular.forEach($scope.manufacturings, function (value, index) {
+                    if (value.turkishToLower() === tempName) {
+                        $scope.manError = $scope.manufacturing_name + " mevcut faaliyet kollarınız arasında yer almakta!";
+                        arrayCheck = true;
+                    }
+                });
+                if (arrayCheck) {
+                    return;
+                }
+                $http.post("<?=URL::to('/');?>/admin/add-manufacturing", {
+                    name: $scope.manufacturing_name
+                }).then(function (response) {
+                    $scope.manufacturings.push($scope.manufacturing_name);
+                    $scope.manufacturing_name = '';
+                });
+            };
+
             $scope.addStaff = function () {
                 $scope.newStaff = '';
                 $scope.error = '';
@@ -181,8 +264,6 @@ foreach ($management_depts->management() as $dept) {
                     staff: $scope.name,
                     department_id: $scope.dept.id
                 }).success(function (response) {
-
-
                     $scope.newStaff = $scope.name;
                     $scope.staffs.push(
                             {
@@ -206,10 +287,11 @@ foreach ($management_depts->management() as $dept) {
 
                     return;
                 }
+                var name = $scope.department_name.turkishToLower();
                 $scope.department_name = $filter('trUp')($scope.department_name);
                 var addToArray = true;
                 for (var i = 0; i < $scope.departments.length; i++) {
-                    if ($scope.departments[i].department === $scope.department_name) {
+                    if ($scope.departments[i].department.turkishToLower() === name) {
                         addToArray = false;
                     }
                 }
@@ -243,10 +325,11 @@ foreach ($management_depts->management() as $dept) {
 
                     return;
                 }
+                var name = $scope.material_name.turkishToLower();
                 $scope.material_name = $filter('trUp')($scope.material_name);
                 var addToArray = true;
                 for (var i = 0; i < $scope.materials.length; i++) {
-                    if ($scope.materials[i].material === $scope.material_name) {
+                    if ($scope.materials[i].material.turkishToLower() === $scope.material_name) {
                         addToArray = false;
                     }
                 }
@@ -270,9 +353,27 @@ foreach ($management_depts->management() as $dept) {
                     $scope.matError = '';
                 });
             };
+        }).filter('searchFor', function () {
+            return function (arr, searchStr) {
+                if (!searchStr) {
+                    return arr;
+                }
+                var result = [];
+                searchStr = searchStr.turkishToLower();
+                angular.forEach(arr, function (item) {
+                    if (item.turkishToLower().indexOf(searchStr) !== -1) {
+                        result.push(item);
+                    }
+                });
+                return result;
+            };
         });
 
         $(document).ready(function () {
+
+            angular.element('#addApp').scope().getManufacturings();
+            angular.element('#addApp').scope().getStocks();
+
             $(".js-example-basic-multiple").select2({
                 placeholder: "Çoklu seçim yapabilirsiniz",
                 allowClear: true
@@ -307,13 +408,16 @@ foreach ($management_depts->management() as $dept) {
     <div class="row">
         <div class="col-md-12">
             <!-- Custom Tabs -->
-            <div class="nav-tabs-custom" ng-app="addApp" ng-controller="StaffController">
+            <div class="nav-tabs-custom" ng-app="addApp" ng-controller="StaffController" id="addApp">
                 <ul class="nav nav-tabs">
                     <li class="active"><a href="#tab_5" data-toggle="tab">Personel</a></li>
                     <li><a href="#tab_1" data-toggle="tab">Alt Yüklenici</a></li>
                     <li><a href="#tab_2" data-toggle="tab">İş Kolu</a></li>
+                    <li><a href="#tab_man" data-toggle="tab">Faaliyet Alanı</a></li>
                     <li><a href="#tab_3" data-toggle="tab">Departman</a></li>
+                    <li><a href="#tab_stock" data-toggle="tab">Demirbaş</a></li>
                     <li><a href="#tab_mat" data-toggle="tab">Malzeme</a></li>
+                    <li><a href="#tab_submat" data-toggle="tab">Bağlantılı Malzeme</a></li>
                     <li><a href="#tab_4" data-toggle="tab">İş Makinesi</a></li>
 
                 </ul>
@@ -321,6 +425,13 @@ foreach ($management_depts->management() as $dept) {
                 <!-- /.tab-content -->
                 <div class="tab-content">
                     <div class="tab-pane active" id="tab_5">
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <p>Bu alandan sadece Garden personeli ekleyebilirsiniz.
+                                    Alt yüklenici personeli eklemek için ilgili şantiyenin alt yüklenici cari hesap
+                                    sayfasına gidiniz.</p>
+                            </div>
+                        </div>
                         <div class="row">
                             <div class="col-sm-12">
 
@@ -365,246 +476,34 @@ foreach ($management_depts->management() as $dept) {
 
                     {{--tab pane--}}
                     <div class="tab-pane" id="tab_2">
-                        <div class="row">
-                            <div class="col-xs-12 col-md-12">
-
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="row">
-
-
-                                            <div class="col-md-1">
-                                                <label for="name">İş Kolu Adı: </label>
-                                            </div>
-                                            <div class="col-md-4">
-
-                                                <input type="text" class="form-control"
-                                                       name="staff" ng-model="name"
-                                                       value="" autocomplete="off"
-                                                       placeholder="Yeni iş kolu giriniz"/>
-
-                                            </div>
-
-                                            <div class="col-md-3">
-
-                                                <select class="form-control" name="department" ng-model="dept"
-                                                        ng-options="dept as dept.department for dept in departments">
-                                                    {{--{!! $dept_options !!}}--}}
-                                                    <option value='' selected disabled>Departman seçiniz</option>
-                                                </select>
-
-                                            </div>
-
-
-                                            <div class="col-xs-12 col-md-2 ">
-                                                <button type="button" ng-click="addStaff()"
-                                                        class="btn btn-primary btn-flat btn-block">Ekle
-                                                </button>
-                                            </div>
-
-                                            <div class="col-md-3" ng-show="newStaff != ''">
-                                                <span class="text-success"><%newStaff%> iş kolları arasına eklendi</span>
-                                            </div>
-
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-3" ng-show="error != ''">
-                                        <span class="text-danger"><%error%></span>
-                                    </div>
-                                </div>
-                                <br>
-
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <h3>Mevcut İş Kolları</h3>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-3"
-                                         ng-repeat="st in staffs | filter:(name | trUp) track by $index">
-                                        <span><% st.name | trUp %> (<%st.department%>)</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        @include('landing._insert-new-staff')
+                    </div>
+                    <!-- /.tab-pane -->
+                    {{--tab pane--}}
+                    <div class="tab-pane" id="tab_man">
+                        @include('landing._insert-new-manufacturing')
                     </div>
                     <!-- /.tab-pane -->
                     <div class="tab-pane" id="tab_3">
-                        <div class="row">
-                            <div class="col-xs-12 col-md-12">
-
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="row">
-
-
-                                            <div class="col-md-1">
-                                                <label for="name">Departman Adı: </label>
-                                            </div>
-                                            <div class="col-md-4">
-
-                                                <input type="text" class="form-control"
-                                                       name="department" ng-model="department_name"
-                                                       value="" autocomplete="off"
-                                                       placeholder="Yeni departman giriniz"/>
-
-                                            </div>
-
-
-                                            <div class="col-xs-12 col-md-2 ">
-                                                <button type="button" ng-click="addDepartment()"
-                                                        class="btn btn-primary btn-flat btn-block">Ekle
-                                                </button>
-                                            </div>
-                                            <div class="col-md-3" ng-show="newDept != ''">
-                                                <span class="text-success"><%newDept%> departmanlar arasına eklendi</span>
-                                            </div>
-
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-3" ng-show="deptError != ''">
-                                        <span class="text-danger"><%deptError%></span>
-                                    </div>
-                                </div>
-                                <br>
-
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <h3>Mevcut Departmanlar</h3>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-3"
-                                         ng-repeat="dept in departments | filter:(department_name | trUp) track by $index">
-                                        <span><% dept.department | trUp %></span>
-                                    </div>
-                                </div>
-
-
-                            </div>
-                        </div>
+                        @include('landing._insert-new-dept')
+                    </div>
+                    <!-- /.tab-pane -->
+                    <div class="tab-pane" id="tab_stock">
+                        @include('landing._insert-new-stock')
                     </div>
 
                     <!-- /.tab-pane -->
                     <div class="tab-pane" id="tab_mat">
-                        <div class="row">
-                            <div class="col-xs-12 col-md-12">
+                        @include('landing._insert-new-material')
+                    </div>
 
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="row">
-
-
-                                            <div class="col-md-1">
-                                                <label for="name">Malzeme Adı: </label>
-                                            </div>
-                                            <div class="col-md-4">
-
-                                                <input type="text" class="form-control"
-                                                       name="material" ng-model="material_name"
-                                                       value="" autocomplete="off"
-                                                       placeholder="Yeni malzeme giriniz"/>
-
-                                            </div>
-
-
-                                            <div class="col-xs-12 col-md-2 ">
-                                                <button type="button" ng-click="addMaterial()"
-                                                        class="btn btn-primary btn-flat btn-block">Ekle
-                                                </button>
-                                            </div>
-                                            <div class="col-md-3" ng-show="newMat != ''">
-                                                <span class="text-success"><%newMat%> malzemeleriniz arasına eklendi</span>
-                                            </div>
-
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-3" ng-show="matError != ''">
-                                        <span class="text-danger"><%matError%></span>
-                                    </div>
-                                </div>
-                                <br>
-
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <h3>Mevcut Malzemeler</h3>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-3"
-                                         ng-repeat="mat in materials | filter:(material_name | trUp) track by $index">
-                                        <span><% mat.material | trUp %></span>
-                                    </div>
-                                </div>
-
-
-                            </div>
-                        </div>
+                    <div class="tab-pane" id="tab_submat">
+                        @include('landing._insert-new-submat')
                     </div>
 
                     <!-- /.tab-pane -->
                     <div class="tab-pane" id="tab_4">
-                        <div class="row">
-                            <div class="col-xs-12 col-md-12">
-                                <div ng-controller="EquipmentController">
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div class="row">
-
-
-                                                <div class="col-md-1">
-                                                    <label for="name">Ekipman Adı: </label>
-                                                </div>
-                                                <div class="col-md-4">
-
-                                                    <input type="text" class="form-control"
-                                                           name="equipment" ng-model="name"
-                                                           value="" autocomplete="off"/>
-
-                                                </div>
-
-
-                                                <div class="col-xs-12 col-md-2 ">
-                                                    <button type="button" ng-click="addEquipment()"
-                                                            class="btn btn-primary btn-flat btn-block">Ekle
-                                                    </button>
-                                                </div>
-                                                <div class="col-md-3" ng-show="newEquipment != ''">
-                                                    <span class="text-success"><%newEquipment%> ekipmanlar arasına eklendi</span>
-                                                </div>
-
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-3" ng-show="error != ''">
-                                            <span class="text-danger"><%error%></span>
-                                        </div>
-
-                                    </div>
-                                    <br>
-
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <h3>Mevcut Ekipmanlar</h3>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-2"
-                                             ng-repeat="eq in presentEquipments | filter:(name | trUp) |orderBy:'name' track by $index">
-                                            <span><% eq.name %></span>
-                                        </div>
-                                    </div>
-
-                                </div>
-                            </div>
-                        </div>
+                        @include('landing._insert-new-equipment')
                     </div>
 
                     <!-- /.tab-pane -->

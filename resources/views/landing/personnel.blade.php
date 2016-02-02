@@ -5,7 +5,7 @@ $management_depts = new \App\Department();
 
 foreach ($management_depts->management() as $dept) {
     $staff_options .= "<optgroup label=\"$dept->department\">";
-    foreach ($dept->staff()->get() as $staff) {
+    foreach ($dept->staff()->notGarden()->get() as $staff) {
         if ((int)$personnel->staff->id == (int)$staff->id)
             $staff_options .= "<option value=\"$staff->id\" selected>" . \App\Library\TurkishChar::tr_up($staff->staff) . "</option>";
         else

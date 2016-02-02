@@ -13,4 +13,9 @@ class Mealcost extends Model
     {
         return $this->belongsTo('App\Site');
     }
+
+    public function scopeSinceDate($query, $date)
+    {
+        return $query->where('since', '<=', $date)->orderBy('since', 'DESC');
+    }
 }

@@ -12,10 +12,20 @@ class Inmaterial extends Model
      *
      * @var array
      */
-    protected $fillable = ['report_id', 'material_id', 'quantity', 'coming_from', 'explanation', 'unit'];
+    protected $fillable = ['report_id', 'material_id', 'quantity', 'coming_from', 'explanation', 'unit', 'irsaliye'];
 
     public function report()
     {
         return $this->belongsTo('App\Report');
+    }
+
+    public function demand()
+    {
+        return $this->belongsTo('App\Demand');
+    }
+
+    public function material()
+    {
+        return $this->belongsTo('App\Material');
     }
 }

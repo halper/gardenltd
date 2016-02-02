@@ -13,7 +13,7 @@ class AddHasMealToFeesTable extends Migration
     public function up()
     {
         Schema::table('fees', function (Blueprint $table) {
-            $table->unsignedTinyInteger('has_meal')->nullable();
+            $table->unsignedTinyInteger('has_meal')->default('0');
         });
     }
 

@@ -10,15 +10,11 @@ $mealcost = is_null($site->mealcost()->first()) ? null : $site->mealcost()->orde
 
 
 @section('page-specific-css')
-    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.min.css"/>
-    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker3.min.css"/>
     <link href="<?= URL::to('/'); ?>/css/daterangepicker.css" rel="stylesheet"/>
 
 @stop
 
 @section('page-specific-js')
-    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
-    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/moment.min.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/daterangepicker.js" type="text/javascript"></script>
     <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
@@ -185,10 +181,6 @@ $mealcost = is_null($site->mealcost()->first()) ? null : $site->mealcost()->orde
                 // on mouseleave
                 $(this).tooltip('hide');
             });
-        });
-        $('.dateRangePicker').datepicker({
-            language: 'tr',
-            autoclose: true
         });
 
     </script>

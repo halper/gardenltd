@@ -18,7 +18,7 @@ class CreateDemandMaterial extends Migration
             $table->foreign('demand_id')->references('id')->on('demands')->onDelete('cascade')->onUpdate('cascade');
             $table->integer('material_id')->unsigned()->index();
             $table->foreign('material_id')->references('id')->on('materials')->onDelete('cascade')->onUpdate('cascade');
-            $table->integer('quantity')->unsigned();
+            $table->double('quantity', 12, 2)->unsigned();
             $table->string('unit');
             $table->timestamps();
         });

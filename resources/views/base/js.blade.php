@@ -12,6 +12,8 @@
 <script src="<?= URL::to('/'); ?>/js/manager.js" type="text/javascript"></script>
 <script src="<?= URL::to('/'); ?>/js/jquery.number.js" type="text/javascript"></script>
 
+<script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
+<script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
 <script>
     $.ajaxSetup({
         headers: {
@@ -21,7 +23,10 @@
     $('div.alert-success').not('.alert-important').delay(5000).slideUp(300);
 
     $('.number').number(true, 2, ',', '.');
-
+    $('.dateRangePicker').datepicker({
+        language: 'tr',
+        autoclose: true
+    });
 </script>
 
 

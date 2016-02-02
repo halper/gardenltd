@@ -4,8 +4,7 @@ use App\Site;
 
 if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
     $sites = Site::getSites();
-}
-else{
+} else {
     $sites = Auth::user()->site()->get();
 }
 
@@ -14,20 +13,84 @@ else{
 @extends('landing.landing')
 
 @section('page-specific-css')
-    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.min.css"/>
-    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker3.min.css"/>
+    <link href="<?= URL::to('/'); ?>/js/angular/css/xeditable.css" rel="stylesheet"/>
 
 @stop
 
 @section('page-specific-js')
-    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
-    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
+    <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
+    <script src="<?= URL::to('/'); ?>/js/bootstrap-editable.min.js" type="text/javascript"></script>
+    <script src="<?= URL::to('/'); ?>/js/angular/js/xeditable.min.js" type="text/javascript"></script>
+
     <script>
-    $('.dateRangePicker').datepicker({
-    language: 'tr'
-    });
+        $.fn.editable.defaults.mode = 'popup';
+        String.prototype.turkishToLower = function () {
+            var string = this;
+            var letters = {"İ": "i", "I": "ı", "Ş": "ş", "Ğ": "ğ", "Ü": "ü", "Ö": "ö", "Ç": "ç"};
+            string = string.replace(/(([İIŞĞÜÇÖ]))/g, function (letter) {
+                return letters[letter];
+            });
+            return string.toLowerCase();
+        };
+
+        var stockApp = angular.module('stockApp', ["xeditable"], function ($interpolateProvider) {
+            $interpolateProvider.startSymbol('<%');
+            $interpolateProvider.endSymbol('%>');
+        }).run(function (editableOptions) {
+            editableOptions.theme = 'bs3';
+        }).controller('StockController', function ($scope, $http, $filter) {
+
+            $scope.stocks = [];
+            $scope.mySearch = '';
+            $scope.getStocks = function () {
+                $http.get("<?=URL::to('/');?>/santiye/retrieve-stocks")
+                        .then(function (response) {
+                            $scope.stocks = response.data;
+                        });
+            };
+
+            $scope.updateStock = function (stock, data) {
+                return $http.post("<?=URL::to('/');?>/santiye/modify-stock", {
+                    site: stock.site_id,
+                    stock: stock.stock_id,
+                    detail: data
+                });
+            }
+
+        }).filter('trUp', function () {
+            return function (data) {
+                if (data) {
+                    data = data.replace(/ı/g, 'I');
+                    data = data.replace(/i/g, 'İ');
+                    return data.toUpperCase();
+                }
+            }
+        }).filter('searchFor', function () {
+            return function (arr, searchStr) {
+                if (!searchStr) {
+                    return arr;
+                }
+                var result = [];
+                searchStr = searchStr.turkishToLower();
+                angular.forEach(arr, function (item) {
+                    if ((item.site + ' ' + item.st).turkishToLower().indexOf(searchStr) !== -1) {
+                        result.push(item);
+                    }
+                });
+                return result;
+            };
+        });
+
+        $(document).ready(function () {
+            angular.element('#stockApp').scope().getStocks();
+            $('.inline-edit').editable({
+                validate: true
+            });
+        });
+
+        $('.number').number(true, 2, ',', '.');
     </script>
-        @stop
+@stop
 
 @section('content')
 
@@ -96,33 +159,107 @@ else{
                     <span class="info-box-icon"><i class="fa fa-building-o"></i></span>
 
                     <div class="info-box-content">
-                        {!!
-                        Auth::user()->isAdmin() ?
-                        "<a href=\"#\" class=\"close siteDelBut\" data-toggle=\"modal\"
-                        data-id=\"$site->id\" data-name= \"$site->job_name\" data-target=\"deleteSiteConfirm\"><i
-                                class=\"fa fa-trash-o\"></i></a>" : ""
-                        !!}
+                        @if(Auth::user()->isAdmin())
+
+                            <a style="padding: 0 5px" href="#" class="close siteDelBut" data-toggle="modal"
+                            data-id="{{$site->id}}" data-name="{{ $site->job_name}}" data-target="#deleteSiteConfirm"><i
+                                class="fa fa-trash-o"></i></a>
+                            <a class="close" href="/santiye-duzenle/{{$site->slug}}"><i class="fa fa-pencil"></i></a>
+
+
+                        @endif
                         <span class="info-box-text">{{$site->job_name}}</span>
                         <span class="info-box-number">{{"Kalan süre: $left gün"}}</span>
 
                         <div class="progress">
                             <div class="progress-bar" {!!
                             "style=\"width: $total_per%\"" !!}>
+                            </div>
                         </div>
-                    </div>
-                    <a href={{ "tekil/$site->slug" }} class="details">
+                        <a href={{ "tekil/$site->slug" }} class="details">
 
                   <span class="progress-description">
                     Şantiye detayları için tıklayınız
                       <i class="fa fa-arrow-circle-right"></i>
                   </span>
-                    </a>
+                        </a>
 
+                    </div>
+                    <!-- /.info-box-content -->
                 </div>
-                <!-- /.info-box-content -->
-            </div>
             </div>
         @endforeach
+    @endif
+
+    @if(Auth::user()->isAdmin())
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box box-primary box-solid">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Demirbaş Dağılım Tablosu
+                        </h3>
+
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                        class="fa fa-minus"></i>
+                            </button>
+                        </div>
+                        <!-- /.box-tools -->
+                    </div>
+                    <!-- /.box-header -->
+                    <div class="box-body">
+                        <div ng-app="stockApp" ng-controller="StockController" id="stockApp">
+                            <div class="row">
+                                <div class="col-md-4 pull-right">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control"
+                                               name="stock" ng-model="mySearch"
+                                               value="" autocomplete="off"
+                                               placeholder="Şantiye ya da demirbaş yazınız"/>
+                                        <span class="input-group-addon add-on"><i
+                                                    class="fa fa-search"></i></span>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                    <tr>
+                                        <th>Şantiye</th>
+                                        <th>Demirbaş</th>
+                                        <th>Miktar (Toplam/Şantiye)</th>
+                                        <th>Birim</th>
+                                        <th>Açıklama</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr ng-repeat="stock in stocks | searchFor:mySearch track by $index"
+                                        my-repeat-directive>
+                                        <td><% stock.site %></td>
+                                        <td><% stock.st %></td>
+                                        <td><% stock.total %>/<% stock.amount %></td>
+                                        <td><% stock.unit %></td>
+                                        <td>
+                                            <a href="#" class="inline-edit" data-type="text"
+                                               editable-textarea="stock.detail" e-rows="3" e-cols="30"
+                                               onbeforesave="updateStock(stock, $data)">
+                                                <% stock.detail || "Açıklama Yok" %>
+                                            </a></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            {{--End of subcontractors table--}}
+        </div>
     @endif
 
     <div id="addNewSite" class="modal fade" role="dialog" tabindex="-1"
@@ -140,154 +277,11 @@ else{
                     {!! Form::open([
                     'url' => '/santiye/add',
                     'method' => 'POST',
-                    'class' => 'form .form-horizontal',
+                    'class' => 'form',
                     'id' => 'siteInsertForm',
                     'role' => 'form'
                     ])!!}
-                    <div class="form-group {{ $errors->has('job_name') ? 'has-error' : '' }}">
-                        <div class="row">
-                            <div class="col-sm-2">
-                                {!! Form::label('job_name', 'İşin Adı: ', ['class' => 'control-label']) !!}
-                            </div>
-                            <div class="col-sm-10">
-                                {!! Form::text('job_name', null, ['class' => 'form-control', 'placeholder' => 'İşin adını giriniz']) !!}
-
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group {{ $errors->has('management_name') ? 'has-error' : '' }}">
-                        <div class="row">
-                            <div class="col-sm-2">
-                                {!! Form::label('management_name', 'İdarenin Adı: ', ['class' => 'control-label']) !!}
-                            </div>
-                            <div class="col-sm-10">
-                                {!! Form::text('management_name', null, ['class' => 'form-control', 'placeholder' =>
-                                'İdarenin adını giriniz']) !!}
-
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group {{ $errors->has('employer') ? 'has-error' : '' }}">
-                        <div class="row">
-                            <div class="col-sm-2">
-                                {!! Form::label('employer', 'İşverenin Adı: ', ['class' => 'control-label']) !!}
-                            </div>
-                            <div class="col-sm-10">
-                                {!! Form::text('employer', null, ['class' => 'form-control', 'placeholder' =>
-                                'İşverenin adını giriniz']) !!}
-
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group {{ $errors->has('building_control') ? 'has-error' : '' }}">
-                        <div class="row">
-                            <div class="col-sm-2">
-                                {!! Form::label('building_control', 'Yapı Denetim: ', ['class' => 'control-label']) !!}
-                            </div>
-                            <div class="col-sm-10">
-                                {!! Form::text('building_control', null, ['class' => 'form-control', 'placeholder' =>
-                                'Yapı Denetim firması giriniz']) !!}
-
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group {{ $errors->has('main_contractor') ? 'has-error' : '' }}">
-                        <div class="row">
-                            <div class="col-sm-2">
-                                {!! Form::label('main_contractor', 'Ana Yüklenici: ', ['class' => 'control-label']) !!}
-                            </div>
-                            <div class="col-sm-10">
-                                {!! Form::text('main_contractor', null, ['class' => 'form-control', 'placeholder' =>
-                                'Ana yüklenicinin adını giriniz']) !!}
-
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group {{ $errors->has('isg') ? 'has-error' : '' }}">
-                        <div class="row">
-                            <div class="col-sm-2">
-                                {!! Form::label('isg', 'İSG: ', ['class' => 'control-label']) !!}
-                            </div>
-                            <div class="col-sm-10">
-                                {!! Form::text('isg', null, ['class' => 'form-control', 'placeholder' =>
-                                'İSG\'nin adını giriniz']) !!}
-
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group {{ $errors->has('start_date') ? 'has-error' : '' }}">
-                        <div class="row">
-                            <div class="col-sm-2">
-                                {!! Form::label('start_date', 'Başlangıç Tarihi: ', ['class' => 'control-label']) !!}
-                            </div>
-                            <div class="col-sm-10">
-                                <div class="input-group input-append date dateRangePicker">
-                                    <input type="text" class="form-control" name="start_date" placeholder="Başlangıç tarihini seçiniz"/>
-                                        <span class="input-group-addon add-on"><span
-                                                    class="glyphicon glyphicon-calendar"></span></span>
-                                </div>
-
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group {{ $errors->has('contract_date') ? 'has-error' : '' }}">
-                        <div class="row">
-                            <div class="col-sm-2">
-                                {!! Form::label('contract_date', 'Sözleşme Tarihi: ', ['class' => 'control-label']) !!}
-                            </div>
-                            <div class="col-sm-10">
-                                <div class="input-group input-append date dateRangePicker">
-                                    <input type="text" class="form-control" name="contract_date" placeholder="Sözleşme tarihini seçiniz"/>
-                                        <span class="input-group-addon add-on"><span
-                                                    class="glyphicon glyphicon-calendar"></span></span>
-                                </div>
-
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group {{ $errors->has('end_date') ? 'has-error' : '' }}">
-                        <div class="row">
-                            <div class="col-sm-2">
-                                {!! Form::label('end_date', 'İş Bitim Tarihi: ', ['class' => 'control-label']) !!}
-                            </div>
-                            <div class="col-sm-10">
-                                <div class="input-group input-append date dateRangePicker">
-                                    <input type="text" class="form-control" name="end_date" placeholder="İş bitim tarihini seçiniz"/>
-                                        <span class="input-group-addon add-on"><span
-                                                    class="glyphicon glyphicon-calendar"></span></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group {{ $errors->has('address') ? 'has-error' : '' }}">
-                        <div class="row">
-                            <div class="col-sm-2">
-                                {!! Form::label('address', 'Adres: ', ['class' => 'control-label']) !!}
-                            </div>
-                            <div class="col-sm-10">
-                                {!! Form::textarea('address', null,
-                                ['class' => 'form-control',
-                                'placeholder' => 'Şantiye adresi',
-                                'rows' => '3']) !!}
-
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group {{ $errors->has('site_chief') ? 'has-error' : '' }}">
-                        <div class="row">
-                            <div class="col-sm-2">
-                                {!! Form::label('site_chief', 'Şantiye şefi: ', ['class' => 'control-label']) !!}
-                            </div>
-                            <div class="col-sm-10">
-                                {!! Form::text('site_chief', null, ['class' => 'form-control', 'placeholder' => 'Şantiye şefini giriniz']) !!}
-
-                            </div>
-                        </div>
-                    </div>
+                    @include('landing._santiye-add-form', ['santiye' => 'true'])
 
 
                 </div>
@@ -348,7 +342,7 @@ else{
             var myForm = $('.modal-footer #siteDeleteForm');
             var myP = $('.modal-body .siteDel');
             myP.html("<em>" + mySiteName + "</em> şantiyesini silmek istediğinizden emin misiniz?" +
-            "<p>NOT: <span>SİLME İŞLEMİ GERİ DÖNDÜRÜLEMEZ!</span></p>");
+                    "<p>NOT: <span>SİLME İŞLEMİ GERİ DÖNDÜRÜLEMEZ!</span></p>");
             $('<input>').attr({
                 type: 'hidden',
                 name: 'siteDeleteIn',

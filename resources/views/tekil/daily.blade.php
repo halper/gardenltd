@@ -25,7 +25,7 @@ if ($report->admin_lock == 0) {
     $locked = false;
 }
 
-$staffs = Staff::all();
+$staffs = Staff::allStaff();
 
 $report_staff_arr = [];
 foreach ($report->staff()->get() as $report_staff) {
@@ -70,7 +70,7 @@ foreach ($report_subcontractors as $report_subcontractor) {
     $subcontractor_report_personnel[$i] = [];
     array_push($report_subcontractor_arr, $report_subcontractor->id);
     foreach ($report->shift()->get() as $shift) {
-        if (!is_null($shift->personnel()->first()->personalize)) {
+        if (!($shift->personnel()->get()->isEmpty())) {
             if ($shift->personnel()->first()->personalize->id == $report_subcontractor->id) {
                 array_push($subcontractor_report_personnel[$i], $shift->personnel_id);
             }
@@ -79,7 +79,7 @@ foreach ($report_subcontractors as $report_subcontractor) {
     $i++;
 }
 
-$subcontractor_staffs = \App\Staff::all();
+$subcontractor_staffs = \App\Staff::allStaff();
 $subcontractor_staff_total = 0;
 
 $personnel_arr = [];
@@ -87,7 +87,7 @@ $report_personnel_id_arr = [];
 $site_report_personnel = [];
 foreach ($report->shift()->join('personnel', 'personnel_id', '=', 'personnel.id')->orderBy('personnel.personalize_type', 'ASC')->orderBy('personnel.personalize_id', 'ASC')->get() as $shift) {
     array_push($report_personnel_id_arr, $shift->personnel_id);
-    if ($shift->personnel()->first()->isSitePersonnel()) {
+    if ($shift->personnel()->withTrashed()->first()->isSitePersonnel()) {
         array_push($site_report_personnel, $shift->personnel_id);
     }
 }
@@ -120,7 +120,7 @@ $management_depts = new \App\Department();
 foreach ($management_depts->management() as $dept) {
     $staff_options .= "<optgroup label=\"$dept->department\">";
     $staff_options_js .= "'<optgroup label=\"$dept->department\">'+\n";
-    foreach ($dept->staff()->get() as $staff) {
+    foreach ($dept->staff()->notGarden()->get() as $staff) {
         $staff_options_js_all .= "'<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>'+\n";
         $staff_options_all .= "<option value=\"$staff->id\">" . TurkishChar::tr_up($staff->staff) . "</option>";
         if (isset($report_staff_arr)) {
@@ -235,6 +235,12 @@ if (!is_null($report->weather)) {
     }
 }
 
+$yesterdays_report = $site->report()->where('created_at', Carbon::yesterday()->toDateString())->first();
+
+if ($viewCount == 1 && !is_null($yesterdays_report) && !is_null($yesterdays_report->notes)) {
+    $notes = $yesterdays_report->notes;
+}
+
 ?>
 @extends('tekil/layout')
 
@@ -251,9 +257,11 @@ if (!is_null($report->weather)) {
 @section('page-specific-js')
     <script src="<?= URL::to('/'); ?>/js/select2.min.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/dropzone.js" type="text/javascript"></script>
+    <script src="<?= URL::to('/'); ?>/js/moment.min.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/lightbox.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
+
 
     <?php
 
@@ -316,10 +324,11 @@ $(document).ready(function() {
                     '<div class="col-sm-10"><select name="inmaterials[]" class="js-additional-inmaterial form-control">' +
 $inmaterial_options_js
             '</select></div></div></div></div>' +
-                '<div class="col-sm-2"><input type="text" class="form-control" name="inmaterial-from[]"/></div>'+
+                '<div class="col-sm-1">-</div><div class="col-sm-2"><input type="text" class="form-control" name="inmaterial-from[]"/></div>'+
                 '<div class="col-sm-1"><input type="text" class="form-control" name="inmaterial-unit[]"/></div>'+
                 '<div class="col-sm-1"><input type="text" class="form-control number" name="inmaterial-quantity[]"/></div>'+
-                '<div class="col-sm-6"><input type="text" class="form-control" name="inmaterial-explanation[]"/></div></div>'); //add input box
+                '<div class="col-sm-4"><input type="text" class="form-control" name="inmaterial-explanation[]"/></div>'+
+                '<div class="col-sm-1"><input type="text" class="form-control" name="inmaterial-irsaliye[]"/></div></div>'); //add input box
                 $(".js-additional-inmaterial").select2();
 $('.number').number(true, 2, ',', '.');
             });
@@ -392,8 +401,14 @@ $subcontractor_staff_options_js
 EOT;
 
     ?>
-
+    @if(isset($notes))
+        <script>
+            $('#notesModal').modal('show');
+        </script>
+    @endif
     <script>
+
+
         var setRdHidden = function (pid) {
             var myOpt = $('#select-' + pid + ' :selected');
             var hiddenEl = $(myOpt).parent().parent().parent().find('.overtime-hidden');
@@ -542,341 +557,390 @@ EOT;
 
 
             //END PUANTAJ
+        });
+    </script>
+    <script>
 
-            $('#shiftsMealsForm').on("submit", function (e) {
-                var overtimes = $("input[name='overtime_arr[]']");
-                var personnelHelper = $('#personnel-helper-block');
-                var personnel = $("select[name='personnel[]']");
-                var personnelList = new Array();
-                $(personnelHelper).html();
-                $.each(overtimes, function (index, object) {
-                    if ($(object).val().length == 0) {
-                        e.preventDefault();
-                        $(personnelHelper).html('<span class="text-danger">Puantajlar tüm personel için seçili olmalı veya fazla mesailer doldurulmalı!</span>');
-                        return;
-                    }
-
-                });
-                $.each(personnel, function (index, object) {
-                    var personnelId = parseInt($(object).val());
-                    if ($(object).val().length == 0) {
-                        e.preventDefault();
-                        $(personnelHelper).html('<span class="text-danger">Seçili olmayan personel bulunmaktadır!</span>');
-                        return;
-                    }
-                    if ($.inArray($(personnelId), personnelList) !== -1 !== -1) {
-                        personnelList.push($(personnelId));
-                    }
-                    else {
-                        e.preventDefault();
-                        $(personnelHelper).html('<span class="text-danger">Aynı personeli iki kere ekleyemezsiniz!</span>');
-                        return;
-                    }
-
-
-                });
-
-            });
-
-            $('.remove-files').on("click", function (e) {
-                e.preventDefault();
-                var fileId = $(this).attr("data-fileId");
-                var reportId = '{{$report->id}}';
-                reportId = parseInt(reportId);
-                $.ajax({
-                    type: 'POST',
-                    url: '{{"/tekil/$site->slug/delete-files"}}',
-                    data: {
-                        "fileid": fileId,
-                        "reportid": reportId
-                    }
-                }).success(function () {
-                    var linkID = "lb-link-" + fid;
-                    $('#' + linkID).remove();
-                });
-
-            });
-
-            function removeSubcontractor(subid, subname) {
-
-                var subcontractorId = subid;
-                var reportId = '{{$report->id}}';
-                reportId = parseInt(reportId);
-                $.ajax({
-                    type: 'POST',
-                    url: '{{"/tekil/$site->slug/delete-report-subcontractor"}}',
-                    data: {
-                        "subcontractorid": subcontractorId,
-                        "reportid": reportId
-                    }
-                }).success(function () {
-                    $('#div-' + subid).remove();
-                    $('.js-example-responsive').append(
-                            '<option value="' + subid + '">' + subname.toUpperCase() + '</option>\n'
-                    );
-                });
-            }
-
-            function subcontractorToWorkDelete(id) {
-                $.ajax({
-                    type: 'POST',
-                    url: '{{"/tekil/$site->slug/delete-swunit"}}',
-                    data: {
-                        "swid": id
-                    }
-                }).success(function () {
-                    $('#div-swid' + id).remove();
-                });
-            }
-
-            function staffToWorkDelete(id) {
-                $.ajax({
-                    type: 'POST',
-                    url: '{{"/tekil/$site->slug/delete-pwunit"}}',
-                    data: {
-                        "pwid": id
-                    }
-                }).success(function () {
-                    $('#div-pwid' + id).remove();
-                });
-            }
-
-            $(".staff-detach").on("click", function (e) {
-                e.preventDefault();
-                var id = $(this).attr("data-personnel");
-                var reportId = '{{$report->id}}';
-                reportId = parseInt(reportId);
-                $.ajax({
-                    type: 'POST',
-                    url: '{{"/tekil/$site->slug/detach-staff"}}',
-                    data: {
-                        "staffid": id,
-                        "report_id": reportId
-                    }
-                }).success(function () {
-                    $('#div-staffid' + id).remove();
-                    $('#personnel-div-' + id).remove();
-                });
-                return false;
-            });
-
-            $(".substaff-detach").on("click", function (e) {
-                e.preventDefault();
-                var id = $(this).attr("data-personnel");
-                var subcontractorId = $(this).attr("data-subcontractor");
-                var reportId = '{{$report->id}}';
-                reportId = parseInt(reportId);
-                $.ajax({
-                    type: 'POST',
-                    url: '{{"/tekil/$site->slug/delete-report-subcontractor"}}',
-                    data: {
-                        "staffid": id,
-                        "subcontractorid": subcontractorId,
-                        "report_id": reportId
-                    }
-                }).success(function () {
-                    $('#div-staffid' + id).remove();
-                    $('#personnel-div-' + id).remove();
-                });
-                return false;
-            });
-
-            function equipmentDetach(id) {
-                var reportId = '{{$report->id}}';
-                reportId = parseInt(reportId);
-                $.ajax({
-                    type: 'POST',
-                    url: '{{"/tekil/$site->slug/detach-equipment"}}',
-                    data: {
-                        "equipmentid": id,
-                        "report_id": reportId
-                    }
-                }).success(function () {
-                    $('#div-equipmentid' + id).remove();
-                });
-            }
-
-            function inmaterialsDelete(id) {
-                $.ajax({
-                    type: 'POST',
-                    url: '{{"/tekil/$site->slug/delete-inmaterial"}}',
-                    data: {
-                        "inmaterialid": id
-                    }
-                }).success(function () {
-                    $('#div-inmaterialid' + id).remove();
-                });
-            }
-
-            function outmaterialsDelete(id) {
-                $.ajax({
-                    type: 'POST',
-                    url: '{{"/tekil/$site->slug/delete-outmaterial"}}',
-                    data: {
-                        "outmaterialid": id
-                    }
-                }).success(function () {
-                    $('#div-outmaterialid' + id).remove();
-                });
-            }
-
-            function mainStaffDelete(column) {
-                var reportId = '{{$report->id}}';
-                reportId = parseInt(reportId);
-                $.ajax({
-                    type: 'POST',
-                    url: '{{"/tekil/$site->slug/delete-management-staff"}}',
-                    data: {
-                        "reportid": reportId,
-                        "column": column
-                    }
-                }).success(function () {
-                    $('#div-' + column).remove();
-                });
-            }
-
-
-            Dropzone.options.fileInsertForm = {
-                addRemoveLinks: true,
-                init: function () {
-                    this.on("success", function (file, response) {
-                        file.serverId = response.id;
-                        file.reportId = response.rid;
-
-                    });
-                    this.on("removedfile", function (file) {
-                        var name = file.name;
-
-                        $.ajax({
-                            type: 'POST',
-                            url: '{{"/tekil/$site->slug/delete-files"}}',
-                            data: {
-                                "fileid": file.serverId,
-                                "reportid": file.reportId
-                            }
-                        });
-                    });
-                }
-            };
-            Dropzone.options.receiptInsertForm = {
-                addRemoveLinks: true,
-                init: function () {
-                    this.on("success", function (file, response) {
-                        file.serverId = response.id;
-                        file.reportId = response.rid;
-
-                    });
-                    this.on("removedfile", function (file) {
-                        var name = file.name;
-
-                        $.ajax({
-                            type: 'POST',
-                            url: '{{"/tekil/$site->slug/delete-files"}}',
-                            data: {
-                                "fileid": file.serverId,
-                                "reportid": file.reportId
-                            }
-                        });
-                    });
-                }
-            };
-
-            $(document).delegate('*[data-toggle="lightbox"]', 'click', function (event) {
-                event.preventDefault();
-                $(this).ekkoLightbox();
-            });
-
-            $(".js-example-basic-multiple").select2({
-                placeholder: "Çoklu seçim yapabilirsiniz",
-                allowClear: true
-            });
-
-            $(".js-main-per").select2({
-                placeholder: "Çoklu seçim yapabilirsiniz",
-                allowClear: true
-            });
-
-            $(document).ready(function () {
-                var managementTotal = 0;
-                var mainContractorTotal = 0;
-                var subcontractorStaffTotal = 0;
-                if ($('#man-tot').length > 0) {
-                    $('#man-tot-res').text($('#man-tot').text());
-                    managementTotal = parseInt($('#man-tot').text());
-                }
-                else {
-                    $('#man-tot-res').text(0);
-                }
-                if ($('#main-con-tot').length > 0) {
-                    $('#main-con-tot-res').text($('#main-con-tot').text());
-                    mainContractorTotal = parseInt($('#main-con-tot').text());
-                }
-                else {
-                    $('#main-con-tot-res').text(0);
-                }
-
-                if ($('.sub-staff-tot').length > 0) {
-                    $('.sub-staff-tot').each(function (index, element) {
-                        subcontractorStaffTotal += parseInt($(this).text());
-                    });
-                    $('#sub-staff-tot-res').text(subcontractorStaffTotal);
-                }
-                else {
-                    $('#sub-staff-tot-res').text(0);
-                }
-                $('#gen-tot-res').text(managementTotal + mainContractorTotal + subcontractorStaffTotal);
-
-
-                $("input[name='is_working']").on("click", function () {
-                    $("#selectIsWorkingForm").submit();
-                });
-                $(".js-example-basic-single").select2();
-                $(".js-example-responsive").select2({
-                    placeholder: "Alt yüklenici seçiniz",
-                    allowClear: true
-                });
-                $(".js-example-responsive").on("select2:select", function () {
-                    $(".add-subcontractor_staff-row").show();
-                });
-                $(".js-example-responsive").on("select2:unselect", function () {
-                    $(".add-subcontractor_staff-row").hide();
-                });
-
-
-                $('#dateRangePicker').datepicker({
-                    autoclose: true,
-                    language: 'tr',
-                });
-
-                var leftDays = '{{$left}}';
-                var leftWarning = '{{$day_warning}}';
-                leftDays = parseInt(leftDays);
-                leftWarning = parseInt(leftWarning);
-                if (leftDays < leftWarning) {
-                    $('#leftDaysModal').modal("show");
-                }
-
-                $("#dateRangePicker").datepicker().on('changeDate', function (ev) {
-
-                    if (ev.date.valueOf() > new Date()) {
-                        $(this).closest("div").append('<span class="text-danger">Bugünden ileri bir tarih seçemezsiniz!</span>');
-                        $(this).parent().closest("div").addClass('has-error');
-                        return false;
-
-                    }
-                    $('#dateRangeForm').submit();
-                });
-
-                $(".remove_row").on("click", function (e) { //user click on remove text
+        $('#shiftsMealsForm').on("submit", function (e) {
+            var overtimes = $("input[name='overtime_arr[]']");
+            var personnelHelper = $('#personnel-helper-block');
+            var personnel = $("select[name='personnel[]']");
+            var personnelList = [];
+            $(personnelHelper).html();
+            $.each(overtimes, function (index, object) {
+                if ($(object).val().length == 0) {
                     e.preventDefault();
-                    $(this).parent().closest('td').parent().closest('tr').remove();
-                });
+                    $(personnelHelper).html('<span class="text-danger">Puantajlar tüm personel için seçili olmalı veya fazla mesailer doldurulmalı!</span>');
+
+                }
+
+            });
+            $.each(personnel, function (index, object) {
+                var personnelId = parseInt($(object).val());
+                if ($(object).val().length == 0) {
+                    e.preventDefault();
+                    $(personnelHelper).html('<span class="text-danger">Seçili olmayan personel bulunmaktadır!</span>');
+                    return;
+                }
+                if ($.inArray($(personnelId), personnelList) !== -1 !== -1) {
+                    personnelList.push($(personnelId));
+                }
+                else {
+                    e.preventDefault();
+                    $(personnelHelper).html('<span class="text-danger">Aynı personeli iki kere ekleyemezsiniz!</span>');
+
+                }
 
 
-                $(".js-additional-personnel").select2({
-                    placeholder: 'Personel seçiniz',
-                    allowclear: true
+            });
+
+        });
+
+        $('.remove-files').on("click", function (e) {
+            e.preventDefault();
+            var fileId = $(this).attr("data-fileId");
+            var reportId = '{{$report->id}}';
+            reportId = parseInt(reportId);
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/delete-files"}}',
+                data: {
+                    "fileid": fileId,
+                    "reportid": reportId
+                }
+            }).success(function () {
+                var linkID = "lb-link-" + fid;
+                $('#' + linkID).remove();
+            });
+
+        });
+
+        function removeSubcontractor(subid, subname) {
+
+            var subcontractorId = subid;
+            var reportId = '{{$report->id}}';
+            reportId = parseInt(reportId);
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/delete-report-subcontractor"}}',
+                data: {
+                    "subcontractorid": subcontractorId,
+                    "reportid": reportId
+                }
+            }).success(function () {
+                $('#div-' + subid).remove();
+                $('.js-example-responsive').append(
+                        '<option value="' + subid + '">' + subname.toUpperCase() + '</option>\n'
+                );
+            });
+        }
+
+
+        $('.subcontractorToWorkDelete').on('click', function (e) {
+            e.preventDefault();
+            var id = $(this).data('id');
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/delete-swunit"}}',
+                data: {
+                    "swid": id
+                }
+            }).success(function () {
+                $('#div-swid' + id).remove();
+            });
+        });
+
+        $('.staffToWorkDelete').on('click', function (e) {
+            e.preventDefault();
+            var id = $(this).data('id');
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/delete-pwunit"}}',
+                data: {
+                    "pwid": id
+                }
+            }).success(function () {
+                $('#div-pwid' + id).remove();
+            });
+        });
+
+        $(".staff-detach").on("click", function (e) {
+            e.preventDefault();
+            var id = $(this).attr("data-personnel");
+            var reportId = '{{$report->id}}';
+            reportId = parseInt(reportId);
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/detach-staff"}}',
+                data: {
+                    "staffid": id,
+                    "report_id": reportId
+                }
+            }).success(function () {
+                $('#div-staffid' + id).remove();
+                $('#personnel-div-' + id).remove();
+            });
+            return false;
+        });
+
+        $(".substaff-detach").on("click", function (e) {
+            e.preventDefault();
+            var id = $(this).attr("data-personnel");
+            var subcontractorId = $(this).attr("data-subcontractor");
+            var reportId = '{{$report->id}}';
+            reportId = parseInt(reportId);
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/delete-report-subcontractor"}}',
+                data: {
+                    "staffid": id,
+                    "subcontractorid": subcontractorId,
+                    "report_id": reportId
+                }
+            }).success(function () {
+                $('#div-staffid' + id).remove();
+                $('#personnel-div-' + id).remove();
+            });
+            return false;
+        });
+
+        $('.equipmentDetach').on('click', function (e) {
+            e.preventDefault();
+            var id = $(this).data('id');
+            var reportId = '{{$report->id}}';
+            reportId = parseInt(reportId);
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/detach-equipment"}}',
+                data: {
+                    "equipmentid": id,
+                    "report_id": reportId
+                }
+            }).success(function () {
+                $('#div-equipmentid' + id).remove();
+            });
+        });
+
+
+        $('.inmaterialsDelete').on('click', function (e) {
+            e.preventDefault();
+            var id = $(this).data('id');
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/delete-inmaterial"}}',
+                data: {
+                    "inmaterialid": id
+                }
+            }).success(function () {
+                $('#div-inmaterialid' + id).remove();
+            });
+        });
+
+
+        $('.outmaterialsDelete').on('click', function (e) {
+            e.preventDefault();
+            var id = $(this).data('id');
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/delete-outmaterial"}}',
+                data: {
+                    "outmaterialid": id
+                }
+            }).success(function () {
+                $('#div-outmaterialid' + id).remove();
+            });
+        });
+
+
+        $('.mainStaffDelete').on('click', function (e) {
+            e.preventDefault();
+            var column = $(this).data('column');
+            var reportId = '{{$report->id}}';
+            reportId = parseInt(reportId);
+            $.ajax({
+                type: 'POST',
+                url: '{{"/tekil/$site->slug/delete-management-staff"}}',
+                data: {
+                    "reportid": reportId,
+                    "column": column
+                }
+            }).success(function () {
+                $('#div-' + column).remove();
+            });
+        });
+
+
+        Dropzone.options.fileInsertForm = {
+            addRemoveLinks: true,
+            init: function () {
+                this.on("success", function (file, response) {
+                    file.serverId = response.id;
+                    file.reportId = response.rid;
+
                 });
+                this.on("removedfile", function (file) {
+                    var name = file.name;
+
+                    $.ajax({
+                        type: 'POST',
+                        url: '{{"/tekil/$site->slug/delete-files"}}',
+                        data: {
+                            "fileid": file.serverId,
+                            "reportid": file.reportId
+                        }
+                    });
+                });
+            }
+        };
+        Dropzone.options.receiptInsertForm = {
+            addRemoveLinks: true,
+            init: function () {
+                this.on("success", function (file, response) {
+                    file.serverId = response.id;
+                    file.reportId = response.rid;
+
+                });
+                this.on("removedfile", function (file) {
+                    var name = file.name;
+
+                    $.ajax({
+                        type: 'POST',
+                        url: '{{"/tekil/$site->slug/delete-files"}}',
+                        data: {
+                            "fileid": file.serverId,
+                            "reportid": file.reportId
+                        }
+                    });
+                });
+            }
+        };
+
+        $(document).delegate('*[data-toggle="lightbox"]', 'click', function (event) {
+            event.preventDefault();
+            $(this).ekkoLightbox();
+        });
+
+        $(".js-example-basic-multiple").select2({
+            placeholder: "Çoklu seçim yapabilirsiniz",
+            allowClear: true
+        });
+
+        $(".js-main-per").select2({
+            placeholder: "Çoklu seçim yapabilirsiniz",
+            allowClear: true
+        });
+
+        $(document).ready(function () {
+            var managementTotal = 0;
+            var mainContractorTotal = 0;
+            var subcontractorStaffTotal = 0;
+            if ($('#man-tot').length > 0) {
+                $('#man-tot-res').text($('#man-tot').text());
+                managementTotal = parseInt($('#man-tot').text());
+            }
+            else {
+                $('#man-tot-res').text(0);
+            }
+            if ($('#main-con-tot').length > 0) {
+                $('#main-con-tot-res').text($('#main-con-tot').text());
+                mainContractorTotal = parseInt($('#main-con-tot').text());
+            }
+            else {
+                $('#main-con-tot-res').text(0);
+            }
+
+            if ($('.sub-staff-tot').length > 0) {
+                $('.sub-staff-tot').each(function (index, element) {
+                    subcontractorStaffTotal += parseInt($(this).text());
+                });
+                $('#sub-staff-tot-res').text(subcontractorStaffTotal);
+            }
+            else {
+                $('#sub-staff-tot-res').text(0);
+            }
+            $('#gen-tot-res').text(managementTotal + mainContractorTotal + subcontractorStaffTotal);
+
+
+            $("input[name='is_working']").on("click", function () {
+                $("#selectIsWorkingForm").submit();
+            });
+            $(".js-example-basic-single").select2();
+            $(".js-example-responsive").select2({
+                placeholder: "Alt yüklenici seçiniz",
+                allowClear: true
+            });
+            $(".js-example-responsive").on("select2:select", function () {
+                $(".add-subcontractor_staff-row").show();
+            });
+            $(".js-example-responsive").on("select2:unselect", function () {
+                $(".add-subcontractor_staff-row").hide();
+            });
+
+
+            $('#dateRangePicker').datepicker({
+                autoclose: true,
+                language: 'tr',
+            });
+
+            function getReportDays(e) {
+                console.log(moment(e.date).format('YYYY-MM-DD'));
+                $.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/retrieve-report-days", {
+                    'date': moment(e.date).format('YYYY-MM-DD')
+                }, function (data) {
+
+                    var tdArr = $('div.datepicker-days > table > tbody').find($('td.day').not('.new, .old, .active'));
+                    $.each(tdArr, function (index, value) {
+                        if ($.inArray(parseInt(tdArr.eq(index).text()), data) >= 0) {
+                            tdArr.eq(index).css({'background-color': 'rgba(50, 118, 177, 0.35)'});
+                        }
+                        else{
+                            tdArr.eq(index).css({'background-color': 'white'});
+                        }
+
+                    });
+                });
+            }
+            var firstLoad = false;
+
+            $('#dateRangePicker').datepicker().on('show', function (e) {
+                if (!firstLoad) {
+                    firstLoad = true;
+                    getReportDays(e);
+                }
+            });
+            $('#dateRangePicker').datepicker().on('changeMonth', function (e) {
+                getReportDays(e);
+            });
+
+
+            var leftDays = '{{$left}}';
+            var leftWarning = '{{$day_warning}}';
+            leftDays = parseInt(leftDays);
+            leftWarning = parseInt(leftWarning);
+            if (leftDays < leftWarning) {
+                $('#leftDaysModal').modal("show");
+            }
+
+            $("#dateRangePicker").datepicker().on('changeDate', function (ev) {
+
+                if (ev.date.valueOf() > new Date()) {
+                    $(this).closest("div").append('<span class="text-danger">Bugünden ileri bir tarih seçemezsiniz!</span>');
+                    $(this).parent().closest("div").addClass('has-error');
+                    return false;
+
+                }
+                $('#dateRangeForm').submit();
+            });
+
+            $(".remove_row").on("click", function (e) { //user click on remove text
+                e.preventDefault();
+                $(this).parent().closest('td').parent().closest('tr').remove();
+            });
+
+
+            $(".js-additional-personnel").select2({
+                placeholder: 'Personel seçiniz',
+                allowclear: true
             });
         });
 
@@ -1053,7 +1117,8 @@ EOT;
                                     <div class="row" id="div-management_staff">
                                         <div class="form-group">
                                             <div class="col-sm-1"><a href="#"
-                                                                     onclick="mainStaffDelete('management_staff')"><i
+                                                                     class="mainStaffDelete"
+                                                                     data-column="management_staff"><i
                                                             class="fa fa-close"></i></a></div>
                                             <div class="col-sm-7">
                                                 <label for="main-staff-quantity[]" class="control-label">Proje Yönetimi
@@ -1074,7 +1139,8 @@ EOT;
                                     <div class="row" id="div-employer_staff">
                                         <div class="form-group">
                                             <div class="col-sm-1"><a href="#"
-                                                                     onclick="mainStaffDelete('employer_staff')"><i
+                                                                     class="mainStaffDelete"
+                                                                     data-column="employer_staff"><i
                                                             class="fa fa-close"></i></a></div>
                                             <div class="col-sm-7">
                                                 <label for="main-staff-quantity" class="control-label">İşveren
@@ -1094,7 +1160,8 @@ EOT;
                                     <div class="row" id="div-building_control_staff">
                                         <div class="form-group">
                                             <div class="col-sm-1"><a href="#"
-                                                                     onclick="mainStaffDelete('building_control_staff')"><i
+                                                                     class="mainStaffDelete"
+                                                                     data-column="building_control_staff"><i
                                                             class="fa fa-close"></i></a></div>
                                             <div class="col-sm-7">
                                                 <label for="main-staff-quantity[]" class="control-label">Yapı Denetim
@@ -1114,7 +1181,7 @@ EOT;
                                     <div class="row" id="div-isg_staff">
                                         <div class="form-group">
                                             <div class="col-sm-1"><a href="#"
-                                                                     onclick="mainStaffDelete('isg_staff')"><i
+                                                                     class="mainStaffDelete" data-column="isg_staff"><i
                                                             class="fa fa-close"></i></a></div>
                                             <div class="col-sm-7">
                                                 <label for="main-staff-quantity[]" class="control-label">İSG
@@ -1242,7 +1309,7 @@ EOT;
                                     @for($i = 0; $i < sizeof($site_report_personnel); $i++)
                                         <?php
                                         $per = $site_report_personnel[$i];
-                                        $report_person = Personnel::find($per);
+                                        $report_person = Personnel::withTrashed()->find($per);
                                         ?>
                                         <div class="row" id="div-staffid{{$report_person->id}}">
                                             <div class="col-sm-1"><a href="#"><i
@@ -1467,7 +1534,8 @@ EOT;
                                                 <div class="form-group">
                                                     <div class="row">
                                                         <div class="col-sm-1"><a href="#"
-                                                                                 onclick="equipmentDetach({{$equipment->id}})"><i
+                                                                                 class="equipmentDetach"
+                                                                                 data-id="{{$equipment->id}}"><i
                                                                         class="fa fa-close"></i></a></div>
                                                         <div class="col-sm-10">
                                                             <span>{{$equipment->name}}</span>
@@ -1501,37 +1569,6 @@ EOT;
 
                                         </div>
                                     @endforeach
-
-                                    {{--<div class="row">
-                                        <div class="col-sm-5">
-                                            <div class="form-group">
-                                                <select name="equipments[]"
-                                                        class="js-example-basic-single form-control">
-
-                                                    {!! $equipment_options !!}
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-7">
-                                            <div class="row">
-                                                <div class="col-sm-4">
-
-                                                    <input type="number" step="1" class="form-control"
-                                                           name="equipment-present[]"/>
-                                                </div>
-                                                <div class="col-sm-4">
-
-                                                    <input type="number" step="1" class="form-control"
-                                                           name="equipment-working[]"/>
-                                                </div>
-                                                <div class="col-sm-4">
-
-                                                    <input type="number" step="1" class="form-control"
-                                                           name="equipment-broken[]"/>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>--}}
                                 </div>
 
                                 <div class="row">
@@ -1592,14 +1629,14 @@ EOT;
                             <div class="col-sm-1">
                                 <span><strong>ÖLÇÜ BİRİMİ</strong></span>
                             </div>
-                            <div class="col-sm-6">
-                                <span><strong>YAPILAN İŞLER</strong></span>
-                            </div>
                             <div class="col-sm-1">
                                 <span><strong>PLANLANAN</strong></span>
                             </div>
                             <div class="col-sm-1">
                                 <span><strong>YAPILAN</strong></span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span><strong>YAPILAN İŞLER</strong></span>
                             </div>
                         </div>
 
@@ -1614,38 +1651,41 @@ EOT;
                         <div id="staff-to-work-insert">
                             @foreach ($report->pwunit()->get() as $staff)
                                 <?php
-                                $staff_unit_for_work_done = empty($report->pwunit()->where("staff_id", $staff->staff_id)->first()->unit) ? null : $report->pwunit()->where("staff_id", $staff->staff_id)->first()->unit;
-                                $staff_work_done_for_work_done = empty($report->pwunit()->where("staff_id", $staff->staff_id)->first()->works_done) ? null : $report->pwunit()->where("staff_id", $staff->staff_id)->first()->works_done;
-                                $staff_planned_for_work_done = empty($report->pwunit()->where("staff_id", $staff->staff_id)->first()->planned) ? null : $report->pwunit()->where("staff_id", $staff->staff_id)->first()->planned;
-                                $staff_done_for_work_done = empty($report->pwunit()->where("staff_id", $staff->staff_id)->first()->done) ? null : $report->pwunit()->where("staff_id", $staff->staff_id)->first()->done;
+
+                                $staff_unit_for_work_done = empty($staff->unit) ? "" : $staff->unit;
+                                $staff_work_done_for_work_done = empty($staff->works_done) ? "" : $staff->works_done;
+                                $staff_planned_for_work_done = empty($staff->planned) ? "" : $staff->planned;
+                                $staff_done_for_work_done = empty($staff->done) ? "" : $staff->done;
                                 ?>
-                                <div class="row" id="div-pwid{{$staff->id}}">
-                                    <div class="col-sm-2">
-                                        <div class="row">
-                                            <div class="col-sm-2">
-                                                <a href="#" onclick="staffToWorkDelete({{$staff->id}})"><i
-                                                            class="fa fa-close"></i></a>
-                                            </div>
-                                            <div class="col-sm-10">
-                                                {{$staffs->find($staff->staff_id)->staff}}
-                                                {!! Form::hidden("staffs[]", $staff->staff_id)!!}
+                                <div class="form-group">
+                                    <div class="row" id="div-pwid{{$staff->id}}">
+                                        <div class="col-sm-2">
+                                            <div class="row">
+                                                <div class="col-sm-2">
+                                                    <a href="#" class="staffToWorkDelete" data-id="{{$staff->id}}"><i
+                                                                class="fa fa-close"></i></a>
+                                                </div>
+                                                <div class="col-sm-10">
+                                                    {{$staff->staff->staff}}
+                                                    {!! Form::hidden("staffs[]", $staff->staff_id)!!}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="col-sm-1">
-                                        {!! Form::number("staff_quantity[]", $staff->quantity, ['class' => 'form-control', 'step' => '1']) !!}
-                                    </div>
-                                    <div class="col-sm-1">
-                                        {!! Form::text("staff_unit[]", $staff_unit_for_work_done , ['class' => 'form-control']) !!}
-                                    </div>
-                                    <div class="col-sm-6">
-                                        {!! Form::textarea("staff_work_done[]", $staff_work_done_for_work_done , ['class' => 'form-control', 'rows' => '3']) !!}
-                                    </div>
-                                    <div class="col-sm-1">
-                                        {!! Form::text("staff_planned[]", $staff_planned_for_work_done , ['class' => 'form-control number']) !!}
-                                    </div>
-                                    <div class="col-sm-1">
-                                        {!! Form::text("staff_done[]", $staff_done_for_work_done , ['class' => 'form-control number']) !!}
+                                        <div class="col-sm-1">
+                                            {!! Form::number("staff_quantity[]", $staff->quantity, ['class' => 'form-control', 'step' => '1']) !!}
+                                        </div>
+                                        <div class="col-sm-1">
+                                            {!! Form::text("staff_unit[]", $staff_unit_for_work_done , ['class' => 'form-control']) !!}
+                                        </div>
+                                        <div class="col-sm-1">
+                                            {!! Form::text("staff_planned[]", $staff_planned_for_work_done , ['class' => 'form-control number']) !!}
+                                        </div>
+                                        <div class="col-sm-1">
+                                            {!! Form::text("staff_done[]", $staff_done_for_work_done , ['class' => 'form-control number']) !!}
+                                        </div>
+                                        <div class="col-sm-6">
+                                            {!! Form::textarea("staff_work_done[]", $staff_work_done_for_work_done , ['class' => 'form-control', 'rows' => '3']) !!}
+                                        </div>
                                     </div>
                                 </div>
                             @endforeach
@@ -1664,7 +1704,8 @@ EOT;
                                     <div class="col-sm-2">
                                         <div class="row">
                                             <div class="col-sm-2">
-                                                <a href="#" onclick="subcontractorToWorkDelete({{$subcontractor->id}})"><i
+                                                <a href="#" class="subcontractorToWorkDelete"
+                                                   data-id="{{$subcontractor->id}}"><i
                                                             class="fa fa-close"></i></a>
                                             </div>
                                             <div class="col-sm-10">
@@ -1679,54 +1720,61 @@ EOT;
                                     <div class="col-sm-1">
                                         {!! Form::text("subcontractor_unit[]", $subcontractor_unit_for_work_done , ['class' => 'form-control']) !!}
                                     </div>
-                                    <div class="col-sm-6">
-                                        {!! Form::textarea("subcontractor_work_done[]", $subcontractor_work_done_for_work_done , ['class' => 'form-control', 'rows' => '3']) !!}
-                                    </div>
                                     <div class="col-sm-1">
                                         {!! Form::text("subcontractor_planned[]", $subcontractor_planned_for_work_done , ['class' => 'form-control number']) !!}
                                     </div>
                                     <div class="col-sm-1">
                                         {!! Form::text("subcontractor_done[]", $subcontractor_done_for_work_done , ['class' => 'form-control number']) !!}
                                     </div>
+                                    <div class="col-sm-6">
+                                        {!! Form::textarea("subcontractor_work_done[]", $subcontractor_work_done_for_work_done , ['class' => 'form-control', 'rows' => '3']) !!}
+                                    </div>
                                 </div>
                             @endforeach
                         </div>
 
+                        <div class="form-group">
 
-                        <div class="row">
-                            <div class="col-sm-10">
-                                <div class="form-group pull-left">
-                                    <div class="row">
-                                        <div class="col-sm-6">
-                                            <a class="btn btn-warning btn-flat add-subcontractor-to-work-done-row">
-                                                Alt Yüklenici Ekle
-                                            </a>
-                                        </div>
+                            <div class="row">
+                                <div class="col-sm-2 pull-left">
 
-                                        <div class="col-sm-6">
-                                            <a class="btn btn-primary btn-flat add-staff-to-work-done-row">
-                                                Personel Ekle
-                                            </a>
-                                        </div>
-                                    </div>
+                                    <a class="btn btn-warning btn-flat add-subcontractor-to-work-done-row">
+                                        Alt Yüklenici Ekle
+                                    </a>
                                 </div>
-                            </div>
 
-                            <div class="col-sm-2">
-                                <button type="submit" class="btn btn-success btn-flat pull-right">
-                                    Kaydet
-                                </button>
-                            </div>
 
+                                <div class="{{sizeof($report->pwunit()->get()) < 1 ? "col-sm-8" : "col-sm-10"}}">
+                                    <button type="submit" class="btn btn-success btn-flat pull-right">
+                                        Kaydet
+                                    </button>
+                                </div>
+
+                                {!! Form::close() !!}
+
+                                @if(sizeof($report->pwunit()->get()) < 1)
+                                    {!! Form::open([
+                                                                    'url' => "/tekil/$site->slug/add-garden-staff",
+                                                                    'method' => 'POST',
+                                                                    'class' => 'form',
+                                                                    'role' => 'form'
+                                                                    ]) !!}
+                                    {!! Form::hidden('report_id', $report->id) !!}
+                                    <div class="col-sm-2">
+                                        <button type="submit" class="btn btn-primary btn-flat pull-right">
+                                            Garden Personeli Ekle
+                                        </button>
+                                    </div>
+                                    {!! Form::close() !!}
+                                @endif
+                            </div>
                         </div>
-
-                        {!! Form::close() !!}
-                        {{--Locked if--}}
                     </div>
+
+                    {{--Locked if--}}
                 </div>
             </div>
         </div>
-
 
 
         {{--GELEN MALZEMELER TABLE--}}
@@ -1748,10 +1796,12 @@ EOT;
                     <div class="box-body">
                         <div class="row">
                             <div class="col-sm-2"><strong>GELEN MALZEME</strong></div>
+                            <div class="col-sm-1"><strong>TAL. NO</strong></div>
                             <div class="col-sm-2"><strong>GELDİĞİ YER</strong></div>
                             <div class="col-sm-1"><strong>BİRİM</strong></div>
                             <div class="col-sm-1"><strong>MİKTAR</strong></div>
-                            <div class="col-sm-6"><strong>AÇIKLAMA</strong></div>
+                            <div class="col-sm-4"><strong>AÇIKLAMA</strong></div>
+                            <div class="col-sm-1"><strong>İRS. NO</strong></div>
                         </div>
 
                         {!! Form::open([
@@ -1766,11 +1816,14 @@ EOT;
                         <div id="inmaterial-insert">
                             @foreach($inmaterials as $inmaterial)
                                 <div class="row" id="div-inmaterialid{{$inmaterial->id}}">
+
+                                    {!! Form::hidden('inmat-id[]', $inmaterial->id) !!}
                                     <div class="col-sm-2">
                                         <div class="form-group">
                                             <div class="row">
                                                 <div class="col-sm-2"><a href="#"
-                                                                         onclick="inmaterialsDelete({{$inmaterial->id}})"><i
+                                                                         class="inmaterialsDelete"
+                                                                         data-id="{{$inmaterial->id}}"><i
                                                                 class="fa fa-close"></i></a></div>
                                                 <div class="col-sm-10">
                                                     <span>{{\App\Material::find($inmaterial->material_id)->material}}</span>
@@ -1779,7 +1832,9 @@ EOT;
                                             </div>
                                         </div>
                                     </div>
-
+                                    <div class="col-sm-1">
+                                        {{ !is_null($inmaterial->demand) ? $inmaterial->demand->id : "-" }}
+                                    </div>
                                     <div class="col-sm-2">
 
                                         <input type="text" class="form-control"
@@ -1799,59 +1854,31 @@ EOT;
                                                value="{{str_replace('.', ',', $inmaterial->quantity)}}"/>
                                     </div>
 
-                                    <div class="col-sm-6">
+                                    <div class="col-sm-4">
 
                                         <input type="text" class="form-control"
                                                name="inmaterial-explanation[]"
                                                value="{{$inmaterial->explanation}}"/>
                                     </div>
+                                    <div class="col-sm-1">
+                                        <input type="text" class="form-control"
+                                               name="inmaterial-irsaliye[]"
+                                               value="{{$inmaterial->irsaliye}}"/>
+                                    </div>
 
                                 </div>
                             @endforeach
-
-                            {{--<div class="row">
-                                <div class="col-sm-2">
-                                    <div class="form-group">
-                                        <select name="inmaterials[]"
-                                                class="js-example-basic-single form-control">
-
-                                            {!! $inmaterial_options !!}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="col-sm-2">
-
-                                    <input type="text" class="form-control"
-                                           name="inmaterial-from[]"
-                                           value=""/>
-                                </div>
-                                <div class="col-sm-1">
-
-                                    <input type="text" class="form-control"
-                                           name="inmaterial-unit[]"
-                                           value=""/>
-                                </div>
-                                <div class="col-sm-1">
-
-                                    <input type="text" class="number form-control"
-                                           name="inmaterial-quantity[]"
-                                           value=""/>
-                                </div>
-
-                                <div class="col-sm-6">
-
-                                    <input type="text" class="form-control"
-                                           name="inmaterial-explanation[]"
-                                           value=""/>
-                                </div>
-                            </div>--}}
                         </div>
 
 
                         <div class="row">
                             <div class="col-sm-12">
                                 <div class="form-group pull-right">
+                                    <a href="#" data-target="#demandsModal" data-toggle="modal"
+                                       class="btn btn-warning btn-flat">
+                                        Talepten Malzeme Ekle
+                                    </a>
+
                                     <a href="#" class="btn btn-primary btn-flat add-inmaterial-row">
                                         Satır Ekle
                                     </a>
@@ -1910,7 +1937,8 @@ EOT;
                                         <div class="form-group">
                                             <div class="row">
                                                 <div class="col-sm-2"><a href="#"
-                                                                         onclick="outmaterialsDelete({{$outmaterial->id}})"><i
+                                                                         class="outmaterialsDelete"
+                                                                         data-id="{{$outmaterial->id}}"><i
                                                                 class="fa fa-close"></i></a></div>
                                                 <div class="col-sm-10">
                                                     <span>{{\App\Material::find($outmaterial->material_id)->material}}</span>
@@ -2060,7 +2088,7 @@ EOT;
                         @for($i = 0; $i < sizeof($report_personnel_id_arr); $i++)
                             <?php
                             $per = $report_personnel_id_arr[$i];
-                            $report_person = Personnel::find($per);
+                            $report_person = Personnel::withTrashed()->find($per);
                             $report_shift = $report->shift()->where('personnel_id', $report_person->id)->first();
                             $report_meal = $report->meal()->where('personnel_id', $report_person->id)->first();
 
@@ -2176,6 +2204,60 @@ EOT;
 
     @endif
 
+    @if(!$locked)
+        <div class="row hidden-print">
+            <div class="col-xs-12 col-md-12">
+                <div class="box box-success box-solid">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Ertesi Gün Notları
+                        </h3>
+
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                        class="fa fa-minus"></i>
+                            </button>
+                        </div>
+                        <!-- /.box-tools -->
+                    </div>
+                    <!-- /.box-header -->
+                    <div class="box-body">
+
+                        <form action="{{url('/tekil/' . $site->slug . '/save-notes')}}" method="POST"
+                              class="form">
+                            {!! csrf_field() !!}
+                            <input type="hidden" name="rid" value="{{$report->id}}">
+
+                            <div class="row">
+                                <div class="form-group">
+                                    <div class="col-xs-12">
+                                        <label class="control-label">Notlar: </label>
+                                    </div>
+                                    <div class="col-xs-12">
+                                        {!! Form::textarea("notes", $report->notes , ['class' => 'form-control', 'rows' => '3']) !!}
+
+                                    </div>
+                                </div>
+                            </div>
+                            <br>
+
+                            <div class="row">
+                                <div class="col-xs-12 ">
+                                    <div class="form-group pull-right">
+                                        <button type="submit" class="btn btn-success btn-flat">
+                                            Kaydet
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    @endif
+
     <div class="row hidden-print">
         <div class="col-xs-12 col-md-12">
             <div class="box box-success box-solid">
@@ -2219,7 +2301,8 @@ EOT;
                                     <input name="file" type="file" multiple/>
                                 </div>
                                 <div class="dropzone-previews"></div>
-                                <h4 style="text-align: center;color:#428bca;">Şantiye fotoğraflarını bu alana
+                                <h4 style="text-align: center;color:#428bca;">Şantiye fotoğraflarını bu
+                                    alana
                                     sürükleyin
                                     <br>Ya da tıklayın<span
                                             class="glyphicon glyphicon-hand-down"></span></h4>
@@ -2242,7 +2325,8 @@ EOT;
 
                                         ?>
 
-                                        <a id="lb-link-{{$report_site_photo->id}}" href="{{$image_path}}"
+                                        <a id="lb-link-{{$report_site_photo->id}}"
+                                           href="{{$image_path}}"
                                            data-toggle="lightbox" data-gallery="reportsitephotos"
                                            data-footer="<a data-dismiss='modal' class='remove-files' href='#' data-fileId='{{$report_site_photo->id}}'>Dosyayı Sil<a/>"
                                            class="col-sm-4">
@@ -2269,7 +2353,8 @@ EOT;
                                     <input name="file" type="file" multiple/>
                                 </div>
                                 <div class="dropzone-previews"></div>
-                                <h4 style="text-align: center;color:#428bca;">Şantiye faturalarını bu alana
+                                <h4 style="text-align: center;color:#428bca;">Şantiye faturalarını bu
+                                    alana
                                     sürükleyin
                                     <br>Ya da tıklayın<span
                                             class="glyphicon glyphicon-hand-down"></span></h4>
@@ -2290,7 +2375,8 @@ EOT;
                                         $image_path = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->file()->first()->name
                                         ?>
 
-                                        <a id="lb-link-{{$report_site_receipt->id}}" href="{{$image_path}}"
+                                        <a id="lb-link-{{$report_site_receipt->id}}"
+                                           href="{{$image_path}}"
                                            data-toggle="lightbox" data-gallery="reportsitereceipts"
                                            data-footer="<a data-dismiss='modal' class='remove-files' href='#' data-fileId='{{$report_site_receipt->id}}'>Dosyayı Sil<a/>"
                                            class="col-sm-4">
@@ -2494,4 +2580,125 @@ EOT;
         </div>
         <!-- /.modal-dialog -->
     </div>
+
+    <div class="modal modal-info" role="dialog" id="notesModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span></button>
+                    <h4 class="modal-title">Notlar</h4>
+                </div>
+                <div class="modal-body">
+                    <p>{{isset($notes) ? $notes : "Gösterilecek not bulunmamaktadır."}}</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline pull-right" data-dismiss="modal">Kapat
+                    </button>
+                </div>
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
+    <div class="modal" role="dialog" id="demandsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span></button>
+                    <h4 class="modal-title">Talepten Ekle</h4>
+                </div>
+                {!! Form::open([
+                'url' => "/tekil/$site->slug/from-demand",
+                'method' => 'POST',
+                'class' => 'form',
+                'id' => 'fromDemandform',
+                'role' => 'form']) !!}
+                <div class="modal-body">
+
+                    <div class="row">
+                        <div class="col-sm-1 col-sm-offset-1">
+                            <strong>Tal.No</strong>
+                        </div>
+                        <div class="col-sm-2">
+                            <strong>Malzeme</strong>
+                        </div>
+                        <div class="col-sm-1">
+                            <strong>Birim</strong>
+                        </div>
+                        <div class="col-sm-1">
+                            <strong>Miktar</strong>
+                        </div>
+                        <div class="col-sm-2">
+                            <strong>Firma</strong>
+                        </div>
+                        <div class="col-sm-4">
+                            <strong>Açıklama</strong>
+                        </div>
+                    </div>
+                    <?php
+
+                    $i = 0;
+                    ?>
+                    @foreach($site->demand()->get() as $demand)
+                        @foreach($demand->materials()->get() as $mat)
+
+                            @if(!$mat->hasDemanded($demand->id))
+                                <input type="hidden" name="demand[]" value="{{$demand->id}}">
+                                <input type="hidden" name="material[]" value="{{$mat->id}}">
+                                <input type="hidden" name="coming_from[]" value="{{$demand->firm}}">
+                                <input type="hidden" name="quantity[]" value="{{$mat->pivot->quantity}}">
+                                <input type="hidden" name="unit[]" value="{{$mat->pivot->unit}}">
+                                <input type="hidden" name="explanation[]" value="{{$demand->explanation}}">
+                                <input type="hidden" name="rid" value="{{$report->id}}">
+                                <input type="hidden" name="mid[]" value="{{$mat->id}}">
+
+                                <div class="row">
+                                    <div class="col-sm-1">
+                                        <input type="checkbox" name="checked-id[]" value="{{$i}}">
+
+                                    </div>
+                                    <div class="col-sm-1">
+                                        {{$demand->id}}
+                                    </div>
+                                    <div class="col-sm-2">
+                                        {{$mat->material}}
+                                    </div>
+                                    <div class="col-sm-1">
+                                        {{$mat->pivot->unit}}
+                                    </div>
+                                    <div class="col-sm-1">
+                                        {{$mat->pivot->quantity}}
+                                    </div>
+                                    <div class="col-sm-2">
+                                        {{$demand->firm}}
+                                    </div>
+                                    <div class="col-sm-4">
+                                        {{$demand->details}}
+                                    </div>
+                                </div>
+                                <?php
+                                $i++;
+                                ?>
+                            @endif
+                        @endforeach
+                    @endforeach
+
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-flat btn-primary">Kaydet
+                    </button>
+                    <button type="button" class="btn btn-default btn-flat pull-right" data-dismiss="modal">Kapat
+                    </button>
+                </div>
+                {!! Form::close() !!}
+
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+
 @stop

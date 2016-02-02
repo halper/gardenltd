@@ -14,13 +14,13 @@ class CreatePwunitsTable extends Migration
     {
         Schema::create('pwunits', function (Blueprint $table) {
             $table->increments('id');
-            $table->integer('staff_id')->unsigned()->index();
+            $table->integer('staff_id')->unsigned()->index()->nullable();
             $table->foreign('staff_id')->references('id')->on('staffs')->onDelete('cascade')->onUpdate('cascade');
-            $table->integer('quantity');
-            $table->text('works_done');
-            $table->string('unit');
-            $table->double('planned', 8, 2);
-            $table->double('done', 8, 2);
+            $table->integer('quantity')->nullable();
+            $table->text('works_done')->nullable();
+            $table->string('unit')->nullable();
+            $table->double('planned', 8, 2)->nullable();
+            $table->double('done', 8, 2)->nullable();
             $table->integer('report_id')->unsigned()->index();
             $table->foreign('report_id')->references('id')->on('reports')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();

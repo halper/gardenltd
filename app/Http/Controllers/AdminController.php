@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Contract;
+use App\Demand;
 use App\Department;
 use App\Equipment;
+use App\Feature;
 use App\File;
 use App\Library\CarbonHelper;
 use App\Library\TurkishChar;
@@ -13,11 +15,14 @@ use App\Material;
 use App\Module;
 use App\Personnel;
 use App\Photo;
+use App\Rejection;
 use App\Sfile;
 use App\Site;
 use App\Staff;
+use App\Stock;
 use App\Subcontractor;
 use App\Subdetail;
+use App\Submaterial;
 use App\User;
 use App\Wage;
 use Carbon\Carbon;
@@ -83,6 +88,30 @@ class AdminController extends Controller
     public function edit(User $user)
     {
         return view('landing/edit', compact('user'));
+    }
+
+    public function approve(Demand $demand)
+    {
+        $demand->approval_status = 3;
+        $demand->save();
+        $tab = 1;
+        Session::flash('flash_message', 'Talep onaylandı');
+        return redirect()->back()->with('tab', $tab);
+    }
+
+    public function postRejectDemand(Request $request)
+    {
+        $demand = Demand::find($request->demand_id);
+        $demand->approval_status = 4;
+        $demand->save();
+        $rejection = new Rejection();
+        $rejection->reason = $request->reason;
+        $rejection->demand()->associate($demand);
+        $rejection->user()->associate(\Auth::user());
+        $rejection->save();
+        $tab = 1;
+        Session::flash('flash_message', 'Talep reddedildi!');
+        return redirect()->back()->with('tab', $tab);
     }
 
     public function update(Request $request, User $user)
@@ -178,20 +207,25 @@ class AdminController extends Controller
         $this->validate($request, [
             'tck_no' => 'required | size:11',
             'name' => 'required',
-            'contract' => 'required',
-            'wage' => 'required'
+            'contract' => 'required'
         ]);
         $per_arr = $request->all();
-        $per_arr["wage"] = str_replace(",", ".", $request->get("wage"));
         if (!empty($request->get("iban"))) {
             $per_arr["iban"] = preg_replace("/\\s+/ ", "", $request->get("iban"));
         }
         $personnel = Personnel::create($per_arr);
+        if (isset($per_arr["wage"])) {
+            $per_arr["wage"] = str_replace(",", ".", $request->get("wage"));
+        } else {
+            $per_arr["wage"] = 1.0;
+        }
+
         $wage = Wage::create([
             'wage' => $per_arr["wage"],
             'since' => Carbon::parse($personnel->created_at)->toDateString()]);
         $wage->personnel()->associate($personnel);
         $wage->save();
+
         $directory = public_path() . '/uploads/' . uniqid(rand(), true);
         $contract_file = $this->uploadFile($request->file("contract"), $directory);
         $contract = Contract::create([
@@ -234,8 +268,8 @@ class AdminController extends Controller
             'tax_number' => 'required'
         ]);
         $sub_arr = $request->all();
-        foreach($sub_arr as $v => $k){
-            if(empty($k)){
+        foreach ($sub_arr as $v => $k) {
+            if (empty($k)) {
                 unset($sub_arr[$v]);
             }
         }
@@ -391,11 +425,116 @@ class AdminController extends Controller
         return $this->modifyEntry($eq, $request);
     }
 
-    public function getDepartments(){
+    public function postModifyStaff(Request $request)
+    {
+        $eq = Staff::find($request->get("pk"));
+        return $this->modifyEntry($eq, $request);
+    }
+
+    public function postModifyManufacturing(Request $request)
+    {
+        $eq = Manufacturing::find($request->get("pk"));
+        return $this->modifyEntry($eq, $request);
+    }
+
+    public function postModifySubmaterial(Request $request)
+    {
+        $eq = Submaterial::find($request->get("pk"));
+        return $this->modifyEntry($eq, $request);
+    }
+
+    public function postModifyFeature(Request $request)
+    {
+        $eq = Feature::find($request->get("pk"));
+        return $this->modifyEntry($eq, $request);
+    }
+
+    public function postModifyStock(Request $request)
+    {
+        $eq = Stock::find($request->get("pk"));
+        if (!empty($eq)) {
+            if ($request->name == 'stockName') {
+                if (empty($request->get("value"))) {
+                    $eq->delete();
+                } else {
+                    $eq->name = TurkishChar::tr_up($request->get("value"));
+                    $eq->save();
+                }
+            } elseif ($request->name == 'stockUnit') {
+                $eq->unit = TurkishChar::tr_up($request->get("value"));
+                $eq->save();
+            } elseif ($request->name == 'stockTotal') {
+                $eq->total = $request->get("value");
+                $eq->save();
+            }
+        }
+        return response('success', 200);
+    }
+
+    public
+    function getDepartments()
+    {
         return Department::all()->toJson();
     }
 
-    private function modifyEntry($eq, $request)
+    public
+    function postAddSubmaterial(Request $request)
+    {
+
+        $material = Material::find($request->get("material"));
+        $names = preg_replace('/(\s+;\s|\s+;|;\s+)/i', ';', $request->get("name"));
+        $names = explode(';', $names);
+
+        foreach ($names as $name) {
+            $submaterial = $request->get("is_sm") == 1 ? new Submaterial() : new Feature();
+            $submaterial->name = TurkishChar::tr_up($name);
+            $submaterial->material()->associate($material);
+            $submaterial->save();
+        }
+        Session::flash('flash_message', 'Bağlantılı malzeme eklendi');
+        return redirect()->back();
+    }
+
+    public
+    function getRetrieveManufacturings()
+    {
+        $resp_arr = [];
+        foreach (Manufacturing::all() as $man) {
+            array_push($resp_arr, $man->name);
+        }
+        return response($resp_arr, 200);
+    }
+
+    public
+    function postAddManufacturing(Request $request)
+    {
+        Manufacturing::create($request->all());
+        return response('success', 200);
+    }
+
+    public
+    function getRetrieveStocks()
+    {
+        $resp_arr = [];
+        foreach (Stock::all() as $stock) {
+            array_push($resp_arr, [
+                'name' => $stock->name,
+                'total' => $stock->total,
+                'unit' => $stock->unit
+            ]);
+        }
+        return response($resp_arr, 200);
+    }
+
+    public
+    function postAddStock(Request $request)
+    {
+        Stock::create($request->all());
+        return response('success', 200);
+    }
+
+    private
+    function modifyEntry($eq, $request)
     {
         if (!empty($eq)) {
             if (empty($request->get("value"))) {
@@ -408,7 +547,8 @@ class AdminController extends Controller
         return response(200);
     }
 
-    private function uploadFile($file, $directory = null)
+    private
+    function uploadFile($file, $directory = null)
     {
         if (empty($directory)) {
             $directory = public_path() . '/uploads/' . uniqid(rand(), true);

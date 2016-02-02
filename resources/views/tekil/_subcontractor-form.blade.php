@@ -13,13 +13,24 @@ foreach (\App\Manufacturing::all() as $manufacture) {
 
 ?>
 
-<div class="form-group" {{ $errors->has('contract_date') ? 'has-error' : '' }}>
+<div class="form-group" {{ $errors->has('price') ? 'has-error' : '' }}>
     <div class="row">
         <div class="col-sm-2">
             {!! Form::label('price', 'Sözleşme Bedeli: ', ['class' => 'control-label']) !!}
         </div>
         <div class="col-sm-10">
             {!! Form::text('price', str_replace(".", ",", $subcontractor->price), ['class' => 'form-control number', 'placeholder' => 'Sözleşme Bedelini Giriniz(TL)', 'step' => 'any']) !!}
+        </div>
+    </div>
+
+</div>
+<div class="form-group" {{ $errors->has('additional_bid_cost') ? 'has-error' : '' }}>
+    <div class="row">
+        <div class="col-sm-2">
+            {!! Form::label('additional_bid_cost', 'İlave Sözleşme Bedeli: ', ['class' => 'control-label']) !!}
+        </div>
+        <div class="col-sm-10">
+            {!! Form::text('additional_bid_cost', str_replace(".", ",", $subcontractor->additional_bid_cost), ['class' => 'form-control number', 'placeholder' => 'İlave Sözleşme Bedelini Giriniz(TL)', 'step' => 'any']) !!}
         </div>
     </div>
 

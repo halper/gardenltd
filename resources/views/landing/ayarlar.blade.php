@@ -1,3 +1,12 @@
+<?php
+
+if (Session::has('tab')) {
+    $tab = Session::get('tab');
+} else {
+    $tab = '';
+}
+?>
+
 @extends('landing/landing')
 
 @section('page-specific-js')
@@ -17,6 +26,21 @@
             }).appendTo(myForm);
             $('#deleteUserConfirm').modal('show');
         });
+        $(document).on("click", ".demandRejectBut", function (e) {
+
+            e.preventDefault();
+            var myUserId = $(this).data('id');
+            var myUserName = $(this).data('name');
+            var myForm = $('#rejectDemandForm');
+            var myP = $('.modal-body .userDel');
+            myP.html("<em>" + myUserName + "</em> tarihli talebi reddetme sebebiniz?");
+            $('<input>').attr({
+                type: 'hidden',
+                name: 'demand_id',
+                value: myUserId
+            }).appendTo(myForm);
+            $('#rejectDemandConfirm').modal('show');
+        });
 
         if ($('.has-error')[0]) {
             $('#insertUser').modal('show');
@@ -26,57 +50,34 @@
 @stop
 
 @section('content')
-
     <div class="row">
-        <div class="col-xs-12 table-responsive">
-            <table class="table table-striped">
-                <thead>
-                <tr>
-                    <th>Adı-Soyadı</th>
-                    <th>E-posta Adresi</th>
-                    <th>Kayıt Tarihi</th>
-                    <th>Kullanıcı İşlemleri</th>
-                </tr>
-                </thead>
-                <tbody>
+        <div class="col-md-12">
+            <!-- Custom Tabs -->
+            <div class="nav-tabs-custom">
+                <ul class="nav nav-tabs">
+                    <li {{empty($tab) ? 'class=active' : ''}}><a href="#tab_5" data-toggle="tab">Kullanıcı</a></li>
+                    <li {{$tab == 1 ? 'class=active' : ''}}><a href="#tab_1" data-toggle="tab">Talep</a></li>
 
-                @foreach($users as $user)
-                    <tr>
-                        <td>{{ $user->name }} {{$user->isAdmin() ? "(Admin)" : ""}}</td>
-                        <td>{{ $user->email }}</td>
+                </ul>
 
-                        <td>
-                            <?php
-                            $date = strtotime($user->getAttribute("created_at"));
-                            $date_format = date('d.m.Y', $date);
-                            echo $date_format;
-                            ?>
-                        </td>
-                        <td>
-                            <div class="row">
-                                <div class="col-sm-3">
-                                    <a href="{{"duzenle/$user->id"}}" class="btn btn-flat btn-warning btn-sm">Düzenle</a>
-                                </div>
-                                <div class="col-sm-2">
-                                    <?php
-                                    echo '<button type="button" class="btn btn-flat btn-danger btn-sm userDelBut" data-id="' . $user->id . '" data-name="' . $user->name . '" data-toggle="modal" data-target="#deleteUserConfirm">Sil</button>';
-                                    ?>
-                                </div>
-                            </div>
+                <!-- /.tab-content -->
+                <div class="tab-content">
 
-                        </td>
 
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
+                    <div class="tab-pane {{empty($tab) ? 'active' : ''}}" id="tab_5">
+                        @include('landing._ayarlar-users')
+                    </div>
+
+                    <div class="tab-pane {{$tab == 1 ? 'active' : ''}}" id="tab_1">
+                        @include('landing._ayarlar-demands')
+                    </div>
+
+                </div>
+            </div>
         </div>
     </div>
-    <div class="row">
-        <button type="button" class="btn btn-flat btn-primary pull-right" style="margin: 15px" data-toggle="modal"
-                data-target="#insertUser">Yeni Kullanıcı Ekle
-        </button>
-    </div>
+
+
 
     <div id="deleteUserConfirm" class="modal fade" role="dialog">
         <div class="modal-dialog">
@@ -131,6 +132,45 @@
                 <div class="modal-footer">
 
                     <button type="submit" class="btn btn-flat btn-primary">Kullanıcı ekle</button>
+                    <button type="button" class="btn btn-flat btn-default" data-dismiss="modal">İptal</button>
+                    {!! Form::close() !!}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="rejectDemandConfirm" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Talep Reddet</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="userDel"></div>
+                    {!! Form::open([
+                    'url' => '/admin/reject-demand',
+                    'method' => 'POST',
+                    'class' => 'form',
+                    'id' => 'rejectDemandForm',
+                    'role' => 'form'
+                    ]) !!}
+
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <textarea class="form-control" name="reason" rows="4" cols="30"></textarea>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+
+                    <button type="submit" class="btn btn-flat btn-primary">Reddet</button>
                     <button type="button" class="btn btn-flat btn-default" data-dismiss="modal">İptal</button>
                     {!! Form::close() !!}
                 </div>

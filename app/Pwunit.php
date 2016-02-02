@@ -21,4 +21,9 @@ class Pwunit extends Model
         return $this->belongsTo('App\Report');
     }
 
+    public function staff()
+    {
+        return $this->belongsTo('App\Staff');
+    }
+
 }

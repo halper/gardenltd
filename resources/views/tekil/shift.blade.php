@@ -19,6 +19,7 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
     <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
     <script>
 
+
         function setHeaderHeights() {
             if ($('#searchField').height() > $('#wageField').height()) {
                 $('#wageField').height($('#searchField').height());
@@ -91,6 +92,21 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                 });
                 return result;
             };
+        }).filter('color', function(){
+            return function(data){
+                if(data.indexOf('-') > -1 ||
+                data.indexOf('Yİ') > -1 ||
+                data.indexOf('Gİ') > -1 ||
+                data.indexOf('Hİ') > -1 ||
+                data.indexOf('Üİ') > -1 ||
+                data.indexOf('R') > -1
+                ){
+                    return 'red';
+                }
+                else {
+                    return 'green';
+                }
+            }
         });
 
         function cb(start, end) {
@@ -127,7 +143,6 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
 
         $(document).ready(function () {
             angular.element('#angPuantaj').scope().getOvertimes();
-
             setHeaderHeights();
         });
 
@@ -140,6 +155,8 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                 $(this).tooltip('hide');
             });
         });
+
+
     </script>
 @stop
 
@@ -147,16 +164,6 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
     <div ng-app="puantajApp" ng-controller="PuantajController" id="angPuantaj">
         <div class="form-group">
             <div class="row">
-                <div class="col-xs-12 col-sm-4 col-md-2" style="min-width: 260px">
-                    <div id="reportrange" class="pull-right"
-                         style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
-                        <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
-                        <span class="text-center"></span>
-                    </div>
-                </div>
-                <input type="hidden" name="start-date" ng-model="startDate">
-                <input type="hidden" name="end-date" ng-model="endDate">
-
                 <div class="col-xs-12 col-sm-8 col-md-9">
 
                     <table class="table-responsive table-extra-condensed">
@@ -182,6 +189,15 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                     </table>
 
                 </div>
+                <div class="col-xs-12 col-sm-4 col-md-2" style="min-width: 260px">
+                    <div id="reportrange"
+                         style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
+                        <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
+                        <span class="text-center"></span>
+                    </div>
+                </div>
+                <input type="hidden" name="start-date" ng-model="startDate">
+                <input type="hidden" name="end-date" ng-model="endDate">
             </div>
         </div>
 
@@ -243,7 +259,8 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                                                 class="text-center"
                                                 style="font-size: 11px"
                                                 ng-class="weekends[$index] == 1 && 'garden-orange'"
-                                                ng-style="!person.tck_no && {'background-color' : '#00a9ff'}"><%
+                                                ng-style="(!person.tck_no && {'background-color' : '#00a9ff'})
+                                                || (person.tck_no && {'color':(type|color)})"><%
                                                 type |
                                                 uppercase
                                                 %>
@@ -275,6 +292,6 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
 
 
     </div>
-    </div>
-    </div>
+
+
 @stop

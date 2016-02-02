@@ -20,7 +20,7 @@
 
             <label class="checkbox-inline">
                 {!! Form::checkbox('admin', null,
-                $user->isAdmin(),
+                isset($user) ? $user->isAdmin() : false,
                 [
                 'id'=>'admin-cb',
                 ])

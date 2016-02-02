@@ -22,6 +22,11 @@ namespace App\Library {
             return mb_convert_case(self::convertFirst($str), MB_CASE_TITLE, 'utf-8');
         }
 
+        public static function convertCurrencyFromTr($str){
+            $str = str_replace('.', '', $str);
+            return str_replace(',', '.', $str);
+        }
+
         private static function convertFirst($str)
         {
             $str_arr = explode(" ", $str);
@@ -35,6 +40,11 @@ namespace App\Library {
         private static function convertI($str)
         {
             return str_replace('i', 'İ', str_replace('ı', 'I', $str));
+        }
+
+        public static function convertToTRcurrency($contract_cost)
+        {
+            return str_replace('.', ',', (string)$contract_cost);
         }
 
     }

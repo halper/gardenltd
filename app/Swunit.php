@@ -20,4 +20,9 @@ class Swunit extends Model
     {
         return $this->belongsTo('App\Report');
     }
+
+    public function subcontractor()
+    {
+        return $this->belongsTo('App\Subcontractor');
+    }
 }

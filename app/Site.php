@@ -24,7 +24,7 @@ class Site extends Eloquent implements SluggableInterface
     protected $fillable = ['job_name', 'management_name',
         'start_date', 'contract_date', 'main_contractor',
         'end_date', 'address', 'site_chief', 'employer', 'building_control',
-    'isg'];
+        'isg', 'contract_worth'];
 
     public function user()
     {
@@ -94,5 +94,35 @@ class Site extends Eloquent implements SluggableInterface
     public function mealcost()
     {
         return $this->hasMany('App\Mealcost');
+    }
+
+    public function demand()
+    {
+        return $this->hasMany('App\Demand');
+    }
+
+    public function allowance()
+    {
+        return $this->hasMany('App\Allowance');
+    }
+
+    public function smdemand()
+    {
+        return $this->hasMany('App\Smdemand');
+    }
+
+    public function smdexpense()
+    {
+        return $this->hasMany('App\Smdexpense');
+    }
+
+    public function city()
+    {
+        return $this->belongsTo('App\City');
+    }
+
+    public function stock()
+    {
+        return $this->belongsToMany('App\Stock')->withPivot('amount', 'detail')->withTimestamps();
     }
 }

@@ -31,7 +31,7 @@ $account = $site->account()->get()->isEmpty() ? null : $site->account;
                 $interpolateProvider.endSymbol('%>');
             }).controller('AccountController', function ($scope, $http) {
                 $scope.expenses = [];
-                $scope.buyer = '{{$account->user()->owner()->first()->name}}';
+                $scope.buyer = '{{$account->user()->get()->isEmpty() ? '' : $account->user()->owner()->first()->name}}';
                 $scope.date = moment().format('DD.MM.YYYY');
                 $scope.search = '';
 
@@ -109,9 +109,9 @@ $account = $site->account()->get()->isEmpty() ? null : $site->account;
                             'income': $scope.income,
                             'expense': $scope.expense
                         });
-                        $scope.date = moment().format('DD.MM.YYYY');;
+                        $scope.date = moment().format('DD.MM.YYYY');
                         $scope.definition = '';
-                        $scope.buyer = '{{$account->user()->owner()->first()->name}}';
+                        $scope.buyer = '{{$account->user()->get()->isEmpty() ? '' : $account->user()->owner()->first()->name}}';
                         $scope.type = '';
                         $scope.income = '';
                         $scope.expense = '';
@@ -189,7 +189,7 @@ $account = $site->account()->get()->isEmpty() ? null : $site->account;
 @stop
 
 @section('content')
-    @if($account)
+    @if($account && !$account->user()->get()->isEmpty())
         <div class="row">
             <div class="col-xs-12 col-md-4 col-md-offset-4">
                 <div class="box box-warning box-solid">
@@ -415,6 +415,6 @@ $account = $site->account()->get()->isEmpty() ? null : $site->account;
 
 
     @else
-        <p class="text-danger">Şantiye için yöneticinizin kasa tanımlaması gerekmektedir.</p>
+        <p class="text-danger">Şantiye için yöneticinizin kasa ve kasa sahibi tanımlaması gerekmektedir.</p>
     @endif
 @stop

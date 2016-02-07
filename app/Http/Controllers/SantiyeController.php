@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Account;
 use App\City;
 use App\Library\CarbonHelper;
 use App\Library\TurkishChar;
 use App\Site;
 use App\Stock;
+use App\User;
 use Illuminate\Http\Request;
 use App\Http\Requests;
 use Illuminate\Support\Facades\Session;
@@ -52,6 +54,9 @@ class SantiyeController extends ManagementController
                 'contract_worth' => $request->get('contract_worth'),
                 'extra_cost' => $request->get("extra_cost"),
             ]);
+        $account = new Account();
+        $account->site()->associate($site);
+        $account->save();
         $site->city()->associate(City::find($request->get("city_id")));
         Session::flash('flash_message', $request->get('job_name') . " şantiyesi eklendi");
         return redirect('santiye');
@@ -147,5 +152,55 @@ class SantiyeController extends ManagementController
             return redirect('/santiye');
         }
         return view('landing.edit-site', compact('site'));
+    }
+
+    public function getSites()
+    {
+        $resp_arr = [];
+        foreach (Site::getSites() as $site) {
+            array_push($resp_arr, [
+                'jobName' => $site->job_name,
+                'id' => $site->id
+            ]);
+        }
+
+        return response()->json($resp_arr, 200);
+    }
+
+    public function getUsers()
+    {
+        $resp_arr = [];
+        foreach (User::all() as $user) {
+            array_push($resp_arr, [
+                'name' => $user->name,
+                'id' => $user->id
+            ]);
+        }
+
+        return response()->json($resp_arr, 200);
+    }
+
+    public function postAccountDetails(Request $request)
+    {
+        $site = Site::find($request->id);
+        $site->load('account');
+        return response()->json([
+            "id" => $site->account->id,
+            "owner" => $site->account->user()->get()->isEmpty() ? "" : $site->account->user()->owner()->first()->name,
+            "uid" => $site->account->user()->get()->isEmpty() ? "" : $site->account->user()->owner()->first()->id,
+            "cardOwner" => empty($site->account->card_owner) ? "" : $site->account->card_owner,
+            "period" => empty($site->account->period) ? "" : $site->account->period
+        ], 200);
+    }
+
+    public function postSaveAccount(Request $request)
+    {
+        $acc = Account::find($request->id);
+        $acc->card_owner = $request->card_owner;
+        $acc->period = $request->period;
+        $acc->user()->detach();
+        $acc->user()->attach(User::find($request->uid), ['owner_type' => 1]);
+        $acc->save();
+        return response('success', 200);
     }
 }

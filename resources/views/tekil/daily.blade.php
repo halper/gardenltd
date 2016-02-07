@@ -5,7 +5,7 @@ use App\Site;
 use Carbon\Carbon;
 use App\Staff;
 use Illuminate\Support\Facades\Session;
-$my_weather = new Weather;
+$my_weather = new Weather(0, $site->city->name);
 $weather_symbol = '';
 
 
@@ -71,7 +71,8 @@ foreach ($report_subcontractors as $report_subcontractor) {
     array_push($report_subcontractor_arr, $report_subcontractor->id);
     foreach ($report->shift()->get() as $shift) {
         if (!($shift->personnel()->get()->isEmpty())) {
-            if ($shift->personnel()->first()->personalize->id == $report_subcontractor->id) {
+
+            if (!empty($shift->personnel()->first()->personalize->id) && $shift->personnel()->first()->personalize->id == $report_subcontractor->id) {
                 array_push($subcontractor_report_personnel[$i], $shift->personnel_id);
             }
         }
@@ -2452,89 +2453,6 @@ EOT;
             </div>
         </div>
     </div>
-
-    @if($locked)
-        <div class="row hidden-print">
-            <div class="col-xs-12 col-md-12">
-                <div class="box box-success box-solid">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Şantiye Ekleri
-                        </h3>
-
-                        <div class="box-tools pull-right">
-                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                        class="fa fa-minus"></i>
-                            </button>
-                        </div>
-                        <!-- /.box-tools -->
-                    </div>
-                    <!-- /.box-header -->
-                    <div class="box-body">
-                        <div class="row">
-                            <div class="col-sm-6">
-                                <span><strong>ŞANTİYE FOTOĞRAFLARI</strong></span>
-                            </div>
-                            <div class="col-sm-6">
-                                <span><strong>FATURALAR</strong></span>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-sm-6">
-                                @foreach($site_reports as $site_report)
-                                    @foreach($site_report->photo as $site_photo)
-                                        <?php
-                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $site_photo->file()->first()->path);
-                                        $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-                                        $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $site_photo->file()->first()->name;
-                                        if (strpos($site_photo->file()->first()->name, 'pdf') !== false) {
-                                            $image = URL::to('/') . "/img/pdf.jpg";
-                                        } elseif (strpos($site_photo->file()->first()->name, 'doc') !== false) {
-                                            $image = URL::to('/') . "/img/word.png";
-                                        }
-                                        ?>
-
-                                        <a href="{{$image}}"
-                                           data-toggle="lightbox" data-gallery="reportsitephotos"
-                                           class="col-sm-4">
-                                            <img src="{{$image}}" class="img-responsive">
-                                            {{$site_photo->file()->first()->name}}
-                                        </a>
-
-                                    @endforeach
-                                @endforeach
-                            </div>
-                            <div class="col-sm-6">
-                                @foreach($site_reports as $site_report)
-                                    @foreach($site_report->receipt as $site_receipt)
-                                        <?php
-                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $site_receipt->file()->first()->path);
-                                        $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-                                        $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $site_receipt->file()->first()->name;
-                                        if (strpos($site_receipt->file()->first()->name, 'pdf') !== false) {
-                                            $image = URL::to('/') . "/img/pdf.jpg";
-                                        } elseif (strpos($site_receipt->file()->first()->name, 'doc') !== false) {
-                                            $image = URL::to('/') . "/img/word.png";
-                                        }
-                                        ?>
-
-                                        <a href="{{$image}}"
-                                           data-toggle="lightbox" data-gallery="reportsitereceipts"
-                                           class="col-sm-4">
-                                            <img src="{{$image}}" class="img-responsive">
-                                            {{$site_receipt->file()->first()->name}}
-                                        </a>
-
-                                    @endforeach
-                                @endforeach
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
 
     @if (!isset($report_date))
         <div class="row hidden-print">

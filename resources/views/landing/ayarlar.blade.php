@@ -10,6 +10,7 @@ if (Session::has('tab')) {
 @extends('landing/landing')
 
 @section('page-specific-js')
+    <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
     <script>
         $(document).on("click", ".userDelBut", function (e) {
 
@@ -46,6 +47,81 @@ if (Session::has('tab')) {
             $('#insertUser').modal('show');
         }
 
+        var puantajApp = angular.module('puantajApp', [], function ($interpolateProvider) {
+            $interpolateProvider.startSymbol('<%');
+            $interpolateProvider.endSymbol('%>');
+        }).controller('PuantajController', function ($scope, $http) {
+            $scope.sites = $scope.init;
+            $scope.users = [];
+            $scope.account = [];
+            $scope.showRest = false;
+            $scope.selected = null;
+            $scope.selectUser = null;
+
+            $scope.owner = '';
+            $scope.cardOwner = '';
+            $scope.period = '';
+
+            $scope.showRest = false;
+            $scope.loading = true;
+            $scope.message = '';
+
+
+            $scope.init = function () {
+
+                $http.get("{{url("/santiye/sites")}}")
+                        .then(function (response) {
+                            $scope.sites = response.data;
+                        });
+                $http.get("{{url("/santiye/users")}}")
+                        .then(function (response) {
+                            $scope.users = response.data;
+                        });
+            };
+
+            $scope.getAccInfo = function () {
+                $scope.selectUser = null;
+                $http.post("{{url("/santiye/account-details")}}", {
+                            'id': $scope.selected.id
+                        }
+                ).then(function (response) {
+                    $scope.loading = false;
+                    $scope.showRest = true;
+                    $scope.account = response.data;
+                    $scope.owner = '';
+                    $scope.cardOwner = $scope.account.cardOwner;
+                    $scope.period = $scope.account.period;
+
+                    if ($scope.account.uid) {
+                        angular.forEach($scope.users, function (value) {
+                            if (parseInt(value.id) == parseInt($scope.account.uid)) {
+                                $scope.selectUser = value;
+                            }
+                        })
+                    }
+                });
+
+            };
+
+            $scope.saveAccount = function () {
+                $scope.message = '';
+                $http.post("{{url("/santiye/save-account")}}", {
+                            id: $scope.account.id,
+                            uid: $scope.selectUser.id,
+                            card_owner: $scope.cardOwner,
+                            period: $scope.period
+                        }
+                ).then(function () {
+                    $scope.message = 'Kayıt başarılı';
+                });
+            };
+
+        });
+
+        $(document).ready(function () {
+            angular.element('#angPuantaj').scope().init();
+        });
+
     </script>
 @stop
 
@@ -57,6 +133,7 @@ if (Session::has('tab')) {
                 <ul class="nav nav-tabs">
                     <li {{empty($tab) ? 'class=active' : ''}}><a href="#tab_5" data-toggle="tab">Kullanıcı</a></li>
                     <li {{$tab == 1 ? 'class=active' : ''}}><a href="#tab_1" data-toggle="tab">Talep</a></li>
+                    <li {{$tab == 2 ? 'class=active' : ''}}><a href="#tab_2" data-toggle="tab">Kasa</a></li>
 
                 </ul>
 
@@ -70,6 +147,9 @@ if (Session::has('tab')) {
 
                     <div class="tab-pane {{$tab == 1 ? 'active' : ''}}" id="tab_1">
                         @include('landing._ayarlar-demands')
+                    </div>
+                    <div class="tab-pane {{$tab == 2 ? 'active' : ''}}" id="tab_2">
+                        @include('landing._ayarlar-account')
                     </div>
 
                 </div>

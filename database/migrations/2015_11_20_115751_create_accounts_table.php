@@ -14,10 +14,9 @@ class CreateAccountsTable extends Migration
     {
         Schema::create('accounts', function (Blueprint $table) {
             $table->increments('id');
-//            $table->double('init')->unsigned();
             $table->string('owner');
-            $table->string('period');
-            $table->integer('site_id')->unsigned()->index();
+            $table->string('period')->nullable();
+            $table->integer('site_id')->unsigned()->index()->nullable();
             $table->foreign('site_id')->references('id')->on('sites')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
         });

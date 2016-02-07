@@ -63,7 +63,7 @@ class ModulesTableSeeder extends Seeder
 
 
         Module::create(array(
-            'name' => 'Kiralık Araç',
+            'name' => 'İş Makineleri',
             'icon' => 'fa-truck',
         ));
 
@@ -105,6 +105,10 @@ class ModulesTableSeeder extends Seeder
         Module::create(array(
             'name' => 'Hakedişler',
             'icon' => 'ion-ios-calculator',
+        ));
+        Module::create(array(
+            'name' => 'Şantiye Ekleri',
+            'icon' => 'ion-images',
         ));
 
     }

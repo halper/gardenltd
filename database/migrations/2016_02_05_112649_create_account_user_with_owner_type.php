@@ -16,8 +16,8 @@ class CreateAccountUserWithOwnerType extends Migration
             $table->increments('id');
             $table->integer('account_id')->unsigned()->index()->nullable();
             $table->foreign('account_id')->references('id')->on('accounts')->onDelete('cascade')->onUpdate('cascade');
-            $table->integer('site_id')->unsigned()->index()->nullable();
-            $table->foreign('site_id')->references('id')->on('sites')->onDelete('cascade')->onUpdate('cascade');
+            $table->integer('user_id')->unsigned()->index()->nullable();
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
             $table->unsignedTinyInteger('owner_type')->comment='1 acccount, 2 card';
             $table->timestamps();
         });

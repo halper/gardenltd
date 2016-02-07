@@ -9,7 +9,7 @@ class Account extends Model
     //
     protected $table = 'accounts';
 
-    protected $fillable = ['owner', 'period', 'site_id', 'card_owner'];
+    protected $fillable = ['period', 'card_owner'];
 
     public function expense()
     {
@@ -20,4 +20,10 @@ class Account extends Model
     {
         return $this->belongsTo('App\Site');
     }
+
+    public function user()
+    {
+        return $this->belongsToMany('App\User')->withPivot('owner_type')->withTimestamps();
+    }
+
 }

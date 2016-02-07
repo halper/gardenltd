@@ -80,7 +80,7 @@ class TekilController extends Controller
         }
         $yesterdays_report = $site->report()->where('created_at', Carbon::yesterday()->toDateString())->first();
         if (!is_null($yesterdays_report) && is_null($yesterdays_report->weather)) {
-            $wt = new Weather(1);
+            $wt = new Weather(1, $site->city->name);
             $yesterdays_report->weather = $wt->getDescription();
             $yesterdays_report->temp_min = $wt->getMin();
             $yesterdays_report->temp_max = $wt->getMax();
@@ -2025,6 +2025,17 @@ class TekilController extends Controller
     }
 
     //End of Demirbaş
+
+    /**
+     * ŞANTİYE EKLERİ
+     */
+
+    public function getSantiyeEkleri(Site $site, Module $modules)
+    {
+        return view('tekil.attachment', compact('site', 'modules'));
+    }
+
+    // End of Şantiye Ekleri
 
     /**
      *

@@ -5,25 +5,36 @@ namespace App\Library {
         private $appid = '570240fc9688bc26dba535b40820e8cf';
         private $json = '';
         private $day;
+        private $city;
 
         /**
          * Weather constructor.
          * @param $day
          */
-        public function __construct($day = 0)
+        public function __construct($day = 0, $city = 'ankara')
         {
             $this->day = $day;
+            $turkish = array("ı", "ğ", "ü", "ş", "ö", "ç");//turkish letters
+            $english = array("i", "g", "u", "s", "o", "c");//english cooridinators letters
+
+            $this->city = str_replace($turkish, $english, mb_strtolower($city, 'utf-8'));
         }
 
 
         public function getWeather()
         {
-            $url = "http://api.openweathermap.org/data/2.5/forecast/daily?q=ankara&mode=json&units=metric&lang=tr&cnt=2&appid=$this->appid";
-            $content = file_get_contents($url);
-            /*$ch =  curl_init($url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            $result = curl_exec($ch);*/
-            $this->json = json_decode($content, true);
+            $url = "http://api.openweathermap.org/data/2.5/forecast/daily?q=$this->city&mode=json&units=metric&lang=tr&cnt=2&appid=$this->appid";
+            $curl = curl_init();
+            curl_setopt($curl, CURLOPT_URL, $url);
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($curl, CURLOPT_HEADER, false);
+            curl_setopt($curl, CURLOPT_ENCODING ,"");
+            $data = curl_exec($curl);
+            curl_close($curl);
+            $data = (preg_replace('/\n/i','', $data));
+//            $content = file_get_contents($url);
+            $this->json = json_decode($data, true);
+//            dd($this->json);
         }
 
         public function getMin()

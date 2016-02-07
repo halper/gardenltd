@@ -71,4 +71,14 @@ class User extends Model implements AuthenticatableContract,
     {
         return !is_null($this->permission()->where('module_id', $module)->first());
     }
+
+    public function account()
+    {
+        return $this->belongsToMany('App\Account')->withPivot('owner_type')->withTimestamps();
+    }
+
+    public function scopeOwner($query)
+    {
+        return $query->where('owner_type', '=', '1');
+    }
 }

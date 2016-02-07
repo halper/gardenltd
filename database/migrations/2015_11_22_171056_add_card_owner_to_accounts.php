@@ -14,7 +14,7 @@ class AddCardOwnerToAccounts extends Migration
     {
         Schema::table('accounts', function (Blueprint $table) {
             //
-            $table->string('card_owner');
+            $table->string('card_owner')->nullable();
         });
     }
 

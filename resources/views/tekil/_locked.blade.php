@@ -435,7 +435,9 @@ use App\Library\TurkishChar;
 {{--WORK DONE TABLE--}}
 <div class="row">
     <div class="col-md-12">
-        @if(sizeof($report->pwunit()->get()) + sizeof($report->swunit()->get()) > 0)
+        @if(sizeof($report->swunit()->get()) > 0 ||
+        (!empty($report->pwunit()->first()->planned) &&
+        !empty($report->pwunit()->first()->done)))
             <div class="text-center" style="background-color: rgb(127,127,127)">
                 <span><strong>YAPILAN İŞLER</strong></span>
             </div>
@@ -459,26 +461,27 @@ use App\Library\TurkishChar;
                     $i = 1;
                     ?>
                     @foreach($report->pwunit()->get() as $pw)
-                        <?php
-                        $pw_work_done_in_percent = ((int)$pw->planned == 0 || is_null($pw->planned)) ? 0 : 100 * (int)$pw->done / (int)$pw->planned;
-                        ?>
 
-                        @if($pw_work_done_in_percent>100)
-                            <tr class="bg-success" style="text-align: center">
-                        @elseif($pw_work_done_in_percent<100)
-                            <tr class="bg-danger" style="text-align: center">
-                        @elseif($pw_work_done_in_percent == 100)
-                            <tr class="bg-warning" style="text-align: center">
-                                @endif
-                                <td>{{$i++}}</td>
-                                <td>{{$pw->staff->staff}}</td>
-                                <td>{{$pw->quantity}}</td>
-                                <td>{{$pw->unit}}</td>
-                                <td class="number">{{str_replace(".", ",", $pw->planned)}}</td>
-                                <td class="number">{{str_replace(".", ",", $pw->done)}}</td>
-                                <td>{{$pw->works_done}}</td>
-                                <td class="number">%{{str_replace(".", ",", $pw_work_done_in_percent)}}</td>
-                            </tr>
+                            <?php
+                            $pw_work_done_in_percent = ((int)$pw->planned == 0 || is_null($pw->planned)) ? 0 : 100 * (int)$pw->done / (int)$pw->planned;
+                            ?>
+
+                            @if($pw_work_done_in_percent>100)
+                                <tr class="bg-success" style="text-align: center">
+                            @elseif($pw_work_done_in_percent<100)
+                                <tr class="bg-danger" style="text-align: center">
+                            @elseif($pw_work_done_in_percent == 100)
+                                <tr class="bg-warning" style="text-align: center">
+                                    @endif
+                                    <td>{{$i++}}</td>
+                                    <td>{{$pw->staff->staff}}</td>
+                                    <td>{{$pw->quantity}}</td>
+                                    <td>{{$pw->unit}}</td>
+                                    <td class="number">{{str_replace(".", ",", $pw->planned)}}</td>
+                                    <td class="number">{{str_replace(".", ",", $pw->done)}}</td>
+                                    <td>{{$pw->works_done}}</td>
+                                    <td class="number">%{{str_replace(".", ",", $pw_work_done_in_percent)}}</td>
+                                </tr>
 
                             @endforeach
 

@@ -14,8 +14,8 @@ class CreateWagesTable extends Migration
     {
         Schema::create('wages', function (Blueprint $table) {
             $table->increments('id');
-            $table->double('wage', 4,2);
-            $table->date('since');
+            $table->double('wage', 6,2);
+            $table->date('since')->default('1970-01-01');
             $table->unsignedInteger('personnel_id')->index()->nullable();
             $table->foreign('personnel_id')->references('id')->on('personnel')->onDelete('cascade')->onUptade('cascade');
             $table->timestamps();

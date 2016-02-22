@@ -46,7 +46,7 @@
                             <!-- Menu Footer-->
                     <li class="user-footer">
                         <div class="pull-left">
-                            <a href="#" class="btn btn-default btn-flat">Bilgilerim</a>
+                            <a href="/bilgilerim" class="btn btn-default btn-flat">Bilgilerim</a>
                         </div>
 
                         <div class="pull-right">

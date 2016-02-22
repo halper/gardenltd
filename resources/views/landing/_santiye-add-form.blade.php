@@ -11,6 +11,7 @@ foreach (\App\City::all() as $city) {
         $city_options .= "<option value=\"$city->id\">" . \App\Library\TurkishChar::tr_up($city->name) . "</option>";
 }
 $job_name = isset($santiye) ? null : $site->job_name;
+$code = isset($santiye) ? null : $site->code;
 $management_name = isset($santiye) ? null : $site->management_name;
 $employer = isset($santiye) ? null : $site->employer;
 $start_date = isset($santiye) ? null : \App\Library\CarbonHelper::getTurkishDate($site->start_date);
@@ -33,6 +34,19 @@ $building_control = isset($santiye) ? null : $site->building_control;
         </div>
         <div class="col-sm-10">
             {!! Form::text('job_name', $job_name, ['class' => 'form-control', 'placeholder' => 'İşin adını giriniz']) !!}
+
+        </div>
+    </div>
+</div>
+
+<div class="form-group {{ $errors->has('code') ? 'has-error' : '' }}">
+    <div class="row">
+        <div class="col-sm-2">
+            {!! Form::label('code', 'Şantiye Kodu: ', ['class' => 'control-label']) !!}
+        </div>
+        <div class="col-sm-10">
+            {!! Form::text('code', $code, ['class' => 'form-control', 'placeholder' =>
+            'Şantiye kodu giriniz']) !!}
 
         </div>
     </div>

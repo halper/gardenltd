@@ -77,6 +77,11 @@ class User extends Model implements AuthenticatableContract,
         return $this->belongsToMany('App\Account')->withPivot('owner_type')->withTimestamps();
     }
 
+    public function report()
+    {
+        return $this->belongsToMany('App\Report')->withTimestamps();
+    }
+
     public function scopeOwner($query)
     {
         return $query->where('owner_type', '=', '1');

@@ -26,14 +26,14 @@
         </div>
         @foreach($subcontractor->photo as $photo)
             <?php
-            $my_path_arr = explode(DIRECTORY_SEPARATOR, $photo->file->first()->path);
+            $my_path_arr = explode(DIRECTORY_SEPARATOR, $photo->file->path);
             $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-            if (strpos($photo->file->first()->name, 'pdf') !== false) {
+            if (strpos($photo->file->name, 'pdf') !== false) {
                 $image = URL::to('/') . "/img/pdf.jpg";
-            } elseif (strpos($photo->file->first()->name, 'doc') !== false) {
+            } elseif (strpos($photo->file->name, 'doc') !== false) {
                 $image = URL::to('/') . "/img/word.png";
             } else {
-                $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $photo->file->first()->name;
+                $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $photo->file->name;
             }
             ?>
 
@@ -42,7 +42,7 @@
                data-footer="<a data-dismiss='modal' class='remove-files' href='#' onclick='removeFiles({{$photo->id}})'>Dosyayı Sil<a/>"
                class="col-sm-4">
                 <img src="{{$image}}" class="img-responsive">
-                {{$photo->file->first()->name}}
+                {{$photo->file->name}}
             </a>
 
         @endforeach

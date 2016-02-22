@@ -79,4 +79,5 @@ Route::get('uploads/{directory}/{filename}', 'HomeController@getUploads');
 Route::get('/home', function(){
    return redirect('santiye');
 });
+Route::controller('bilgilerim', 'ProfileController');
 Route::controller('/', 'HomeController');

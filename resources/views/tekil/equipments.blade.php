@@ -1,5 +1,19 @@
 @extends('tekil/layout')
 
+@section('page-specific-js')
+    <script>
+        $('#select_all').change(function () {
+            var checkboxes = $('body').find(':checkbox').not($(this));
+            console.log(checkboxes);
+            if ($(this).is(':checked')) {
+                checkboxes.prop('checked', true);
+            } else {
+                checkboxes.prop('checked', false);
+            }
+        });
+    </script>
+@endsection
+
 @section('content')
     <div class="row">
         <div class="col-md-12">
@@ -8,6 +22,13 @@
             <div class="row">
                 <div class="col-md-12">
                     <p>Aşağıdan şantiyeye ait iş makinelerini seçebilir ya da çıkarabilirsiniz.</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <label for="select_all" class="checkbox-inline">
+                        <input type="checkbox" id="select_all">Tümünü Seç
+                    </label>
                 </div>
             </div>
             <div class="row">

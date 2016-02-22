@@ -93,28 +93,28 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                                     @foreach($site->subcontractor()->get() as $sub)
                                         <?php
                                         $contract_entry_exists = false;
-                                        if (!empty($sub->contract()->first()))
+                                        if (!($sub->contract()->get()->isEmpty()))
                                             $contract_entry_exists = true;
                                         ?>
                                         <tr>
                                             <td>{{ $sub->subdetail->name}}</td>
 
                                             @if($contract_entry_exists)
-                                                <td>{{(strpos($sub->contract->first()->contract_date,"0000-00-00") !== false) ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->first()->contract_date) }}</td>
+                                                <td>{{(strpos($sub->contract->contract_date,"0000-00-00") !== false) ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->contract_date) }}</td>
 
                                                 <td>
-                                                    {{strpos($sub->contract->first()->contract_start_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->first()->contract_start_date)}}
+                                                    {{strpos($sub->contract->contract_start_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->contract_start_date)}}
                                                 </td>
-                                                <td>{{strpos($sub->contract->first()->contract_end_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->first()->contract_end_date)}}</td>
+                                                <td>{{strpos($sub->contract->contract_end_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->contract_end_date)}}</td>
                                                 <td>
                                                     <?php
                                                     $my_path = '';
                                                     $file_name = '';
 
 
-                                                    if ($contract_entry_exists && !is_null($sub->contract->first()->file->first())) {
-                                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $sub->contract->first()->file->first()->path);
-                                                        $file_name = $sub->contract->first()->file->first()->name;
+                                                    if ($contract_entry_exists && !($sub->contract->file()->get()->isEmpty())) {
+                                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $sub->contract->file->path);
+                                                        $file_name = $sub->contract->file->name;
                                                         $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
                                                     }
                                                     ?>

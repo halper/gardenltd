@@ -148,9 +148,9 @@ foreach ($management_depts->management() as $dept) {
                 $my_path = '';
                 $file_name = '';
 
-                if (!empty($personnel->contract->first())) {
-                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $personnel->contract->first()->file()->orderBy('created_at','DESC')->first()->path);
-                    $file_name = $personnel->contract->first()->file()->orderBy('created_at', 'DESC')->first()->name;
+                if (!empty($personnel->contract)) {
+                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $personnel->contract->file()->orderBy('created_at','DESC')->first()->path);
+                    $file_name = $personnel->contract->file()->orderBy('created_at', 'DESC')->first()->name;
                     $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
                 }
                 ?>
@@ -181,24 +181,24 @@ foreach ($management_depts->management() as $dept) {
             </div>
             @foreach($personnel->photo as $photo)
                 <?php
-                $my_path_arr = explode(DIRECTORY_SEPARATOR, $photo->file->first()->path);
+                $my_path_arr = explode(DIRECTORY_SEPARATOR, $photo->file->path);
                 $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-                if (strpos($photo->file->first()->name, 'pdf') !== false) {
+                if (strpos($photo->file->name, 'pdf') !== false) {
                     $image = URL::to('/') . "/img/pdf.jpg";
-                } elseif (strpos($photo->file->first()->name, 'doc') !== false) {
+                } elseif (strpos($photo->file->name, 'doc') !== false) {
                     $image = URL::to('/') . "/img/word.png";
                 } else {
-                    $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $photo->file->first()->name;
+                    $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $photo->file->name;
                 }
                 ?>
 
                 <a id="lb-link-{{$photo->id}}" href="{{$image}}"
                    data-toggle="lightbox" data-gallery="personnel-photos"
-                   data-title = "{{$photo->file->first()->name}}"
+                   data-title = "{{$photo->file->name}}"
                    data-footer="<a data-dismiss='modal' class='remove-files' href='#' onclick='removeFiles({{$photo->id}})'>Dosyayı Sil<a/>"
                    class="col-sm-4">
                     <img src="{{$image}}" class="img-responsive" style="height: 45px">
-                    {{$photo->file->first()->name}}
+                    {{$photo->file->name}}
                 </a>
 
             @endforeach

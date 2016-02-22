@@ -24,6 +24,7 @@ class SantiyeController extends ManagementController
     {
         $this->validate($request, [
             'job_name' => 'required',
+            'code' => 'required',
             'management_name' => 'required',
             'main_contractor' => 'required',
             'start_date' => 'required|date_format:d.m.Y',
@@ -41,6 +42,7 @@ class SantiyeController extends ManagementController
         $site = Site::create(
             [
                 'job_name' => $request->get('job_name'),
+                'code' => $request->get('code'),
                 'management_name' => $request->get('management_name'),
                 'main_contractor' => $request->get('main_contractor'),
                 'start_date' => date("Y-m-d", strtotime($request->get('start_date'))),
@@ -66,6 +68,7 @@ class SantiyeController extends ManagementController
     {
         $this->validate($request, [
             'job_name' => 'required',
+            'code' => 'required',
             'management_name' => 'required',
             'main_contractor' => 'required',
             'start_date' => 'required|date_format:d.m.Y',
@@ -81,6 +84,7 @@ class SantiyeController extends ManagementController
         $site = Site::find($request->id);
         $city = City::find($request->city_id);
         $site->job_name = $request->job_name;
+        $site->code = $request->code;
         $site->management_name = $request->management_name;
         $site->main_contractor = $request->main_contractor;
         $site->start_date = CarbonHelper::getMySQLDate($request->start_date);
@@ -112,6 +116,28 @@ class SantiyeController extends ManagementController
 
         return redirect('santiye');
 
+    }
+
+    public function getRetrieveItems()
+    {
+        $resp_arr = [];
+        $sites = Site::with('stock')->get();
+        $stocks = Stock::all();
+
+        foreach ($stocks as $stock) {
+            $left = $stock->total;
+            foreach ($sites as $site) {
+                if (!empty($site->stock()->where('stocks.id', '=', $stock->id)->first()))
+                    $left -= $site->stock()->where('stocks.id', '=', $stock->id)->first()->pivot->amount;
+            }
+            array_push($resp_arr, [
+                'name' => $stock->name,
+                'total' => $stock->total,
+                'unit' => TurkishChar::tr_up($stock->unit),
+                'left' => $left
+            ]);
+        }
+        return response($resp_arr, 200);
     }
 
     public function getStocks()
@@ -175,6 +201,24 @@ class SantiyeController extends ManagementController
                 'name' => $user->name,
                 'id' => $user->id
             ]);
+        }
+
+        return response()->json($resp_arr, 200);
+    }
+
+    public function getReports()
+    {
+        $resp_arr = [];
+        foreach (User::all() as $user) {
+            foreach ($user->report()->get() as $report) {
+                array_push($resp_arr, [
+                    'date' => CarbonHelper::getTurkishDate($report->created_at),
+                    'site' => $report->site->job_name,
+                    'uid' => $user->id,
+                    'user' => $user->name,
+                    'id' => $report->id
+                ]);
+            }
         }
 
         return response()->json($resp_arr, 200);

@@ -140,7 +140,11 @@ $today = Carbon::now()->toDateString();
                                 </tr>
                                 </thead>
                                 <tbody>
-                                @foreach(\App\Stock::find($stock_array) as $mat)
+
+                                @for($i = 0; $i<sizeof($stock_array); $i++)
+                                    <?php
+                                    $mat = \App\Stock::find($stock_array[$i]['stock'])
+                                    ?>
                                     <tr>
                                         <td>
                                             {{$mat->name}}
@@ -152,15 +156,17 @@ $today = Carbon::now()->toDateString();
                                         </td>
                                         <td>
                                             <div class="form-group">
-                                                {!! Form::input('text', 'quantity[]', null, ['class' =>
-                                                'form-control text-right',
-                                                'placeholder' => $mat->name." demirbaş miktarını giriniz"]) !!}
+                                                {!! Form::number('quantity[]', null, ['class' =>
+                                                'form-control text-right', 'autocomplete' => 'off', 'max' => $stock_array[$i]['left'],
+                                                'placeholder' => $mat->name." demirbaş miktarını giriniz"]) !!} (En
+                                                fazla {{$stock_array[$i]['left'] . " " . $mat->unit}} istekte
+                                                bulunabilirsiniz.)
                                                 <span></span>
                                             </div>
                                         </td>
 
                                     </tr>
-                                @endforeach
+                                @endfor
                                 </tbody>
                             </table>
 

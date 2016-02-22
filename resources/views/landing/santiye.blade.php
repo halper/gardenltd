@@ -39,9 +39,21 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
         }).run(function (editableOptions) {
             editableOptions.theme = 'bs3';
         }).controller('StockController', function ($scope, $http, $filter) {
-
+            $scope.stockTable = true;
+            $scope.placeholder = "Şantiye ya da demirbaş yazınız";
             $scope.stocks = [];
+            $scope.items = [];
             $scope.mySearch = '';
+            $scope.showStockTable = function (myBool) {
+                $scope.stockTable = myBool;
+                $scope.placeholder = myBool ? "Şantiye ya da demirbaş yazınız" : "Demirbaş yazınız";
+                $scope.mySearch = '';
+            };
+
+            $http.get("<?=URL::to('/');?>/santiye/retrieve-items")
+                    .then(function (response) {
+                        $scope.items = response.data;
+                    });
             $scope.getStocks = function () {
                 $http.get("<?=URL::to('/');?>/santiye/retrieve-stocks")
                         .then(function (response) {
@@ -74,6 +86,20 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
                 searchStr = searchStr.turkishToLower();
                 angular.forEach(arr, function (item) {
                     if ((item.site + ' ' + item.st).turkishToLower().indexOf(searchStr) !== -1) {
+                        result.push(item);
+                    }
+                });
+                return result;
+            };
+        }).filter('searchForItem', function () {
+            return function (arr, searchStr) {
+                if (!searchStr) {
+                    return arr;
+                }
+                var result = [];
+                searchStr = searchStr.turkishToLower();
+                angular.forEach(arr, function (item) {
+                    if (item.name.turkishToLower().indexOf(searchStr) !== -1) {
                         result.push(item);
                     }
                 });
@@ -162,8 +188,9 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
                         @if(Auth::user()->isAdmin())
 
                             <a style="padding: 0 5px" href="#" class="close siteDelBut" data-toggle="modal"
-                            data-id="{{$site->id}}" data-name="{{ $site->job_name}}" data-target="#deleteSiteConfirm"><i
-                                class="fa fa-trash-o"></i></a>
+                               data-id="{{$site->id}}" data-name="{{ $site->job_name}}"
+                               data-target="#deleteSiteConfirm"><i
+                                        class="fa fa-trash-o"></i></a>
                             <a class="close" href="/santiye-duzenle/{{$site->slug}}"><i class="fa fa-pencil"></i></a>
 
 
@@ -192,73 +219,99 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
     @endif
 
     @if(Auth::user()->isAdmin())
-        <div class="row">
-            <div class="col-md-12">
-                <div class="box box-primary box-solid">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Demirbaş Dağılım Tablosu
-                        </h3>
+        <div ng-app="stockApp">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="box box-primary box-solid">
+                        <div class="box-header with-border">
+                            <h3 class="box-title">Demirbaş Tabloları
+                            </h3>
 
-                        <div class="box-tools pull-right">
-                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                        class="fa fa-minus"></i>
-                            </button>
+                            <div class="box-tools pull-right">
+                                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                            class="fa fa-minus"></i>
+                                </button>
+                            </div>
+                            <!-- /.box-tools -->
                         </div>
-                        <!-- /.box-tools -->
-                    </div>
-                    <!-- /.box-header -->
-                    <div class="box-body">
-                        <div ng-app="stockApp" ng-controller="StockController" id="stockApp">
-                            <div class="row">
-                                <div class="col-md-4 pull-right">
-                                    <div class="input-group">
-                                        <input type="text" class="form-control"
-                                               name="stock" ng-model="mySearch"
-                                               value="" autocomplete="off"
-                                               placeholder="Şantiye ya da demirbaş yazınız"/>
+                        <!-- /.box-header -->
+                        <div class="box-body">
+                            <div ng-controller="StockController" id="stockApp">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <a href="#!" ng-click="showStockTable(true)">Demirbaş Dağılım Tablosu</a> | <a
+                                                href="#!" ng-click="showStockTable(false)">Demirbaş Kalan Tablosu</a>
+                                    </div>
+                                    <div class="col-md-4 pull-right">
+                                        <div class="input-group">
+                                            <input type="text" class="form-control"
+                                                   name="stock" ng-model="mySearch"
+                                                   value="" autocomplete="off"
+                                                   placeholder="<%placeholder%>"/>
                                         <span class="input-group-addon add-on"><i
                                                     class="fa fa-search"></i></span>
 
+                                        </div>
+
                                     </div>
-
                                 </div>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
-                                    <tr>
-                                        <th>Şantiye</th>
-                                        <th>Demirbaş</th>
-                                        <th>Miktar (Toplam/Şantiye)</th>
-                                        <th>Birim</th>
-                                        <th>Açıklama</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr ng-repeat="stock in stocks | searchFor:mySearch track by $index"
-                                        my-repeat-directive>
-                                        <td><% stock.site %></td>
-                                        <td><% stock.st %></td>
-                                        <td><% stock.total %>/<% stock.amount %></td>
-                                        <td><% stock.unit %></td>
-                                        <td>
-                                            <a href="#" class="inline-edit" data-type="text"
-                                               editable-textarea="stock.detail" e-rows="3" e-cols="30"
-                                               onbeforesave="updateStock(stock, $data)">
-                                                <% stock.detail || "Açıklama Yok" %>
-                                            </a></td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                                <div class="table-responsive" ng-show="stockTable">
+                                    <h4>Demirbaş Dağılım Tablosu</h4>
+                                    <table class="table">
+                                        <thead>
+                                        <tr>
+                                            <th>Şantiye</th>
+                                            <th>Demirbaş</th>
+                                            <th>Miktar (Toplam/Şantiye)</th>
+                                            <th>Birim</th>
+                                            <th>Açıklama</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr ng-repeat="stock in stocks | searchFor:mySearch track by $index"
+                                            my-repeat-directive>
+                                            <td><% stock.site %></td>
+                                            <td><% stock.st %></td>
+                                            <td><% stock.total %>/<% stock.amount %></td>
+                                            <td><% stock.unit %></td>
+                                            <td>
+                                                <a href="#" class="inline-edit" data-type="text"
+                                                   editable-textarea="stock.detail" e-rows="3" e-cols="30"
+                                                   onbeforesave="updateStock(stock, $data)">
+                                                    <% stock.detail || "Açıklama Yok" %>
+                                                </a></td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="table-responsive" ng-show="!stockTable">
+                                    <h4>Demirbaş Kalan Tablosu</h4>
+                                    <table class="table">
+                                        <thead>
+                                        <tr>
+                                            <th>Demirbaş</th>
+                                            <th>Kalan Miktar (Toplam/Kalan)</th>
+                                            <th>Birim</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr ng-repeat="item in items | searchForItem:mySearch track by $index"
+                                            my-repeat-directive>
+                                            <td><% item.name %></td>
+                                            <td><% item.total %>/<% item.left %></td>
+                                            <td><% item.unit %></td>
 
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                            </div>
                         </div>
                     </div>
                 </div>
+
             </div>
-
-
-            {{--End of subcontractors table--}}
         </div>
     @endif
 

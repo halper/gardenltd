@@ -2,6 +2,7 @@
 
 namespace App;
 
+use App\Library\CarbonHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +16,7 @@ class Report extends Model
      * @var array
      */
     protected $fillable = ['site_id', 'management_staff', 'employer_staff', 'building_control_staff',
-        'isg_staff', 'weather', 'temp_min', 'temp_max', 'degree', 'wind', 'is_working', 'admin_lock'];
+        'isg_staff', 'weather', 'temp_min', 'temp_max', 'degree', 'wind', 'is_working'];
 
     public function site()
     {
@@ -101,6 +102,11 @@ class Report extends Model
     public function meal()
     {
         return $this->hasMany('App\Meal');
+    }
+
+    public function user()
+    {
+        return $this->belongsToMany('App\User')->withTimestamps();
     }
 
     public function scopeDateRange($query, $start, $end)

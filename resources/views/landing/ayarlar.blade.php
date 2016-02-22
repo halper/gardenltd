@@ -9,8 +9,14 @@ if (Session::has('tab')) {
 
 @extends('landing/landing')
 
+@section('page-specific-css')
+    <link href="<?= URL::to('/'); ?>/css/daterangepicker.css" rel="stylesheet"/>
+@endsection
+
 @section('page-specific-js')
     <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
+    <script src="<?= URL::to('/'); ?>/js/moment.min.js" type="text/javascript"></script>
+    <script src="<?= URL::to('/'); ?>/js/daterangepicker.js" type="text/javascript"></script>
     <script>
         $(document).on("click", ".userDelBut", function (e) {
 
@@ -46,7 +52,14 @@ if (Session::has('tab')) {
         if ($('.has-error')[0]) {
             $('#insertUser').modal('show');
         }
-
+        String.prototype.turkishToLower = function () {
+            var string = this;
+            var letters = {"İ": "i", "I": "ı", "Ş": "ş", "Ğ": "ğ", "Ü": "ü", "Ö": "ö", "Ç": "ç"};
+            string = string.replace(/(([İIŞĞÜÇÖ]))/g, function (letter) {
+                return letters[letter];
+            });
+            return string.toLowerCase();
+        };
         var puantajApp = angular.module('puantajApp', [], function ($interpolateProvider) {
             $interpolateProvider.startSymbol('<%');
             $interpolateProvider.endSymbol('%>');
@@ -82,7 +95,7 @@ if (Session::has('tab')) {
             $scope.getAccInfo = function () {
                 $scope.selectUser = null;
                 $http.post("{{url("/santiye/account-details")}}", {
-                            'id': $scope.selected.id
+                            id: $scope.selected.id
                         }
                 ).then(function (response) {
                     $scope.loading = false;
@@ -116,10 +129,128 @@ if (Session::has('tab')) {
                 });
             };
 
+        }).controller('ReportController', function ($scope, $http) {
+            $scope.sites = [];
+            $scope.users = [];
+            $scope.message = '';
+            $scope.startDate = '';
+            $scope.endDate = '';
+            $scope.selectUser = null;
+            $scope.selected = null;
+            $scope.openReports = [];
+            $scope.name = '';
+
+            $scope.setDates = function (start, end) {
+                $scope.startDate = start;
+                $scope.endDate = end;
+            };
+            $http.get("{{url("/santiye/sites")}}")
+                    .then(function (response) {
+                        $scope.sites = response.data;
+                    });
+            $http.get("{{url("/santiye/users")}}")
+                    .then(function (response) {
+                        $scope.users = response.data;
+                    });
+
+            $scope.getReports = function () {
+                $http.get("{{url("/santiye/reports")}}")
+                        .then(function (response) {
+                            $scope.openReports = response.data;
+                        });
+            };
+
+            $scope.getReports();
+
+            $scope.createReport = function () {
+                $scope.message = '';
+                $http.post("{{url("/admin/create-report")}}", {
+                            sid: $scope.selected.id,
+                            uid: $scope.selectUser.id,
+                            start_date: $scope.startDate,
+                            end_date: $scope.endDate
+                        }
+                ).then(function () {
+                    $scope.selectUser = null;
+                    $scope.selected = null;
+                    $scope.message = 'Kayıt başarılı';
+                    $scope.getReports();
+                });
+            };
+            $scope.closeReport = function (item) {
+                $scope.message = '';
+                $http.post("{{url("/admin/close-report")}}", {
+                            uid: item.uid,
+                            id: item.id
+                        }
+                ).then(function () {
+                    $scope.message = 'İlgili raporlar güncellemeye kapatıldı';
+                    $scope.getReports();
+                });
+            };
+            $scope.makeReportable = function () {
+                $scope.message = '';
+                $http.post("{{url("/admin/make-reportable")}}", {
+                            sid: $scope.selected.id,
+                            uid: $scope.selectUser.id,
+                            start_date: $scope.startDate,
+                            end_date: $scope.endDate
+                        }
+                ).then(function () {
+                    $scope.selectUser = null;
+                    $scope.selected = null;
+                    $scope.message = 'Raporlar güncellemeye açıldı';
+                    $scope.getReports();
+                });
+            };
+        }).filter('searchFor', function () {
+            return function (arr, searchStr) {
+                if (!searchStr) {
+                    return arr;
+                }
+                var result = [];
+                searchStr = searchStr.turkishToLower();
+                angular.forEach(arr, function (item) {
+                    if ((item.date + ' ' + item.site + ' ' + item.user).turkishToLower().indexOf(searchStr) !== -1) {
+                        result.push(item);
+                    }
+                });
+                return result;
+            };
         });
 
         $(document).ready(function () {
             angular.element('#angPuantaj').scope().init();
+            function cb(start, end) {
+                angular.element('#angReport').scope().setDates(start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
+                $('#reportrange span').html(start.format('D MMMM YYYY') + ' - ' + end.format('D MMMM YYYY'));
+            }
+
+            cb(moment().startOf('month'), moment());
+
+            $('#reportrange').daterangepicker({
+                locale: {
+                    format: 'DD.MM.YYYY',
+                    applyLabel: 'Tamam',
+                    cancelLabel: 'İptal',
+                    customRangeLabel: 'Tarih Seç'
+                },
+                ranges: {
+                    'Bugün': [moment(), moment()],
+                    'Dün': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                    'Son 1 Hafta': [moment().subtract(6, 'days'), moment()],
+                    'Son 30 Gün': [moment().subtract(29, 'days'), moment()],
+                    'Bu Ay': [moment().startOf('month'), moment().endOf('month')],
+                    'Geçen Ay': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                },
+                startDate: moment().startOf('month'),
+                endDate: moment(),
+                maxDate: moment()
+            }, cb);
+
+            $('#reportrange').on('apply.daterangepicker', function (ev, picker) {
+                angular.element('#angReport').scope().setDates(picker.startDate.format('YYYY-MM-DD'), picker.endDate.format('YYYY-MM-DD'));
+            });
         });
 
     </script>
@@ -134,11 +265,12 @@ if (Session::has('tab')) {
                     <li {{empty($tab) ? 'class=active' : ''}}><a href="#tab_5" data-toggle="tab">Kullanıcı</a></li>
                     <li {{$tab == 1 ? 'class=active' : ''}}><a href="#tab_1" data-toggle="tab">Talep</a></li>
                     <li {{$tab == 2 ? 'class=active' : ''}}><a href="#tab_2" data-toggle="tab">Kasa</a></li>
+                    <li {{$tab == 3 ? 'class=active' : ''}}><a href="#tab_3" data-toggle="tab">Rapor</a></li>
 
                 </ul>
 
                 <!-- /.tab-content -->
-                <div class="tab-content">
+                <div class="tab-content" ng-app="puantajApp">
 
 
                     <div class="tab-pane {{empty($tab) ? 'active' : ''}}" id="tab_5">
@@ -150,6 +282,9 @@ if (Session::has('tab')) {
                     </div>
                     <div class="tab-pane {{$tab == 2 ? 'active' : ''}}" id="tab_2">
                         @include('landing._ayarlar-account')
+                    </div>
+                    <div class="tab-pane {{$tab == 3 ? 'active' : ''}}" id="tab_3">
+                        @include('landing._ayarlar-report')
                     </div>
 
                 </div>

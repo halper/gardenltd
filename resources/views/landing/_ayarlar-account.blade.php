@@ -1,5 +1,5 @@
 @if(\App\Site::all()->count() > 0)
-    <div ng-app="puantajApp" ng-controller="PuantajController" id="angPuantaj">
+    <div ng-controller="PuantajController" id="angPuantaj">
         <div class="form-group">
             <div class="row">
                 <div class="col-sm-12">

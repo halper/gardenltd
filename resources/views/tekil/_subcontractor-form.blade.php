@@ -44,7 +44,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
         <div class="col-sm-10">
             <div class="input-group input-append date dateRangePicker">
                 <input type="text" class="form-control" name="contract_date"
-                       placeholder="Sözleşme tarihini seçiniz" {!! isset($subcontractor) && (!empty($subcontractor->contract->first()) && strpos($subcontractor->contract->first()->contract_date,"0000-00-00") === false) ? "value=\"" . \App\Library\CarbonHelper::getTurkishDate($subcontractor->contract->first()->contract_date) . "\"" : ""!!}/>
+                       placeholder="Sözleşme tarihini seçiniz" {!! isset($subcontractor) && (!($subcontractor->contract()->get()->isEmpty()) && strpos($subcontractor->contract->contract_date,"0000-00-00") === false) ? "value=\"" . \App\Library\CarbonHelper::getTurkishDate($subcontractor->contract->contract_date) . "\"" : ""!!}/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
             </div>
@@ -61,7 +61,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
         <div class="col-sm-10">
             <div class="input-group input-append date dateRangePicker">
                 <input type="text" class="form-control" name="contract_start_date"
-                       placeholder="Sözleşme başlangıç tarihini seçiniz" {!! isset($subcontractor) && (!empty($subcontractor->contract->first()) && strpos($subcontractor->contract->first()->contract_start_date,"0000-00-00") === false) ? "value=\"" . \App\Library\CarbonHelper::getTurkishDate($subcontractor->contract()->first()->contract_start_date) . "\"" : ""!!}/>
+                       placeholder="Sözleşme başlangıç tarihini seçiniz" {!! isset($subcontractor) && (!empty($subcontractor->contract) && strpos($subcontractor->contract->contract_start_date,"0000-00-00") === false) ? "value=\"" . \App\Library\CarbonHelper::getTurkishDate($subcontractor->contract()->first()->contract_start_date) . "\"" : ""!!}/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
             </div>
@@ -77,7 +77,22 @@ foreach (\App\Manufacturing::all() as $manufacture) {
         <div class="col-sm-10">
             <div class="input-group input-append date dateRangePicker">
                 <input type="text" class="form-control" name="contract_end_date"
-                       placeholder="Sözleşme bitim tarihini seçiniz" {!! isset($subcontractor) && (!empty($subcontractor->contract->first()) && strpos($subcontractor->contract->first()->contract_end_date,"0000-00-00") === false) ? "value=\"" . \App\Library\CarbonHelper::getTurkishDate($subcontractor->contract->first()->contract_end_date) . "\"" : ""!!}/>
+                       placeholder="Sözleşme bitim tarihini seçiniz" {!! isset($subcontractor) && (!empty($subcontractor->contract) && strpos($subcontractor->contract->contract_end_date,"0000-00-00") === false) ? "value=\"" . \App\Library\CarbonHelper::getTurkishDate($subcontractor->contract->contract_end_date) . "\"" : ""!!}/>
+                                        <span class="input-group-addon add-on"><span
+                                                    class="glyphicon glyphicon-calendar"></span></span>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="form-group {{ $errors->has('exit_date') ? 'has-error' : '' }}">
+    <div class="row">
+        <div class="col-sm-2">
+            {!! Form::label('exit_date', 'Çıkış Tarihi: ', ['class' => 'control-label']) !!}
+        </div>
+        <div class="col-sm-10">
+            <div class="input-group input-append date dateRangePicker">
+                <input type="text" class="form-control" name="exit_date"
+                       placeholder="Çıkış tarihi seçiniz" {!! isset($subcontractor) && (!empty($subcontractor->contract) && strpos($subcontractor->contract->exit_date,"0000-00-00") === false) ? "value=\"" . \App\Library\CarbonHelper::getTurkishDate($subcontractor->contract->exit_date) . "\"" : ""!!}/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
             </div>

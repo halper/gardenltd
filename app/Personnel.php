@@ -62,7 +62,7 @@ class Personnel extends Model
 
     public function contract()
     {
-        return $this->morphMany('App\Contract', 'contractable');
+        return $this->morphOne('App\Contract', 'contractable');
     }
 
     public function wage()

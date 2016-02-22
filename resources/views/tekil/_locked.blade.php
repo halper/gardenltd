@@ -1,6 +1,31 @@
 <?php
 use App\Library\TurkishChar;
+
+$main_contractor_total = 0;
+$number_of_col = 9;
+foreach ($report->staff()->get() as $staff) {
+    $main_contractor_total += $staff->pivot->quantity;
+}
+$sub_detail = ['rt' => [], 'name' => []];
+
+foreach ($report_subcontractors as $sub) {
+
+    $sub_row_total = 0;
+    $report_substaffs = $report->substaff()->where('subcontractor_id', $sub->id)->get();
+    $mans = '';
+    foreach ($sub->manufacturing()->get() as $manufacture)
+        $mans .= "(" . TurkishChar::tr_up($manufacture->name) . ")";
+    array_push($sub_detail['name'], $sub->subdetail->name.$mans);
+
+
+    foreach ($report_substaffs as $staff) {
+        $sub_row_total += (int)$staff->pivot->quantity;
+    }
+    array_push($sub_detail['rt'], $sub_row_total);
+}
+
 ?>
+
 <div class="row">
     <div class="col-sm-12">
         <div class="row">
@@ -14,7 +39,7 @@ use App\Library\TurkishChar;
     </div>
 </div>
 
-<div class="row">
+<div class="row hidden-print">
     <div class="col-sm-12 text-center">
         <div style="background-color: rgb(255,204,0)">
             <span><strong>{{$site->job_name}}</strong></span>
@@ -33,7 +58,7 @@ use App\Library\TurkishChar;
                 </div>
                 <div class="col-xs-6 col-sm-6">
                     <div style="background-color: rgb(0, 102, 204); margin-right: 3px">
-                        <span><strong>{{$site->job_name}}</strong></span>
+                        <span><strong>{{empty($site->code) ? $site->job_name : $site->code}}</strong></span>
                     </div>
                 </div>
             </div>
@@ -138,15 +163,21 @@ use App\Library\TurkishChar;
                         </tr>
                         <tr>
                             <td>ANA YÜKLENİCİ PERSONEL TOPLAMI</td>
-                            <td id="main-con-tot-res" class="text-right"></td>
+                            <td id="main-con-tot-res" class="text-right">{{$main_contractor_total}}</td>
                         </tr>
+                        @for($i = 0; $i < sizeof($sub_detail['name']); $i++)
+                        <tr>
+                            <td>{{$sub_detail['name'][$i]}}</td>
+                            <td class="text-right">{{$sub_detail['rt'][$i]}}</td>
+                        </tr>
+                        @endfor
                         <tr>
                             <td>ALT YÜKLENİCİLER PERSONEL TOPLAMI</td>
                             <td id="sub-staff-tot-res" class="text-right"></td>
                         </tr>
                         <tr>
-                            <td>GENEL TOPLAM</td>
-                            <td id="gen-tot-res" class="text-right"></td>
+                            <td style="font-size: medium">GENEL TOPLAM</td>
+                            <td style="font-size: medium" id="gen-tot-res" class="text-right"></td>
                         </tr>
 
                         </tbody>
@@ -201,15 +232,9 @@ use App\Library\TurkishChar;
 
 
         {{--Main contractor table--}}
-        <?php
-        $main_contractor_total = 0;
-        $number_of_col = 9;
-        foreach ($report->staff()->get() as $staff) {
-            $main_contractor_total += $staff->pivot->quantity;
-        }
-        ?>
+
         @if($main_contractor_total>0)
-            <div class="row">
+            <div class="row hidden">
 
                 <div class="col-sm-12">
                     <div class="text-center" style="background-color: rgb(127,127,127)">
@@ -268,7 +293,7 @@ use App\Library\TurkishChar;
         {{--End of ana yüklenici table--}}
 
         {{--Subcontractor table--}}
-        <div class="row">
+        <div class="row hidden">
             <div class="col-sm-12">
                 <div class="box">
                     <div class="box-body">
@@ -462,26 +487,26 @@ use App\Library\TurkishChar;
                     ?>
                     @foreach($report->pwunit()->get() as $pw)
 
-                            <?php
-                            $pw_work_done_in_percent = ((int)$pw->planned == 0 || is_null($pw->planned)) ? 0 : 100 * (int)$pw->done / (int)$pw->planned;
-                            ?>
+                        <?php
+                        $pw_work_done_in_percent = ((int)$pw->planned == 0 || is_null($pw->planned)) ? 0 : 100 * (int)$pw->done / (int)$pw->planned;
+                        ?>
 
-                            @if($pw_work_done_in_percent>100)
-                                <tr class="bg-success" style="text-align: center">
-                            @elseif($pw_work_done_in_percent<100)
-                                <tr class="bg-danger" style="text-align: center">
-                            @elseif($pw_work_done_in_percent == 100)
-                                <tr class="bg-warning" style="text-align: center">
-                                    @endif
-                                    <td>{{$i++}}</td>
-                                    <td>{{$pw->staff->staff}}</td>
-                                    <td>{{$pw->quantity}}</td>
-                                    <td>{{$pw->unit}}</td>
-                                    <td class="number">{{str_replace(".", ",", $pw->planned)}}</td>
-                                    <td class="number">{{str_replace(".", ",", $pw->done)}}</td>
-                                    <td>{{$pw->works_done}}</td>
-                                    <td class="number">%{{str_replace(".", ",", $pw_work_done_in_percent)}}</td>
-                                </tr>
+                        @if($pw_work_done_in_percent>100)
+                            <tr class="bg-success" style="text-align: center">
+                        @elseif($pw_work_done_in_percent<100)
+                            <tr class="bg-danger" style="text-align: center">
+                        @elseif($pw_work_done_in_percent == 100)
+                            <tr class="bg-warning" style="text-align: center">
+                                @endif
+                                <td>{{$i++}}</td>
+                                <td>{{$pw->staff->staff}}</td>
+                                <td>{{$pw->quantity}}</td>
+                                <td>{{$pw->unit}}</td>
+                                <td class="number">{{str_replace(".", ",", $pw->planned)}}</td>
+                                <td class="number">{{str_replace(".", ",", $pw->done)}}</td>
+                                <td class="text-left">{{$pw->works_done}}</td>
+                                <td class="number">%{{str_replace(".", ",", $pw_work_done_in_percent)}}</td>
+                            </tr>
 
                             @endforeach
 
@@ -504,7 +529,7 @@ use App\Library\TurkishChar;
                                         <td>{{$sw->unit}}</td>
                                         <td class="number">{{str_replace(".", ",", $sw->planned)}}</td>
                                         <td class="number">{{str_replace(".", ",", $sw->done)}}</td>
-                                        <td>{{$sw->works_done}}</td>
+                                        <td class="text-left">{{$sw->works_done}}</td>
                                         <td class="number">%{{str_replace(".", ",", $sw_work_done_in_percent)}}</td>
                                     </tr>
 

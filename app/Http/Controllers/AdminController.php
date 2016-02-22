@@ -15,7 +15,9 @@ use App\Material;
 use App\Module;
 use App\Personnel;
 use App\Photo;
+use App\Pwunit;
 use App\Rejection;
+use App\Report;
 use App\Sfile;
 use App\Site;
 use App\Staff;
@@ -151,7 +153,7 @@ class AdminController extends Controller
 
 
         Session::flash('flash_message', 'Kullanıcı bilgileri güncellendi');
-        return redirect("admin/duzenle/$user->id");
+        return redirect()->back();
     }
 
     public function editSitePermissions(Request $request, User $user)
@@ -344,7 +346,7 @@ class AdminController extends Controller
         $directory = public_path() . '/uploads/' . uniqid(rand(), true);
         if (!empty($request->file("contract"))) {
             $contract_file = $this->uploadFile($request->file("contract"), $directory);
-            $contract = $per->contract->first();
+            $contract = $per->contract;
             $contract->file()->save($contract_file);
         }
 
@@ -531,6 +533,76 @@ class AdminController extends Controller
     {
         Stock::create($request->all());
         return response('success', 200);
+    }
+
+    public function postCreateReport(Request $request)
+    {
+        $site = Site::find($request->sid);
+        $user = User::find($request->uid);
+        $total_date = $this->getTotalDate($request->get('start_date'), $request->get('end_date'));
+        for ($x = $total_date; $x >= 0; $x--) {
+            $rep_date = Carbon::parse($request->get('end_date'))->subDays($x)->toDateString();
+            if($site->report()->whereDate('created_at', '=', $rep_date)->get()->isEmpty()){
+                $report = new Report();
+                $report->created_at = $rep_date;
+                $report->site()->associate($site);
+                $report->save();
+                $pwunit = new Pwunit();
+                $staff = Staff::find(1);
+                $pwunit->staff()->associate($staff);
+                $pwunit->report()->associate($report);
+                $pwunit->save();
+                foreach ($site->equipment()->get() as $eq) {
+                    $report->equipment()->attach($eq->id);
+                }
+                $report->user()->attach($user);
+            }
+        }
+        return response('success', 200);
+    }
+
+    public function postMakeReportable(Request $request)
+    {
+        $site = Site::find($request->sid);
+        $user = User::find($request->uid);
+        $total_date = $this->getTotalDate($request->get('start_date'), $request->get('end_date'));
+        for ($x = $total_date; $x >= 0; $x--) {
+            $rep_date = Carbon::parse($request->get('end_date'))->subDays($x)->toDateString();
+            if($site->report()->whereDate('created_at', '=', $rep_date)->get()->isEmpty()){
+                $report = new Report();
+                $report->created_at = $rep_date;
+                $report->site()->associate($site);
+                $report->save();
+                $pwunit = new Pwunit();
+                $staff = Staff::find(1);
+                $pwunit->staff()->associate($staff);
+                $pwunit->report()->associate($report);
+                $pwunit->save();
+                foreach ($site->equipment()->get() as $eq) {
+                    $report->equipment()->attach($eq->id);
+                }
+            }else{
+                $report = $site->report()->whereDate('created_at', '=', $rep_date)->first();
+            }
+            $report->user()->attach($user);
+        }
+        return response('success', 200);
+    }
+
+    public function postCloseReport(Request $request)
+    {
+        $user = User::find($request->uid);
+        $user->report()->detach(Report::find($request->id));
+        return response('success', 200);
+    }
+
+    private function getTotalDate($start_date, $end_date)
+    {
+        $start_date = date_create($start_date);
+
+        $end_date = date_create($end_date);
+        $total_date = str_replace("+", "", date_diff($start_date, $end_date)->format("%R%a"));
+        return (int)$total_date;
     }
 
     private

@@ -46,7 +46,7 @@ use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Session;
 
 
-class TekilController extends Controller
+class TekilController extends ManagementController
 {
     //
 
@@ -123,7 +123,9 @@ class TekilController extends Controller
             $my_inmaterial->material()->associate($request->get("mid")[$arr_no]);
             $my_inmaterial->save();
         }
-        return redirect()->back();
+        $report = Report::find($request->rid);
+
+        return redirect()->back()->with('report', $report);
     }
 
 
@@ -282,7 +284,7 @@ class TekilController extends Controller
             $report->staff()->attach($per->staff_id, ["quantity" => $quantity]);
         }
         Session::flash('flash_message', 'İlgili personel eklendi');
-        return redirect()->back();
+        return redirect()->back()->with('report', $report);
     }
 
     public function postDetachStaff(Site $site, Request $request)
@@ -304,32 +306,27 @@ class TekilController extends Controller
         $report = Report::find($request->get("report_id"));
         $main_staff_arr = $request->get("main-staffs");
         $q_arr = $request->get("main-staff-quantity");
-        $exists = false;
         for ($i = 0; $i < sizeof($main_staff_arr); $i++) {
             switch ($main_staff_arr[$i]) {
                 case 0:
                     $report->management_staff = $q_arr[$i];
-                    $exists = true;
                     break;
                 case 1:
                     $report->employer_staff = $q_arr[$i];
-                    $exists = true;
                     break;
                 case 2:
                     $report->building_control_staff = $q_arr[$i];
-                    $exists = true;
                     break;
                 case 3:
                     $report->isg_staff = $q_arr[$i];
-                    $exists = true;
                     break;
             }
         }
-        if ($exists) {
+
             $report->save();
-        }
+
         Session::flash('flash_message', 'Personel kaydı başarılı');
-        return redirect()->back();
+        return redirect()->back()->with('report', $report);
     }
 
     public function postDeleteManagementStaff(Request $request)
@@ -364,7 +361,7 @@ class TekilController extends Controller
                 "subcontractor_id" => $subcontractor->id]);
         }
         Session::flash('flash_message', 'Alt yüklenici personel kaydı başarılı');
-        return redirect()->back();
+        return redirect()->back()->with('report', $report);
     }
 
     public function postDeleteReportSubcontractor(Site $site, Request $request)
@@ -405,7 +402,20 @@ class TekilController extends Controller
                 Session::flash('flash_message', 'İlgili ekipman eklendi');
             }
         }
-        return redirect()->back();
+        return redirect()->back()->with('report', $report);
+    }
+
+    public function postRetrieveSubcontractors(Request $request)
+    {
+        $site = Site::find($request->sid);
+        $resp_arr = [];
+        foreach ($site->subcontractor()->get() as $sub) {
+            array_push($resp_arr, [
+                'name' => $sub->subdetail->name,
+                'id' => $sub->id
+            ]);
+        }
+        return response($resp_arr, 200);
     }
 
     public function postDetachEquipment(Request $request)
@@ -417,80 +427,83 @@ class TekilController extends Controller
         return response()->json('success', 200);
     }
 
+    public function postRetrieveSw(Request $request)
+    {
+        $report = Report::find($request->rid);
+        $resp_arr = [];
+        foreach ($report->swunit()->get() as $sw) {
+            array_push($resp_arr, [
+                'subid' => $sw->subcontractor->id,
+                'id' => $sw->id,
+                'name' => $sw->subcontractor->subdetail->name,
+                'quantity' => $sw->quantity,
+                'unit' => $sw->unit,
+                'work_done' => $sw->works_done,
+                'planned' => TurkishChar::convertToTRcurrency($sw->planned),
+                'done' => TurkishChar::convertToTRcurrency($sw->done)
+            ]);
+        }
+        return response($resp_arr, 200);
+    }
+
+    public function postRetrievePw(Request $request)
+    {
+        $report = Report::find($request->rid);
+        $resp_arr = [];
+        foreach ($report->pwunit()->get() as $sw) {
+            array_push($resp_arr, [
+                'quantity' => $sw->quantity,
+                'unit' => $sw->unit,
+                'work_done' => $sw->works_done,
+                'planned' => TurkishChar::convertToTRcurrency($sw->planned),
+                'done' => TurkishChar::convertToTRcurrency($sw->done)
+            ]);
+        }
+        return response($resp_arr, 200);
+    }
+
+    public function postSavePw(Request $request)
+    {
+        $report = Report::find($request->rid);
+        $swunit = $report->pwunit()->first();
+        $sw_arr = $request->all();
+        $sw_arr["planned"] = TurkishChar::convertCurrencyFromTr($request->planned);
+        $sw_arr["done"] = TurkishChar::convertCurrencyFromTr($request->done);
+        unset($sw_arr["rid"]);
+        foreach ($sw_arr as $k => $v) {
+            $swunit->$k = $v;
+        }
+        $swunit->report()->associate($report);
+        $swunit->save();
+
+        return response('success', 200);
+    }
+
+    public function postDelSwunit(Request $request)
+    {
+        Swunit::find($request->id)->delete();
+        return response('success', 200);
+    }
+
 
     public function postSaveWorkDone(Request $request)
     {
-        $report = Report::find($request->get("report_id"));
-        $subcontractor_ids = $request->get("subcontractors");
-        $i = 0;
-        if (!is_null($subcontractor_ids)) {
-            foreach ($subcontractor_ids as $subcontractor_id) {
-                $swunit = new Swunit();
-
-                if (is_null($report->swunit()
-                    ->where('subcontractor_id', $subcontractor_id)->first())
-                ) {
-
-                    $swunit = $swunit->create([
-                        "subcontractor_id" => $subcontractor_id,
-                        "report_id" => $report->id,
-                        "quantity" => $request->get("subcontractor_quantity")[$i],
-                        "unit" => $request->get("subcontractor_unit")[$i],
-                        "works_done" => $request->get("subcontractor_work_done")[$i],
-                        "planned" => $request->get("subcontractor_planned")[$i],
-                        "done" => $request->get("subcontractor_done")[$i],
-                    ]);
-                } else {
-                    $swunit = $report->swunit()
-                        ->where('subcontractor_id', $subcontractor_id)->first();
-                    $swunit->quantity = $request->get("subcontractor_quantity")[$i];
-                    $swunit->unit = $request->get("subcontractor_unit")[$i];
-                    $swunit->works_done = $request->get("subcontractor_work_done")[$i];
-                    $swunit->planned = $request->get("subcontractor_planned")[$i];
-                    $swunit->done = $request->get("subcontractor_done")[$i];
-                    $swunit->save();
-                }
-                $i++;
-                Session::flash('flash_message', 'İlgili çalışan birim eklendi');
-            }
+        $report = Report::find($request->rid);
+        $subcontractor = Subcontractor::find($request->subid);
+        $swunit = new Swunit();
+        $sw_arr = $request->all();
+        $sw_arr["planned"] = TurkishChar::convertCurrencyFromTr($request->planned);
+        $sw_arr["done"] = TurkishChar::convertCurrencyFromTr($request->done);
+        unset($sw_arr["rid"]);
+        unset($sw_arr["subid"]);
+        foreach ($sw_arr as $k => $v) {
+            $swunit->$k = $v;
         }
+        $swunit->report()->associate($report);
+        $swunit->subcontractor()->associate($subcontractor);
+        $swunit->save();
 
-
-        $staff_ids = $request->get("staffs");
-        $i = 0;
-        if (!is_null($staff_ids)) {
-            foreach ($staff_ids as $staff_id) {
-                $pwunit = new Pwunit();
-
-                if (is_null($report->pwunit()->
-                where('staff_id', $staff_id)->first())
-                ) {
-
-                    $pwunit = $pwunit->create([
-                        "staff_id" => $staff_id,
-                        "report_id" => $report->id,
-                        "quantity" => $request->get("staff_quantity")[$i],
-                        "unit" => $request->get("staff_unit")[$i],
-                        "works_done" => $request->get("staff_work_done")[$i],
-                        "planned" => $request->get("staff_planned")[$i],
-                        "done" => $request->get("staff_done")[$i],
-                    ]);
-                } else {
-                    $pwunit = $report->pwunit()->
-                    where('staff_id', $staff_id)->first();
-                    $pwunit->quantity = $request->get("staff_quantity")[$i];
-                    $pwunit->unit = $request->get("staff_unit")[$i];
-                    $pwunit->works_done = $request->get("staff_work_done")[$i];
-                    $pwunit->planned = $request->get("staff_planned")[$i];
-                    $pwunit->done = $request->get("staff_done")[$i];
-                    $pwunit->save();
-                }
-                $i++;
-                Session::flash('flash_message', 'İlgili çalışan birim eklendi');
-            }
-        }
-
-        return redirect()->back();
+        return response('success', 200);
     }
 
     public function postAddGardenStaff(Request $request)
@@ -502,7 +515,7 @@ class TekilController extends Controller
         $pwunit->report()->associate($report);
         $pwunit->save();
         Session::flash('flash_message', 'Garden çalışan birimi eklendi');
-        return redirect()->back();
+        return redirect()->back()->with('report', $report);
     }
 
     public function postDeleteSwunit(Request $request)
@@ -521,12 +534,16 @@ class TekilController extends Controller
     {
         $in_arr = $request->get("inmaterials");
         $i = 0;
-        foreach ($request->get("inmat-id") as $id) {
-            $inmaterial = Inmaterial::find($id);
-            $this->saveIncomingMaterial($request, $inmaterial, $i);
-            $i++;
-        }
         $report = Report::find($request->get("report_id"));
+
+        if (!empty($request->get("inmat-id"))) {
+            foreach ($request->get("inmat-id") as $id) {
+                $inmaterial = Inmaterial::find($id);
+                $this->saveIncomingMaterial($request, $inmaterial, $i);
+                $i++;
+            }
+        }
+
         for ($i; $i < sizeof($in_arr); $i++) {
             $inmaterial = new Inmaterial();
             $inmaterial->material()->associate(Material::find($request->get("inmaterials")[$i]));
@@ -536,7 +553,7 @@ class TekilController extends Controller
         }
 
 
-        return redirect()->back();
+        return redirect()->back()->with('report', $report);
     }
 
     private function saveIncomingMaterial($request, $inmaterial, $i)
@@ -579,7 +596,7 @@ class TekilController extends Controller
         }
 
 
-        return redirect()->back();
+        return redirect()->back()->with('report', $report);
     }
 
     public function postDeleteOutmaterial(Request $request)
@@ -681,7 +698,8 @@ class TekilController extends Controller
         }
 
         Session::flash('flash_message', 'Puantaj ve Yemek tablosu güncellendi');
-        return redirect()->back();
+        $report = Report::find($report_id);
+        return redirect()->back()->with('report', $report);
     }
 
     public function postSaveNotes(Request $request)
@@ -691,7 +709,7 @@ class TekilController extends Controller
         $report->notes = $request->get("notes");
         $report->save();
         Session::flash('flash_message', "Ertesi gün notları kaydedildi");
-        return redirect()->back();
+        return redirect()->back()->with('report', $report);
     }
 
 //    END OF GUNLUK RAPOR PAGE
@@ -752,17 +770,26 @@ class TekilController extends Controller
         $subcontractor->price = str_replace(",", ".", str_replace(".", "", $request->get('price')));
         $subcontractor->additional_bid_cost = str_replace(",", ".", str_replace(".", "", $request->get('additional_bid_cost')));
         $subcontractor->save();
-        $contract = Contract::firstOrCreate(['contract_date' => CarbonHelper::getMySQLDate($request->get('contract_date')),
-            'contract_start_date' => CarbonHelper::getMySQLDate($request->get('contract_start_date')),
-            'contract_end_date' => CarbonHelper::getMySQLDate($request->get('contract_end_date'))]);
-        $subcontractor->contract()->save($contract);
-
+        if ($subcontractor->contract()->get()->isEmpty()) {
+            $contract = Contract::firstOrCreate(['contract_date' => CarbonHelper::getMySQLDate($request->get('contract_date')),
+                'contract_start_date' => CarbonHelper::getMySQLDate($request->get('contract_start_date')),
+                'exit_date' => CarbonHelper::getMySQLDate($request->get('exit_date')),
+                'contract_end_date' => CarbonHelper::getMySQLDate($request->get('contract_end_date'))]);
+            $subcontractor->contract()->save($contract);
+        } else {
+            $contract = $subcontractor->contract;
+            $contract->contract_date = CarbonHelper::getMySQLDate($request->get('contract_date'));
+            $contract->contract_start_date = CarbonHelper::getMySQLDate($request->get('contract_start_date'));
+            $contract->contract_end_date = CarbonHelper::getMySQLDate($request->get('contract_end_date'));
+            $contract->exit_date = CarbonHelper::getMySQLDate($request->get('exit_date'));
+            $contract->save();
+        }
 
         if ($request->file("contractToUpload")) {
             $file = $request->file("contractToUpload");
 
-            if (!empty($contract->file)) {
-                $db_file = $contract->file;
+            if (!$contract->file()->get()->isEmpty()) {
+                $db_file = $contract->file()->first();
 
                 if (unlink($db_file->path . DIRECTORY_SEPARATOR . $db_file->name)) {
 
@@ -821,18 +848,49 @@ class TekilController extends Controller
 
     }
 
-    public function postUpdatePayment(Request $request)
+    public function postRetrievePayments(Request $request)
+    {
+        $subcontractor = Subcontractor::find($request->subId);
+        $resp_arr = [];
+        $resp_arr['claim'] = TurkishChar::convertToTRcurrency((double)$subcontractor->price + (double)$subcontractor->additional_bid_cost);
+        $debt = 0;
+        $balance = 0.0-(double)$resp_arr['claim'];
+        $payments = [];
+        foreach ($subcontractor->payment()->orderBy('payment_date', 'DESC')->get() as $payment) {
+            $balance += (double)$payment->amount;
+            $debt += (double)$payment->amount;
+            array_push($payments, [
+                'id' => $payment->id,
+                'date' => CarbonHelper::getTurkishDate($payment->payment_date),
+                'type' => $payment->name,
+                'method' => empty($payment->method) ? '-' : $payment->method,
+                'detail' => $payment->detail,
+                'balance' => TurkishChar::convertToTRcurrency($balance),
+                'debt' => TurkishChar::convertToTRcurrency((double)$payment->amount)
+            ]);
+        }
+        $resp_arr['payments'] = $payments;
+        $resp_arr['debt'] = TurkishChar::convertToTRcurrency($debt);
+        $resp_arr['balance'] = TurkishChar::convertToTRcurrency($balance);
+        return response($resp_arr, 200);
+    }
+
+    public function postAddPayment(Request $request)
     {
         $pay_arr = $request->all();
-        unset($pay_arr['subid']);
+        unset($pay_arr['subId']);
         $pay_arr['payment_date'] = CarbonHelper::getMySQLDate($pay_arr['payment_date']);
-        $pay_arr['amount'] = TurkishChar::convertCurrencyFromTr($request->amount);
+        $pay_arr['amount'] = $request->amount;
         $payment = Payment::create($pay_arr);
-        $payment->subcontractor()->associate(Subcontractor::find($request->subid));
+        $payment->subcontractor()->associate(Subcontractor::find($request->subId));
         $payment->save();
-        Session::flash('flash_message', 'Bilgiler eklendi');
+        return response('success', 200);
+    }
 
-        return redirect()->back();
+    public function postDelPayment(Request $request)
+    {
+        Payment::find($request->id)->delete();
+        return response('success', 200);
     }
 
     public function postSaveSubcontractorFiles(Request $request)
@@ -881,11 +939,10 @@ class TekilController extends Controller
         $wage->save();
         $directory = public_path() . '/uploads/' . uniqid(rand(), true);
         $contract_file = $this->uploadFile($request->file("contract"), $directory);
-        $contract = Contract::create([
-            'contract_date' => $request->get('contract_date'),
-            'contract_start_date' => $request->get('contract_start_date'),
-            'contract_end_date' => $request->get('contract_end_date'),
-        ]);
+        $contract = new Contract();
+        if (isset($request->exit_date)) {
+            $contract->exit_date = CarbonHelper::getMySQLDate($request->exit_date);
+        }
         $contract->file()->save($contract_file);
 
         if (!empty($request->file("documents"))) {
@@ -1397,9 +1454,11 @@ class TekilController extends Controller
     public function postModifyPersonnel(Request $request)
     {
         $per_arr = $request->all();
+
         unset($per_arr["_token"]);
         $per_wage = str_replace(",", ".", $request->get("wage"));
         unset($per_arr["wage"]);
+        unset($per_arr["exit_date"]);
         unset($per_arr["id"]);
         unset($per_arr["contract"]);
         unset($per_arr["documents"]);
@@ -1408,6 +1467,11 @@ class TekilController extends Controller
         }
 
         $per = Personnel::find($request->get("id"));
+        if (isset($request->exit_date) && !empty($request->exit_date)) {
+            $contract = $per->contract;
+            $contract->exit_date = CarbonHelper::getMySQLDate($request->exit_date);
+            $contract->save();
+        }
         foreach ($per_arr as $k => $v) {
             $per->$k = $v;
         }
@@ -1421,19 +1485,20 @@ class TekilController extends Controller
         $directory = public_path() . '/uploads/' . uniqid(rand(), true);
         if (!empty($request->file("contract"))) {
             $contract_file = $this->uploadFile($request->file("contract"), $directory);
-            $contract = $per->contract->first();
+            $contract = $per->contract;
             $contract->file()->save($contract_file);
         }
 
         if (!empty($request->file("documents"))) {
             foreach ($request->file("documents") as $file) {
+                if (!empty($file)) {
+                    $db_file = $this->uploadFile($file, $directory);
 
-                $db_file = $this->uploadFile($file, $directory);
-
-                if ($db_file) {
-                    $photo = Photo::create();
-                    $photo->file()->save($db_file);
-                    $per->photo()->save($photo);
+                    if ($db_file) {
+                        $photo = Photo::create();
+                        $photo->file()->save($db_file);
+                        $per->photo()->save($photo);
+                    }
                 }
             }
         }
@@ -1454,6 +1519,38 @@ class TekilController extends Controller
         Personnel::find($request->get('userDeleteIn'))->delete();
         Session::flash('flash_message', 'Personel silindi');
         return redirect()->back();
+    }
+
+    public function postRetrieveWages(Request $request)
+    {
+        $personnel = Personnel::find($request->pid);
+        $resp_arr = [];
+        foreach ($personnel->wage()->orderBy('since', 'DESC')->get() as $wage) {
+            array_push($resp_arr, [
+                'id' => $wage->id,
+                'since' => CarbonHelper::getTurkishDate($wage->since),
+                'wage' => str_replace('.', ',', $wage->wage)
+            ]);
+        }
+        return response($resp_arr, 200);
+    }
+
+    public function postAddWage(Request $request)
+    {
+        $personnel = Personnel::find($request->pid);
+        $wage = new Wage();
+        $wage->wage = $request->wage;
+        $wage->since = CarbonHelper::getMySQLDate($request->since);
+        $wage->personnel()->associate($personnel);
+        $wage->save();
+        return response('success', 200);
+
+    }
+
+    public function postDelWage(Request $request)
+    {
+        Wage::find($request->id)->delete();
+        return response('success', 200);
     }
 
     // End of alt yüklenici personel düzenle page
@@ -1988,8 +2085,20 @@ class TekilController extends Controller
     public function postPreregisterStocks(Request $request)
     {
         $stock_array = [];
-        foreach ($request->stocks as $stock) {
-            array_push($stock_array, $stock);
+        foreach ($request->stocks as $stock_id) {
+            $stock = Stock::find($stock_id);
+            $total = $stock->total;
+            $left = $total;
+            foreach (Site::all() as $st) {
+                if (!empty($st->stock()->find($stock->id))) {
+                    $left -= $st->stock()->find($stock->id)->pivot->amount;
+                }
+            }
+            array_push($stock_array, [
+                    'stock' => $stock->id,
+                    'left' => $left
+                ]
+            );
         }
         return redirect()->back()->with('stock_array', $stock_array);
     }
@@ -1997,13 +2106,36 @@ class TekilController extends Controller
     public function postRegisterStocks(Request $request, Site $site)
     {
         $arr_size = sizeof($request->stocks);
+        $stock_array = [];
+        $over_book = false;
         for ($i = 0; $i < $arr_size; $i++) {
             $stock = Stock::find($request->stocks[$i]);
-            $site->stock()->attach($stock, [
-                'amount' => $request->quantity[$i]
-            ]);
-            $site->save();
-
+            $total = $stock->total;
+            $left = $total;
+            foreach (Site::all() as $st) {
+                if (!empty($st->stock()->find($stock->id))) {
+                    $left -= $st->stock()->find($stock->id)->pivot->amount;
+                }
+            }
+            $over_request = $request->quantity[$i] > $left ? true : false;
+            if (!$over_book && $over_request) {
+                $over_book = true;
+            }
+            if (!$over_request) {
+                $site->stock()->attach($stock, [
+                    'amount' => $request->quantity[$i]
+                ]);
+                $site->save();
+            } else {
+                array_push($stock_array, [
+                    'stock' => $request->stocks[$i],
+                    'left' => $left
+                ]);
+            }
+        }
+        if ($over_book) {
+            Session::flash('flash_message_error', 'Listelenmiş demirbaşların miktar bilgilerini tekrar girmeniz gerekmekte!');
+            return redirect()->back()->with('stock_array', $stock_array);
         }
         Session::flash('flash_message', 'Demirbaş kaydı başarılı');
         return redirect()->back();
@@ -2012,6 +2144,16 @@ class TekilController extends Controller
     public function postModifyStockAmount(Request $request, Site $site)
     {
         $stock = $site->stock()->where('stock_id', $request->pk)->first();
+        $left = $stock->total;
+        foreach (Site::all() as $st) {
+            if (!empty($st->stock()->find($stock->id))) {
+                $left -= $st->stock()->find($stock->id)->pivot->amount;
+            }
+        }
+        if ($left < $request->value) {
+            $max = $left + $stock->pivot->amount;
+            return response("Demirbaş miktarı en fazla $max $stock->unit olabilir!", 500);
+        }
         $stock->pivot->amount = $request->value;
         $stock->pivot->save();
         return response('success', 200);

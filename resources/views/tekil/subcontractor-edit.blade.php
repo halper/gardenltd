@@ -15,14 +15,107 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
 @stop
 
 @section('page-specific-js')
+    <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
     <script src="<?= URL::to('/'); ?>/js/select2.min.js"></script>
     <script src="<?= URL::to('/'); ?>/js/dropzone.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/lightbox.js" type="text/javascript"></script>
+    <script src="<?= URL::to('/'); ?>/js/moment.min.js" type="text/javascript"></script>
 
     <script>
+        String.prototype.turkishToLower = function () {
+            var string = this;
+            var letters = {"İ": "i", "I": "ı", "Ş": "ş", "Ğ": "ğ", "Ü": "ü", "Ö": "ö", "Ç": "ç"};
+            string = string.replace(/(([İIŞĞÜÇÖ]))/g, function (letter) {
+                return letters[letter];
+            });
+            return string.toLowerCase();
+        };
 
+        var puantajApp = angular.module('puantajApp', [], function ($interpolateProvider) {
+            $interpolateProvider.startSymbol('<%');
+            $interpolateProvider.endSymbol('%>');
+        }).controller('PuantajController', function ($scope, $http) {
+            $scope.date = '{{$today}}';
+            $scope.today = moment().format('DD.MM.YYYY');
+            $scope.payments = [];
+            $scope.debt = '';
+            $scope.balance = '';
+            $scope.claim = '';
+            $scope.subId = '{{$subcontractor->id}}';
+            $scope.paymentSelect = '';
+            $scope.showPayment = false;
+
+            $scope.getPayments = function () {
+                $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/retrieve-payments", {
+                    subId: $scope.subId
+                }).then(function (response) {
+                    $scope.payments = response.data.payments;
+                    $scope.balance = response.data.balance;
+                    $scope.claim = response.data.claim;
+                    $scope.debt = response.data.debt;
+                    $scope.showPayment = parseFloat($scope.claim.replace(',', '.'))*0.9 <= parseFloat($scope.debt.replace(',', '.')) ;
+                });
+            };
+            $scope.getPayments();
+
+            $scope.addPayment = function () {
+                if (!$scope.date || !$scope.paymentSelect || !$scope.amount || !$scope.method) {
+                    $scope.subError = 'Lütfen ilgili alanları doldurunuz: Tarih, ödeme cinsi, ödeme şekli, fiyat!'
+                }
+                else {
+                    $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/add-payment", {
+                        payment_date: $scope.date,
+                        subId: $scope.subId,
+                        amount: $scope.amount,
+                        method: $scope.method,
+                        name: $scope.paymentSelect,
+                        detail: $scope.detail
+                    }).then(function (response) {
+                        $scope.amount = '';
+                        $scope.method = '';
+                        $scope.paymentSelect = '';
+                        $scope.detail = '';
+                        $scope.date = $scope.today;
+                        $scope.getPayments();
+                    });
+                }
+
+            };
+            $scope.remove_field = function (item) {
+                $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/del-payment", {
+                    id: item.id
+                }).then(function () {
+                    $scope.getPayments();
+                    $scope.date = item.date;
+                    $scope.paymentSelect = item.type;
+                    $scope.method = item.method;
+                    $scope.detail = item.detail;
+                    $scope.amount = item.debt;
+                });
+
+            };
+            $scope.name = '';
+        }).filter('numberFormatter', function () {
+            return function (data) {
+                return $.number(data, 2, ',', '.');
+            }
+        }).filter('searchFor', function () {
+            return function (arr, searchStr) {
+                if (!searchStr) {
+                    return arr;
+                }
+                var result = [];
+                searchStr = searchStr.turkishToLower();
+                angular.forEach(arr, function (item) {
+                    if ((item.date + ' ' + item.type + ' ' + item.method + ' ' + item.detail).turkishToLower().indexOf(searchStr) !== -1) {
+                        result.push(item);
+                    }
+                });
+                return result;
+            };
+        });
         $(document).on("click", ".userDelBut", function (e) {
 
             e.preventDefault();
@@ -130,7 +223,7 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
             language: 'tr',
             autoclose: true
         });
-        $(".dateRangePicker > input").val("{{$today}}");
+        $(".dateRangePicker > input#payment_date").val("{{$today}}");
     </script>
 @stop
 
@@ -143,7 +236,6 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                 <ul class="nav nav-tabs">
                     <li class="active"><a href="#tab_1" data-toggle="tab">Alt Yüklenici Sözleşme Bilgileri</a></li>
                     <li><a href="#tab_2" data-toggle="tab">Ücretler ve Oranlar</a></li>
-                    <li><a href="#tab_3" data-toggle="tab">Ek Ödemeler</a></li>
                     <li><a href="#tab_5" data-toggle="tab">Ek Belgeler</a></li>
                     <li><a href="#tab_6" data-toggle="tab">Personel Ekle</a></li>
                     <li><a href="#tab_7" data-toggle="tab">Personel Düzenle</a></li>
@@ -171,9 +263,9 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                                 $my_path = '';
                                 $file_name = '';
 
-                                if (!empty($subcontractor->contract->first()) && !empty($subcontractor->contract->first()->file->first())) {
-                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $subcontractor->contract->first()->file->first()->path);
-                                    $file_name = $subcontractor->contract->first()->file->first()->name;
+                                if (!($subcontractor->contract()->get()->isEmpty()) && !($subcontractor->contract->file()->get()->isEmpty())) {
+                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $subcontractor->contract->file->path);
+                                    $file_name = $subcontractor->contract->file->name;
                                     $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
                                 }
                                 ?>
@@ -204,16 +296,6 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                         <div class="row">
                             <div class="col-xs-12">
                                 @include('tekil._subcontractor-fee-form')
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <!-- /.tab-pane -->
-                    <div class="tab-pane" id="tab_3">
-                        <div class="row">
-                            <div class="col-xs-12">
-                                @include('tekil._subcontractor-cost-form')
                             </div>
                         </div>
                     </div>
@@ -294,53 +376,8 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
         </div>
     </div>
 
-    @if(!($subcontractor->payment()->get()->isEmpty()))
-        <div class="row">
-            <div class="col-xs-12 col-md-12">
-                <div class="box box-success box-solid">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Yapılan Ödemeler Tablosu
-                        </h3>
+    @include('tekil._subcontractor-cost-form')
 
-                        <div class="box-tools pull-right">
-                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                        class="fa fa-minus"></i>
-                            </button>
-                        </div>
-                        <!-- /.box-tools -->
-                    </div>
-                    <!-- /.box-header -->
-                    <div class="box-body">
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-condensed">
-                                <thead>
-                                <tr>
-                                    <th>TARİH</th>
-                                    <th>ÖDEME</th>
-                                    <th>MİKTAR</th>
-                                    <th>ÖDEME TİPİ</th>
-                                    <th>AÇIKLAMA</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                @foreach ($subcontractor->payment()->get() as $payment)
-                                    <tr>
-                                        <td>{{ \App\Library\CarbonHelper::getTurkishDate($payment->payment_date) }}</td>
-                                        <td>{{ $payment->name }}</td>
-                                        <td>{{ \App\Library\TurkishChar::convertToTRcurrency($payment->amount) }} TL</td>
-                                        <td>{{ empty($payment->method) ? '-' : $payment->method }}</td>
-                                        <td>{{ $payment->detail }}</td>
-                                    </tr>
-                                @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
 
     <div id="deleteUserConfirm" class="modal fade" role="dialog">
         <div class="modal-dialog">

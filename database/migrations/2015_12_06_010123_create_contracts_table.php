@@ -14,9 +14,9 @@ class CreateContractsTable extends Migration
     {
         Schema::create('contracts', function (Blueprint $table) {
             $table->increments('id');
-            $table->date('contract_date');
-            $table->date('contract_start_date');
-            $table->date('contract_end_date');
+            $table->date('contract_date')->default('0000-00-00');
+            $table->date('contract_start_date')->default('0000-00-00');
+            $table->date('contract_end_date')->default('0000-00-00');
             $table->unsignedInteger('contractable_id');
             $table->string('contractable_type');
             $table->timestamps();

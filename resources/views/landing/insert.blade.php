@@ -1,6 +1,7 @@
 <?php
 $sites = \App\Site::getSites();
 $eq_json = json_encode(\App\Equipment::all());
+$tag_json = json_encode(\App\Tag::all());
 $staffs = \App\Staff::allStaff();
 $staff_json = [];
 $site_options = '<option></option>';
@@ -127,6 +128,46 @@ foreach ($management_depts->management() as $dept) {
 
                     $scope.newEquipment = $scope.name;
                     $scope.presentEquipments.push(
+                            {name: $scope.name}
+                    );
+
+                    $scope.name = '';
+                    $scope.error = '';
+                });
+            }
+        }).controller('TagController', function ($scope, $http, $filter) {
+            $scope.presentTags = {!! $tag_json!!};
+
+            $scope.error = '';
+            $scope.newTag = '';
+            $scope.name = '';
+
+            $scope.addTag = function () {
+                $scope.newTag = '';
+                $scope.error = '';
+                if (!$('input[name="tag"]').val()) {
+                    return;
+                }
+                var name = $scope.name.turkishToLower();
+                var addToArray = true;
+                for (var i = 0; i < $scope.presentTags.length; i++) {
+                    if ($scope.presentTags[i].name.turkishToLower() === name) {
+                        addToArray = false;
+                    }
+                }
+                if (!addToArray) {
+                    $scope.error = $scope.name + ' etiketleriniz arasında mevcut!';
+                    $scope.name = '';
+
+                    return;
+                }
+                $scope.name = $filter('trUp')($scope.name);
+                $http.post("<?=URL::to('/');?>/admin/add-tag", {
+                    'name': $scope.name
+                }).success(function (response) {
+
+                    $scope.newTag = $scope.name;
+                    $scope.presentTags.push(
                             {name: $scope.name}
                     );
 
@@ -353,6 +394,59 @@ foreach ($management_depts->management() as $dept) {
                     $scope.matError = '';
                 });
             };
+
+            $scope.expGroup = '';
+            $scope.expName = '';
+            $scope.expenditures = '';
+            $scope.newExp = '';
+
+            $scope.getExpenditures = function () {
+                $http.get("<?=URL::to('/');?>/admin/retrieve-expdetail")
+                        .then(function (response) {
+                            $scope.expenditures = response.data;
+                        });
+
+            };
+            $scope.getExpenditures();
+
+            $scope.addExpenditure = function () {
+                $scope.newExp = '';
+                $scope.error = '';
+                if (!$('input[name="type"]').val() || !$('select[name="group"]').val()) {
+                    if (!$('input[name="type"]').val()) {
+                        $scope.error = 'Gider adı giriniz!';
+                    }
+                    if (!$('select[name="group"]').val()) {
+                        $scope.error = 'Gider türü seçiniz!';
+                    }
+                    return;
+                }
+                $scope.expName = $filter('trUp')($scope.expName);
+                var addToArray = true;
+                for (var i = 0; i < $scope.expenditures.length; i++) {
+                    if ($scope.expenditures[i].name === $scope.expName) {
+                        addToArray = false;
+                    }
+                }
+
+                if (!addToArray) {
+                    $scope.error = $scope.expName + ' gider kalemleriniz arasında mevcut!';
+                    $scope.expName = '';
+                    $scope.expGroup = '';
+
+                    return;
+                }
+                $http.post("<?=URL::to('/');?>/admin/add-expenditure", {
+                    name: $scope.expName,
+                    group: $scope.expGroup
+                }).then(function (response) {
+                    $scope.newExp = $scope.expName;
+                    $scope.expName = '';
+                    $scope.expGroup = '';
+                    $scope.error = '';
+                    $scope.getExpenditures();
+                });
+            };
         }).filter('searchFor', function () {
             return function (arr, searchStr) {
                 if (!searchStr) {
@@ -419,6 +513,8 @@ foreach ($management_depts->management() as $dept) {
                     <li><a href="#tab_mat" data-toggle="tab">Malzeme</a></li>
                     <li><a href="#tab_submat" data-toggle="tab">Bağlantılı Malzeme</a></li>
                     <li><a href="#tab_4" data-toggle="tab">İş Makinesi</a></li>
+                    <li><a href="#tab_tag" data-toggle="tab">Etiketler</a></li>
+                    <li><a href="#tab_exp" data-toggle="tab">Gider Kalemleri</a></li>
 
                 </ul>
 
@@ -506,6 +602,17 @@ foreach ($management_depts->management() as $dept) {
                         @include('landing._insert-new-equipment')
                     </div>
 
+                    <!-- /.tab-pane -->
+                    <div class="tab-pane" id="tab_tag">
+                        @include('landing._insert-new-tag')
+                    </div>
+
+                    <!-- /.tab-pane -->
+
+                    {{--tab pane--}}
+                    <div class="tab-pane" id="tab_exp">
+                        @include('landing._insert-new-expenditure')
+                    </div>
                     <!-- /.tab-pane -->
 
                 </div>

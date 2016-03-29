@@ -14,6 +14,8 @@ if (session()->has("data")) {
     $report_date = session('data')["date"];
 }
 
+$anchor = session()->has('anchor') ? session()->get('anchor') : null;
+
 $today = Carbon::now()->toDateString();
 
 $locked = true;
@@ -143,14 +145,16 @@ foreach ($main_personnel as $per) {
 $subcontractor_personnel_options = '';
 $subcontractor_options = "'<option></option>'+\n";
 foreach ($all_subcontractors as $subcontractor) {
-    $subcontractor_personnel_options .= "<optgroup label=\"" . $subcontractor->subdetail->name;
-    $subcontractor_options .= "'<option value=\"$subcontractor->id\">" . TurkishChar::tr_camel($subcontractor->subdetail->name) . "</option>'+\n";
-    foreach ($subcontractor->manufacturing()->get() as $manufacture) {
-        $subcontractor_personnel_options .= " (" . TurkishChar::tr_up($manufacture->name) . ")";
-    }
-    $subcontractor_personnel_options .= "\">";
-    foreach ($subcontractor->personnel()->get() as $per) {
-        $subcontractor_personnel_options .= "<option value=\"$per->id\">" . TurkishChar::tr_up($per->staff()->first()->staff) . ": " . TurkishChar::tr_camel($per->name) . "(" . $per->tck_no . ")</option>";
+    if (count($subcontractor->subdetail)) {
+        $subcontractor_personnel_options .= "<optgroup label=\"" . $subcontractor->subdetail->name;
+        $subcontractor_options .= "'<option value=\"$subcontractor->id\">" . TurkishChar::tr_camel($subcontractor->subdetail->name) . "</option>'+\n";
+        foreach ($subcontractor->manufacturing()->get() as $manufacture) {
+            $subcontractor_personnel_options .= " (" . TurkishChar::tr_up($manufacture->name) . ")";
+        }
+        $subcontractor_personnel_options .= "\">";
+        foreach ($subcontractor->personnel()->get() as $per) {
+            $subcontractor_personnel_options .= "<option value=\"$per->id\">" . TurkishChar::tr_up($per->staff()->first()->staff) . ": " . TurkishChar::tr_camel($per->name) . "(" . $per->tck_no . ")</option>";
+        }
     }
 }
 
@@ -161,11 +165,11 @@ foreach ($site->equipment()->get() as $equipment) {
     if (isset($report_equipment_arr)) {
         if (!in_array($equipment->id, $report_equipment_arr)) {
             $equipment_options .= "<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>";
-            $equipment_options_js .= "'<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>'+\n";
+            $equipment_options_js .= "'<option value=\"$equipment->id\">" . str_replace("'", "`", TurkishChar::tr_up($equipment->name)) . "</option>'+\n";
         }
     } else {
         $equipment_options .= "<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>";
-        $equipment_options_js .= "'<option value=\"$equipment->id\">" . TurkishChar::tr_up($equipment->name) . "</option>'+\n";
+        $equipment_options_js .= "'<option value=\"$equipment->id\">" . str_replace("'", "`", TurkishChar::tr_up($equipment->name)) . "</option>'+\n";
     }
 }
 
@@ -175,7 +179,7 @@ $inmaterial_options_js = "";
 
 foreach (Material::all() as $inmaterial) {
     $inmaterial_options .= "<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>";
-    $inmaterial_options_js .= "'<option value=\"$inmaterial->id\">" . TurkishChar::tr_up($inmaterial->material) . "</option>'+\n";
+    $inmaterial_options_js .= "'<option value=\"$inmaterial->id\">" . str_replace("'", "`", TurkishChar::tr_up($inmaterial->material)) . "</option>'+\n";
 }
 
 $outmaterial_options = "";
@@ -184,7 +188,7 @@ $outmaterial_options_js = "";
 
 foreach (Material::all() as $outmaterial) {
     $outmaterial_options .= "<option value=\"$outmaterial->id\">" . TurkishChar::tr_up($outmaterial->material) . "</option>";
-    $outmaterial_options_js .= "'<option value=\"$outmaterial->id\">" . TurkishChar::tr_up($outmaterial->material) . "</option>'+\n";
+    $outmaterial_options_js .= "'<option value=\"$outmaterial->id\">" . str_replace("'", "`", TurkishChar::tr_up($outmaterial->material)) . "</option>'+\n";
 }
 
 $subcontractor_staff_options = $staff_options_all;
@@ -264,141 +268,153 @@ if ($viewCount == 1 && !is_null($yesterdays_report) && !is_null($yesterdays_repo
     <script src="<?= URL::to('/'); ?>/js/bootstrap-editable.min.js" type="text/javascript"></script>
 
     <script>
-        var puantajApp = angular.module('dailyApp', [], function ($interpolateProvider) {
-            $interpolateProvider.startSymbol('<%');
-            $interpolateProvider.endSymbol('%>');
-        }).controller('swController', function ($scope, $http) {
-            $scope.sws = [];
-            $scope.message = '';
-            $scope.swUnit = '';
-            $scope.swQuantity = '';
-            $scope.swPlanned = '';
-            $scope.swDone = '';
-            $scope.swWorkDone = '';
-            $scope.swSelected = '';
-            $scope.subcontractors = [];
-
-            $scope.getSubcontractors = function () {
-                $http.post("{{url("/tekil/$site->slug/retrieve-subcontractors")}}", {
-                    sid: "{{$site->id}}"
-                }).then(function (response) {
-                    $scope.subcontractors = response.data;
-                });
-            };
-
-            $scope.pwUnit = '';
-            $scope.pwQuantity = '';
-            $scope.pwPlanned = '';
-            $scope.pwDone = '';
-            $scope.pwWorkDone = '';
-            $scope.pw = [];
-
-
-            $scope.getPw = function () {
-                $http.post("{{url("/tekil/$site->slug/retrieve-pw")}}", {
-                    rid: "{{$report->id}}"
-                }).then(function (response) {
-                    $scope.pw = response.data;
-                    $scope.pwUnit = $scope.pw[0].unit;
-                    $scope.pwQuantity = parseInt($scope.pw[0].quantity);
-                    $scope.pwPlanned = $scope.pw[0].planned;
-                    $scope.pwDone = $scope.pw[0].done;
-                    $scope.pwWorkDone = $scope.pw[0].work_done;
-                });
-            };
-
-            $scope.getPw();
-
-            $scope.getSubcontractors();
-
-            $scope.getSw = function () {
-                $http.post("{{url("/tekil/$site->slug/retrieve-sw")}}", {
-                    rid: "{{$report->id}}"
-                }).then(function (response) {
-                    $scope.sws = response.data;
-                });
-            };
-            $scope.getSw();
-
-            $scope.addSwunit = function () {
-                $scope.message = '';
-                $http.post("{{url("/tekil/$site->slug/save-work-done")}}", {
-                    rid: "{{$report->id}}",
-                    subid: $scope.swSelected.id,
-                    quantity: $scope.swQuantity,
-                    unit: $scope.swUnit,
-                    planned: $scope.swPlanned,
-                    done: $scope.swDone,
-                    works_done: $scope.swWorkDone
-                }).
-                then(function (response) {
-                    $scope.message = 'Kayıt başarılı';
-                    $scope.getSw();
+        $('#attachTagBtn').on('click', function (e) {
+            e.preventDefault();
+            $.post("/tekil/{{$site->slug}}/attach-tag", $('#attach-tag').serialize())
+                    .done(function () {
+                        $('.success-message').html('<p class="alert-success">Kayıt başarılı!</p>');
+                        $('p.alert-success').not('.alert-important').delay(7500).slideUp(300);
+                    });
+        });
+                @if(!empty($anchor))
+                var anchor = "{{$anchor}}";
+        $('html,body').animate({scrollTop: $(anchor).offset().top}, 'slow');
+                @endif
+var puantajApp = angular.module('dailyApp', [], function ($interpolateProvider) {
+                    $interpolateProvider.startSymbol('<%');
+                    $interpolateProvider.endSymbol('%>');
+                }).controller('swController', function ($scope, $http) {
+                    $scope.sws = [];
+                    $scope.message = '';
                     $scope.swUnit = '';
                     $scope.swQuantity = '';
                     $scope.swPlanned = '';
                     $scope.swDone = '';
                     $scope.swWorkDone = '';
                     $scope.swSelected = '';
-                });
-            };
-            $scope.addPwunit = function () {
-                $scope.message = '';
-                $http.post("{{url("/tekil/$site->slug/save-pw")}}", {
-                    rid: "{{$report->id}}",
-                    quantity: $scope.pwQuantity,
-                    unit: $scope.pwUnit,
-                    planned: $scope.pwPlanned,
-                    done: $scope.pwDone,
-                    works_done: $scope.pwWorkDone
-                }).
-                then(function (response) {
-                    $scope.message = 'Kayıt başarılı!';
+                    $scope.subcontractors = [];
+
+                    $scope.getSubcontractors = function () {
+                        $http.post("{{url("/tekil/$site->slug/retrieve-subcontractors")}}", {
+                            sid: "{{$site->id}}"
+                        }).then(function (response) {
+                            $scope.subcontractors = response.data;
+                        });
+                    };
+
+                    $scope.pwUnit = '';
+                    $scope.pwQuantity = '';
+                    $scope.pwPlanned = '';
+                    $scope.pwDone = '';
+                    $scope.pwWorkDone = '';
+                    $scope.pw = [];
+
+
+                    $scope.getPw = function () {
+                        $http.post("{{url("/tekil/$site->slug/retrieve-pw")}}", {
+                            rid: "{{$report->id}}"
+                        }).then(function (response) {
+                            $scope.pw = response.data;
+                            $scope.pwUnit = $scope.pw[0].unit;
+                            $scope.pwQuantity = parseInt($scope.pw[0].quantity);
+                            $scope.pwPlanned = $scope.pw[0].planned;
+                            $scope.pwDone = $scope.pw[0].done;
+                            $scope.pwWorkDone = $scope.pw[0].work_done;
+                        });
+                    };
+
                     $scope.getPw();
-                });
-            };
 
+                    $scope.getSubcontractors();
 
-            $scope.remove_field = function (item) {
-                $scope.message = '';
-                $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/del-swunit", {
-                    id: item.id
-                }).then(function () {
-                    $scope.message = 'Silme işlemi başarılı';
+                    $scope.getSw = function () {
+                        $http.post("{{url("/tekil/$site->slug/retrieve-sw")}}", {
+                            rid: "{{$report->id}}"
+                        }).then(function (response) {
+                            $scope.sws = response.data;
+                        });
+                    };
                     $scope.getSw();
-                    angular.forEach($scope.subcontractors, function (value, key) {
-                        if (parseInt(item.subid) == value.id) {
-                            $scope.swSelected = value;
-                        }
-                        $scope.swUnit = item.unit;
-                        $scope.swQuantity = item.quantity;
-                        $scope.swPlanned = item.planned;
-                        $scope.swDone = item.done;
-                        $scope.swWorkDone = item.work_done;
-                    });
 
-                });
+                    $scope.addSwunit = function () {
+                        $scope.message = '';
+                        $http.post("{{url("/tekil/$site->slug/save-work-done")}}", {
+                            rid: "{{$report->id}}",
+                            subid: $scope.swSelected.id,
+                            quantity: $scope.swQuantity,
+                            unit: $scope.swUnit,
+                            planned: $scope.swPlanned,
+                            done: $scope.swDone,
+                            works_done: $scope.swWorkDone
+                        }).
+                        then(function (response) {
+                            $scope.message = 'Kayıt başarılı';
+                            $scope.getSw();
+                            $scope.swUnit = '';
+                            $scope.swQuantity = '';
+                            $scope.swPlanned = '';
+                            $scope.swDone = '';
+                            $scope.swWorkDone = '';
+                            $scope.swSelected = '';
+                        });
+                    };
+                    $scope.addPwunit = function () {
+                        $scope.message = '';
+                        $http.post("{{url("/tekil/$site->slug/save-pw")}}", {
+                            rid: "{{$report->id}}",
+                            quantity: $scope.pwQuantity,
+                            unit: $scope.pwUnit,
+                            planned: $scope.pwPlanned,
+                            done: $scope.pwDone,
+                            works_done: $scope.pwWorkDone
+                        }).
+                        then(function (response) {
+                            $scope.message = 'Kayıt başarılı!';
+                            $scope.getPw();
+                        });
+                    };
 
-            }
-        }).filter('numberFormatter', function () {
-            return function (data) {
-                return $.number(data, 2, ',', '.');
-            }
-        }).filter('searchFor', function () {
-            return function (arr, searchStr) {
-                if (!searchStr) {
-                    return arr;
-                }
-                var result = [];
-                searchStr = searchStr.turkishToLower();
-                angular.forEach(arr, function (item) {
-                    if ((item.date + ' ' + item.bill + ' ' + item.subname).turkishToLower().indexOf(searchStr) !== -1) {
-                        result.push(item);
+
+                    $scope.remove_field = function (item) {
+                        $scope.message = '';
+                        $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/del-swunit", {
+                            id: item.id
+                        }).then(function () {
+                            $scope.message = 'Silme işlemi başarılı';
+                            $scope.getSw();
+                            angular.forEach($scope.subcontractors, function (value, key) {
+                                if (parseInt(item.subid) == value.id) {
+                                    $scope.swSelected = value;
+                                }
+                                $scope.swUnit = item.unit;
+                                $scope.swQuantity = item.quantity;
+                                $scope.swPlanned = item.planned;
+                                $scope.swDone = item.done;
+                                $scope.swWorkDone = item.work_done;
+                            });
+
+                        });
+
                     }
+                }).filter('numberFormatter', function () {
+                    return function (data) {
+                        return $.number(data, 2, ',', '.');
+                    }
+                }).filter('searchFor', function () {
+                    return function (arr, searchStr) {
+                        if (!searchStr) {
+                            return arr;
+                        }
+                        var result = [];
+                        searchStr = searchStr.turkishToLower();
+                        angular.forEach(arr, function (item) {
+                            if ((item.date + ' ' + item.bill + ' ' + item.subname).turkishToLower().indexOf(searchStr) !== -1) {
+                                result.push(item);
+                            }
+                        });
+                        return result;
+                    };
                 });
-                return result;
-            };
-        });
         $.fn.editable.defaults.mode = 'inline';
         $(document).ready(function () {
             $('.inline-edit').editable({
@@ -1112,6 +1128,7 @@ EOT;
                         </div>
                         <!-- /.box-header -->
                         <div class="box-body">
+
                             <div class="row">
                                 <div class="col-sm-4">
                                     <div class="row">
@@ -1511,7 +1528,7 @@ EOT;
 
                     {{--Subcontractors table--}}
 
-                    <div class="row">
+                    <div class="row" id="subcontractor_staff">
                         <div class="col-md-12">
                             <div class="box box-success box-solid">
                                 <div class="box-header with-border">
@@ -1759,6 +1776,7 @@ EOT;
                             <p class="text-success alert-success" ng-hide="!message"><%message%></p>
 
                             <h4>Alt Yüklenici Ekle</h4>
+                            <p>Alt yüklenicileri sırayla ekleyebilirsiniz.</p>
 
                             <div class="form-group">
                                 <div class="row">
@@ -1821,49 +1839,49 @@ EOT;
                             </div>
 
                             @if(!empty($report->pwunit()->first()))
-                            <div id="staff-to-work-insert">
-                                <?php
-                                $staff = $report->pwunit()->first();
-                                ?>
-                                <div class="form-group">
-                                    <div class="row" id="div-pwid{{$staff->id}}">
-                                        <div class="col-sm-2">
-                                            <div class="row">
-                                                <div class="col-sm-2">
-                                                    <a href="#" class="staffToWorkDelete"
-                                                       data-id="{{$staff->id}}"><i
-                                                                class="fa fa-close"></i></a>
-                                                </div>
-                                                <div class="col-sm-10">
-                                                    {{$staff->staff->staff}}
-                                                    {!! Form::hidden("staffs[]", $staff->staff_id)!!}
+                                <div id="staff-to-work-insert">
+                                    <?php
+                                    $staff = $report->pwunit()->first();
+                                    ?>
+                                    <div class="form-group">
+                                        <div class="row" id="div-pwid{{$staff->id}}">
+                                            <div class="col-sm-2">
+                                                <div class="row">
+                                                    <div class="col-sm-2">
+                                                        <a href="#" class="staffToWorkDelete"
+                                                           data-id="{{$staff->id}}"><i
+                                                                    class="fa fa-close"></i></a>
+                                                    </div>
+                                                    <div class="col-sm-10">
+                                                        {{$staff->staff->staff}}
+                                                        {!! Form::hidden("staffs[]", $staff->staff_id)!!}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <input type="number" class="form-control" ng-model="pwQuantity">
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <input type="text" class="form-control" ng-model="pwUnit">
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <input type="text" class="form-control number" ng-model="pwPlanned">
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <input type="text" class="form-control number" ng-model="pwDone">
-                                        </div>
-                                        <div class="col-sm-4">
+                                            <div class="col-sm-1">
+                                                <input type="number" class="form-control" ng-model="pwQuantity">
+                                            </div>
+                                            <div class="col-sm-1">
+                                                <input type="text" class="form-control" ng-model="pwUnit">
+                                            </div>
+                                            <div class="col-sm-1">
+                                                <input type="text" class="form-control number" ng-model="pwPlanned">
+                                            </div>
+                                            <div class="col-sm-1">
+                                                <input type="text" class="form-control number" ng-model="pwDone">
+                                            </div>
+                                            <div class="col-sm-4">
                                                 <textarea name="pw-work-done" id="pw-work-done" rows="3"
                                                           class="form-control" ng-model="pwWorkDone"></textarea>
-                                        </div>
-                                        <div class="col-sm-2">
-                                            <a href="#!" class="btn btn-success btn-flat btn-block"
-                                               ng-click="addPwunit()">Kaydet</a>
+                                            </div>
+                                            <div class="col-sm-2">
+                                                <a href="#!" class="btn btn-success btn-flat btn-block"
+                                                   ng-click="addPwunit()">Kaydet</a>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                            </div>
+                                </div>
                             @endif
 
                             <div id="subcontractor-to-work-insert">
@@ -1907,7 +1925,7 @@ EOT;
 
 
             {{--GELEN MALZEMELER TABLE--}}
-            <div class="row">
+            <div class="row" id="incoming_table">
                 <div class="col-xs-12 col-md-12">
                     <div class="box box-success box-solid">
                         <div class="box-header with-border">
@@ -2026,7 +2044,7 @@ EOT;
                 </div>
             </div>
             {{--GİDEN MALZEMELER TABLE--}}
-            <div class="row">
+            <div class="row" id="outgoing_table">
                 <div class="col-xs-12 col-md-12">
                     <div class="box box-success box-solid">
                         <div class="box-header with-border">
@@ -2106,43 +2124,7 @@ EOT;
                                     </div>
                                 @endforeach
 
-                                {{--<div class="row">
-                                    <div class="col-sm-2">
-                                        <div class="form-group">
-                                            <select name="outmaterials[]"
-                                                    class="js-example-basic-single form-control">
 
-                                                {!! $outmaterial_options !!}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-sm-2">
-
-                                        <input type="text" class="form-control"
-                                               name="outmaterial-from[]"
-                                               value=""/>
-                                    </div>
-                                    <div class="col-sm-1">
-
-                                        <input type="text" class="form-control"
-                                               name="outmaterial-unit[]"
-                                               value=""/>
-                                    </div>
-                                    <div class="col-sm-1">
-
-                                        <input type="text" class="number form-control"
-                                               name="outmaterial-quantity[]"
-                                               value=""/>
-                                    </div>
-
-                                    <div class="col-sm-6">
-
-                                        <input type="text" class="form-control"
-                                               name="outmaterial-explanation[]"
-                                               value=""/>
-                                    </div>
-                                </div>--}}
                             </div>
 
 
@@ -2169,7 +2151,7 @@ EOT;
             {{--END OF GİDEN MALZEMELER TABLOSU--}}
 
             {{--PUANTAJ AND YEMEK TABLE--}}
-            <div class="row">
+            <div class="row" id="shifts_meals">
                 <div class="col-xs-12 col-md-12">
                     <div class="box box-success box-solid">
                         <div class="box-header with-border">
@@ -2189,8 +2171,8 @@ EOT;
                                 kullanınız</p>
 
                             <div class="row">
-                                <div class="col-sm-4 text-center"><strong>PERSONEL</strong></div>
-                                <div class="col-sm-4 text-center"><strong>PUANTAJ</strong></div>
+                                <div class="col-sm-5 text-center"><strong>PERSONEL</strong></div>
+                                <div class="col-sm-3 text-center"><strong>PUANTAJ</strong></div>
                                 <div class="col-sm-4 text-center"><strong>YEMEK</strong></div>
                             </div>
 
@@ -2241,7 +2223,7 @@ EOT;
                                 $pre_tit = $cur_tit;
                                 ?>
                                 <div class="row overtimes-meals-div" id="personnel-div-{{$per}}">
-                                    <div class="col-sm-4">
+                                    <div class="col-sm-5">
                                         <div class="form-group">
                                             <div class="row">
                                                 <div class="col-sm-1"></div>
@@ -2253,7 +2235,7 @@ EOT;
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-sm-4">
+                                    <div class="col-sm-3">
                                         <div class="row">
                                             <div class="col-sm-8">
                                                 <select name="overtimes[]" id="select-{{$per}}"
@@ -2265,7 +2247,7 @@ EOT;
 
                                             <div class="col-sm-4 overtime-input-div">
                                                 {!! Form::text('overtime', (!empty($report_shift->overtime) && stripos($report_shift->overtime->name, "Fazla Mesai") !== false ? str_replace('.', ',', $report_shift->hour) : null), ['class' => 'number form-control overtime_input',
-                                                                                    'placeholder' => 'Mesai (Saat)',
+                                                                                    'placeholder' => 'Mesai',
                                                                                      !empty($report_shift->overtime) && stripos($report_shift->overtime->name, "Fazla Mesai") !== false ? "" : "disabled"]) !!}
                                             </div>
 
@@ -2331,7 +2313,7 @@ EOT;
         @endif
 
         @if(!$locked)
-            <div class="row hidden-print">
+            <div class="row hidden-print" id="notes">
                 <div class="col-xs-12 col-md-12">
                     <div class="box box-success box-solid">
                         <div class="box-header with-border">
@@ -2514,6 +2496,95 @@ EOT;
                                     </div>
                                 </div>
                             </div>
+                            <br>
+
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <h4><strong>Etiketler</strong></h4>
+
+                                    <p>Etiket eklemek veya düzenlemek için dosyaları yükledikten sonra sayfayı
+                                        yenileyiniz.</p>
+                                    <span class="success-message"></span>
+
+                                </div>
+                            </div>
+                            @if(count($report->receipt) || count($report->photo))
+                                <table class="table table-condensed table-bordered">
+                                    <thead>
+                                    <tr>
+                                        <th>Dosya Adı</th>
+                                        <th>Etiket</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <form id="attach-tag">
+                                        {!! csrf_field() !!}
+                                        @foreach($report->photo as $report_site_photo)
+                                            <tr>
+                                                <input name="file_id[]" type="hidden"
+                                                       value="{{$report_site_photo->file()->first()->id}}">
+                                                <td>{{$report_site_photo->file()->first()->name}}</td>
+                                                <td>
+                                                    <select name="tags-{{$report_site_photo->file()->first()->id}}[]"
+                                                            class="js-example-basic-multiple form-control"
+                                                            multiple>
+                                                        @foreach(\App\Tag::all() as $tag)
+                                                            <?php
+                                                            $selected = '';
+                                                            foreach ($report_site_photo->file()->first()->tag as $ptag) {
+                                                                if ((int)$tag->id == (int)$ptag->id) {
+                                                                    $selected = "selected";
+                                                                    break;
+                                                                }
+                                                            }
+                                                            ?>
+                                                            <option value="{{$tag->id}}" {{$selected}}>{{$tag->name}}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </td>
+                                            </tr>
+
+                                        @endforeach
+                                        @foreach($report->receipt as $report_site_receipt)
+                                            <tr>
+                                                <input type="hidden"
+                                                       value="{{$report_site_receipt->file()->first()->id}}">
+                                                <td>{{$report_site_receipt->file()->first()->name}}</td>
+                                                <td>
+                                                    <div class="col-sm-12">
+                                                        <select name="tags-{{$report_site_receipt->file()->first()->id}}[]"
+                                                                class="js-example-basic-multiple form-control"
+                                                                multiple>
+                                                            @foreach(\App\Tag::all() as $tag)
+                                                                <?php
+                                                                $selected = '';
+                                                                foreach ($report_site_receipt->file()->first()->tag as $ptag) {
+                                                                    if ((int)$tag->id == (int)$ptag->id) {
+                                                                        $selected = "selected";
+                                                                        break;
+                                                                    }
+                                                                }
+                                                                ?>
+                                                                <option value="{{$tag->id}}" {{$selected}}>{{$tag->name}}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </form>
+                                    </tbody>
+
+                                </table>
+                                <br>
+                                <div class="row">
+                                    <div class="col-sm-12 ">
+                                        <a href="#" class="btn btn-success btn-flat pull-right"
+                                           id="attachTagBtn">Kaydet</a>
+                                    </div>
+                                </div>
+
+                            @endif
                         @else
 
                             {{--photos--}}
@@ -2574,6 +2645,7 @@ EOT;
                             </div>
 
                         @endif
+
                     </div>
                 </div>
             </div>

@@ -3,9 +3,7 @@
 $city_options = '<option value="" selected disabled>Şehir Seçiniz</option>';
 
 foreach (\App\City::all() as $city) {
-    if (!isset($site) && $city->id == $site->city->id)
-        $city_options .= "<option value=\"$city->id\" selected>" . \App\Library\TurkishChar::tr_up($city->name) . "</option>";
-    elseif (isset($site) && $city->id == $site->city->id)
+    if (isset($site) && $city->id == $site->city->id)
         $city_options .= "<option value=\"$city->id\" selected>" . \App\Library\TurkishChar::tr_up($city->name) . "</option>";
     else
         $city_options .= "<option value=\"$city->id\">" . \App\Library\TurkishChar::tr_up($city->name) . "</option>";
@@ -18,9 +16,15 @@ $start_date = isset($santiye) ? null : \App\Library\CarbonHelper::getTurkishDate
 $contract_date = isset($santiye) ? null : \App\Library\CarbonHelper::getTurkishDate($site->contract_date);
 $end_date = isset($santiye) ? null : \App\Library\CarbonHelper::getTurkishDate($site->end_date);
 $address = isset($santiye) ? null : $site->address;
-$isg = isset($santiye) ? null : empty($site->isg) ? null : $site->isg;
-$contract_worth = isset($santiye) ? null : empty($site->contract_worth) ? null : \App\Library\TurkishChar::convertToTRcurrency($site->contract_worth);
-$extra_cost = isset($santiye) ? null : empty($site->extra_cost) ? null : \App\Library\TurkishChar::convertToTRcurrency($site->extra_cost);
+$isg = null;
+if (isset($site) && !empty($site->isg))
+    $isg = $site->isg;
+$contract_worth = null;
+if (isset($site) && !empty($site->contract_worth))
+    $contract_worth = \App\Library\TurkishChar::convertToTRcurrency($site->contract_worth);
+$extra_cost = null;
+if (isset($site) && !empty($site->extra_cost))
+    $extra_cost = \App\Library\TurkishChar::convertToTRcurrency($site->extra_cost);
 
 $site_chief = isset($santiye) ? null : $site->site_chief;
 $main_contractor = isset($santiye) ? null : $site->main_contractor;
@@ -118,7 +122,8 @@ $building_control = isset($santiye) ? null : $site->building_control;
         </div>
         <div class="col-sm-10">
             <div class="input-group input-append date dateRangePicker">
-                <input type="text" value="{{$start_date}}" class="form-control" name="start_date" placeholder="Başlangıç tarihini seçiniz"/>
+                <input type="text" value="{{$start_date}}" class="form-control" name="start_date"
+                       placeholder="Başlangıç tarihini seçiniz"/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
             </div>
@@ -134,7 +139,8 @@ $building_control = isset($santiye) ? null : $site->building_control;
         </div>
         <div class="col-sm-10">
             <div class="input-group input-append date dateRangePicker">
-                <input type="text" value="{{$contract_date}}" class="form-control" name="contract_date" placeholder="Sözleşme tarihini seçiniz"/>
+                <input type="text" value="{{$contract_date}}" class="form-control" name="contract_date"
+                       placeholder="Sözleşme tarihini seçiniz"/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
             </div>
@@ -150,7 +156,8 @@ $building_control = isset($santiye) ? null : $site->building_control;
         </div>
         <div class="col-sm-10">
             <div class="input-group input-append date dateRangePicker">
-                <input type="text" value="{{$end_date}}" class="form-control" name="end_date" placeholder="İş bitim tarihini seçiniz"/>
+                <input type="text" value="{{$end_date}}" class="form-control" name="end_date"
+                       placeholder="İş bitim tarihini seçiniz"/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
             </div>

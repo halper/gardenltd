@@ -1,5 +1,10 @@
 <?php
 $account = $site->account()->get()->isEmpty() ? null : $site->account;
+
+use App\Library\CarbonHelper;use Carbon\Carbon;
+
+$today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
+
 ?>
 
 @extends('tekil/layout')
@@ -7,12 +12,14 @@ $account = $site->account()->get()->isEmpty() ? null : $site->account;
 @section('page-specific-css')
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.min.css"/>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker3.min.css"/>
-
+    <link href="<?= URL::to('/'); ?>/css/daterangepicker.css" rel="stylesheet"/>
 @stop
 
 @section('page-specific-js')
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
+    <script src="<?= URL::to('/'); ?>/js/moment.min.js" type="text/javascript"></script>
+    <script src="<?= URL::to('/'); ?>/js/daterangepicker.js" type="text/javascript"></script>
     <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
     <script src="{{asset("js/moment.min.js")}}"></script>
 
@@ -31,19 +38,33 @@ $account = $site->account()->get()->isEmpty() ? null : $site->account;
                 $interpolateProvider.endSymbol('%>');
             }).controller('AccountController', function ($scope, $http) {
                 $scope.expenses = [];
+                $scope.startDate = '';
+                $scope.endDate = '';
                 $scope.buyer = '{{$account->user()->get()->isEmpty() ? '' : $account->user()->owner()->first()->name}}';
                 $scope.date = moment().format('DD.MM.YYYY');
                 $scope.search = '';
 
-                $http.get("<?=URL::to('/');?>/tekil/{{$site->slug}}/expenses/{{$account->id}}"
-                ).success(function (data, status, headers, config) {
-                    $scope.expenses = data;
-                    angular.forEach($scope.expenses, function (expense) {
-                        expense.income = parseFloat(expense.income);
-                        expense.expense = parseFloat(expense.expense);
-                        expense.type = parseInt(expense.type);
+                $scope.getExpenses = function () {
+                    if ($('input[name="end-date"]').val()) {
+                        $scope.startDate = $('input[name="start-date"]').val();
+                        $scope.endDate = $('input[name="end-date"]').val();
+                    }
+                    $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/expenses", {
+                        start_date: $scope.startDate,
+                        end_date: $scope.endDate
+                    }).then(function (response) {
+                        $scope.expenses = response.data;
+                        angular.forEach($scope.expenses, function (expense) {
+                            expense.income = parseFloat(expense.income);
+                            expense.expense = parseFloat(expense.expense);
+                            expense.type = parseInt(expense.type);
+                        });
+                    }).finally(function () {
+                        $scope.startDate = '';
+                        $scope.endDate = '';
                     });
-                });
+                };
+                $scope.getExpenses();
 
                 $scope.sortType = 'date';
                 $scope.sortReverse = true;
@@ -92,23 +113,15 @@ $account = $site->account()->get()->isEmpty() ? null : $site->account;
                         $scope.expense = 0;
                     }
                     $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/add-expense", {
-                        'exp_date': $scope.date,
-                        'account_id': '{{$account->id}}',
-                        'definition': $scope.definition,
-                        'buyer': $scope.buyer,
-                        'type': $scope.type,
-                        'income': $scope.income,
-                        'expense': $scope.expense
-                    }).success(function (response) {
-
-                        $scope.expenses.push({
-                            'date': $scope.date,
-                            'definition': $scope.definition,
-                            'buyer': $scope.buyer,
-                            'type': $scope.type,
-                            'income': $scope.income,
-                            'expense': $scope.expense
-                        });
+                        exp_date: $scope.date,
+                        account_id: '{{$account->id}}',
+                        definition: $scope.definition,
+                        buyer: $scope.buyer,
+                        type: $scope.type,
+                        income: $scope.income,
+                        expense: $scope.expense
+                    }).then(function () {
+                        $scope.getExpenses();
                         $scope.date = moment().format('DD.MM.YYYY');
                         $scope.definition = '';
                         $scope.buyer = '{{$account->user()->get()->isEmpty() ? '' : $account->user()->owner()->first()->name}}';
@@ -120,14 +133,30 @@ $account = $site->account()->get()->isEmpty() ? null : $site->account;
 
                 };
 
-                $scope.orderByDate = function(item) {
+                $scope.orderByDate = function (item) {
                     var parts = item.date.split('.');
                     var number = parseInt(parts[2] + parts[1] + parts[0]);
 
                     return $scope.sortReverse ? -number : number;
                 };
+                $scope.remove_field = function (item) {
+                    $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/del-expense", {
+                        id: item.id
+                    }).then(function () {
+                        $scope.getExpenses();
+                        $scope.date = item.date;
+                        $scope.definition = item.definition;
+                        $scope.buyer = item.buyer;
+                        $scope.type = (item.type).toString();
+                        $scope.income = item.income;
+                        $scope.expense = item.expense;
+                    });
 
-
+                }
+            }).filter('numberFormatter', function () {
+                return function (data) {
+                    return $.number(data, 2, ',', '.');
+                }
             }).filter('sumOfValue', function () {
                 return function (data, key) {
                     if (angular.isUndefined(data) && angular.isUndefined(key))
@@ -181,7 +210,56 @@ $account = $site->account()->get()->isEmpty() ? null : $site->account;
             });
 
             $('#dateRangePicker').datepicker({
-                language: 'tr',
+                language: 'tr'
+            });
+
+            function cb(start, end) {
+                $('#reportrange span').html(start.format('D MMMM YYYY') + ' - ' + end.format('D MMMM YYYY'));
+            }
+
+            //        cb(moment().startOf('month'), moment());
+
+            $('#reportrange').daterangepicker({
+                locale: {
+                    format: 'DD.MM.YYYY',
+                    applyLabel: 'Tamam',
+                    cancelLabel: 'İptal',
+                    customRangeLabel: 'Tarih Seç'
+                },
+                ranges: {
+                    'Bugün': [moment(), moment()],
+                    'Dün': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                    'Son 1 Hafta': [moment().subtract(6, 'days'), moment()],
+                    'Son 30 Gün': [moment().subtract(29, 'days'), moment()],
+                    'Bu Ay': [moment().startOf('month'), moment().endOf('month')],
+                    'Geçen Ay': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                },
+                startDate: moment().startOf('month'),
+                endDate: moment(),
+                maxDate: '{{$today}}'
+            }, cb);
+
+            $('#reportrange').on('apply.daterangepicker', function (ev, picker) {
+                $('input[name="start-date"]').val(picker.startDate.format('YYYY-MM-DD'));
+                $('input[name="end-date"]').val(picker.endDate.format('YYYY-MM-DD'));
+                angular.element('#angAccount').scope().getExpenses();
+                $('.date-filter').show();
+            });
+
+            $(document).ready(function () {
+                $('.date-filter').hide();
+                angular.element('#angAccount').scope().getExpenses();
+                $('#reportrange span').html("Filtrelemek için tarih seçiniz.");
+
+                $('.date-filter').on('click', function (e) {
+                    e.preventDefault();
+                    $('input[name="start-date"]').val('');
+                    $('input[name="end-date"]').val('');
+                    $('#reportrange span').html("Filtrelemek için tarih seçiniz.");
+                    angular.element('#angAccount').scope().getExpenses();
+                    $(this).hide();
+                });
+
             });
 
         </script>
@@ -232,125 +310,7 @@ $account = $site->account()->get()->isEmpty() ? null : $site->account;
                 <!-- /.box -->
             </div>
         </div>
-        <div ng-app="accApp" ng-controller="AccountController">
-            <div class="row">
-                <div class="col-md-4">
-                    <a href="#" ng-click="show = '1'">Kredi kartı harcamalarını göster</a>
-                </div>
-                <div class="col-md-1">
-                    <span> | </span>
-                </div>
-                <div class="col-md-3">
-
-                    <a href="#" ng-click="show = '0'">Nakit harcamaları göster</a>
-                </div>
-                <div class="col-md-1">
-                    <span> | </span>
-                </div>
-                <div class="col-md-3">
-
-                    <a href="#" ng-click="show = 'both'">Tüm harcamaları göster</a>
-                </div>
-            </div>
-            <br>
-            <div class="form-group">
-                <div class="row">
-                    <div class="col-xs-12 col-sm-8 col-md-4 pull-right">
-                        <div class="input-group">
-                            <input type="text" style="width: 100%"
-                                   name="search" ng-model="search"
-                                   value=""
-                                   placeholder="Tarih, açıklama veya harcamayı yapanı giriniz"/>
-                                                            <span class="input-group-addon add-on"><i
-                                                                        class="fa fa-search"></i></span>
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-xs-12 col-md-12">
-                    <div class="table-responsive">
-                        <table class="table table-condensed">
-                            <thead>
-                            <tr>
-                                <th id="index">S.N</th>
-                                <th>
-                                    <a href="#" ng-click="order('date')">
-                                <span ng-show="sortType == 'date' && !sortReverse"
-                                      class="fa fa-caret-down"></span>
-                                <span ng-show="sortType == 'date' && sortReverse"
-                                      class="fa fa-caret-up"></span>
-                                        TARİH
-                                    </a>
-                                </th>
-                                <th id="definition">
-                                        AÇIKLAMA</th>
-                                <th id="buyer">
-                                        HARCAMAYI YAPAN</th>
-                                <th id="type">
-
-                                        ÖDEME ŞEKLİ
-
-                                </th>
-                                <th id="income">
-                                        GELİR
-                                    </th>
-                                <th id="expense">
-                                    GİDER
-                                    </th>
-                                <th id="account">KASA</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-
-                            <tr class="bg-warning" ng-show="show=='both'">
-                                <td></td>
-                                <td></td>
-                                <td><strong>GENEL TOPLAM:</strong></td>
-                                <td></td>
-                                <td></td>
-                                <td><% expenses | sumOfValue:'income' %>TL</td>
-                                <td><% expenses | sumOfValue:'expense' %>TL</td>
-                                <td><% (expenses | sumOfValue:'income') - (expenses | sumOfValue:'expense') %>TL</td>
-
-                            </tr>
-                            <tr ng-repeat="expense in (expenses | orderBy:orderByDate | searchFor:search) as sorted track by $index">
-                                <td ng-show="showMe(expense.type)"><strong><% $index+1 %></strong></td>
-                                <td ng-show="showMe(expense.type)"><strong><% expense.date %></strong></td>
-                                <td ng-show="showMe(expense.type)"><% expense.definition %></td>
-                                <td ng-show="showMe(expense.type)"><% expense.buyer %></td>
-                                <td ng-show="showMe(expense.type)"><% expense.type == 0 ? 'Nakit' : 'Kredi Kartı (' +
-                                    expense.card_owner + ')' %>
-                                </td>
-                                <td ng-show="showMe(expense.type)"><% expense.income %>TL</td>
-                                <td ng-show="showMe(expense.type)"><% expense.expense%>TL</td>
-                                <td ng-show="showMe(expense.type)"><% show=='both' ? (sorted | subTotal:$index+1) : ''
-                                    %>TL
-                                </td>
-                            </tr>
-                            <tr class="bg-warning" ng-show="show!='both'">
-                                <td></td>
-                                <td></td>
-                                <td><strong><% show=='0' ? 'NAKİT HARCAMALAR' : 'KART HARCAMALARI' %> TOPLAMI</strong>
-                                </td>
-                                <td></td>
-                                <td></td>
-                                <td><% expenses | filTotal:show:'income' %>TL</td>
-                                <td><% expenses | filTotal:show:'expense' %>TL</td>
-                                <td><% (expenses | filTotal:show:'income') - ( expenses | filTotal:show:'expense') %>
-                                    TL
-                                </td>
-                            </tr>
-
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-
+        <div ng-app="accApp" ng-controller="AccountController" id="angAccount">
             <div class="row">
                 <div class="col-md-12">
                     <h4>Yeni Harcama Kaydı Oluştur</h4>
@@ -385,13 +345,13 @@ $account = $site->account()->get()->isEmpty() ? null : $site->account;
                             </select>
                         </div>
                         <div class="col-md-1">
-                            <input type="number" class="form-control"
+                            <input type="text" class="form-control number"
                                    name="income" ng-model="income"
                                    value="0"
                                    placeholder="Gelir"/>
                         </div>
                         <div class="col-md-1">
-                            <input type="number" class="form-control"
+                            <input type="text" class="form-control number"
                                    name="expense" ng-model="expense"
                                    value="0"
                                    placeholder="Gider"/>
@@ -406,6 +366,151 @@ $account = $site->account()->get()->isEmpty() ? null : $site->account;
                                     class="btn btn-primary btn-flat btn-block">Kaydet
                             </button>
                         </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <a href="#" ng-click="show = '1'">Kredi kartı harcamalarını göster</a>
+                </div>
+                <div class="col-md-1">
+                    <span> | </span>
+                </div>
+                <div class="col-md-3">
+
+                    <a href="#" ng-click="show = '0'">Nakit harcamaları göster</a>
+                </div>
+                <div class="col-md-1">
+                    <span> | </span>
+                </div>
+                <div class="col-md-3">
+
+                    <a href="#" ng-click="show = 'both'">Tüm harcamaları göster</a>
+                </div>
+            </div>
+            <br>
+
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-4">
+                        <div class="input-group">
+                            <input type="text" style="width: 100%"
+                                   name="search" ng-model="search"
+                                   value=""
+                                   placeholder="Tarih, açıklama veya harcamayı yapanı giriniz"/>
+                                                            <span class="input-group-addon add-on"><i
+                                                                        class="fa fa-search"></i></span>
+
+                        </div>
+                    </div>
+
+                    <div class="col-xs-6 col-sm-6 col-md-2 pull-right" style="min-width: 260px">
+                        <div id="reportrange" class="pull-right"
+                             style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
+                            <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
+                            <span class="text-center"></span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="start-date" ng-model="startDate">
+                    <input type="hidden" name="end-date" ng-model="endDate">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12 col-sm-4 col-md-2 pull-right">
+                    <div class="form-group">
+                        <a href="#" class="btn btn-flat btn-primary date-filter btn-block">Tümünü Göster</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-xs-12 col-md-12">
+                    <div class="table-responsive">
+                        <table class="table table-condensed">
+                            <thead>
+                            <tr>
+                                <th id="index">S.N</th>
+                                <th>
+                                    <a href="#" ng-click="order('date')">
+                                <span ng-show="sortType == 'date' && !sortReverse"
+                                      class="fa fa-caret-down"></span>
+                                <span ng-show="sortType == 'date' && sortReverse"
+                                      class="fa fa-caret-up"></span>
+                                        TARİH
+                                    </a>
+                                </th>
+                                <th id="definition">
+                                    AÇIKLAMA
+                                </th>
+                                <th id="buyer">
+                                    HARCAMAYI YAPAN
+                                </th>
+                                <th id="type">
+
+                                    ÖDEME ŞEKLİ
+
+                                </th>
+                                <th id="income">
+                                    GELİR
+                                </th>
+                                <th id="expense">
+                                    GİDER
+                                </th>
+                                <th id="account">KASA</th>
+                                <th id="del">SİL</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+
+                            <tr class="bg-warning" ng-show="show=='both'">
+                                <td></td>
+                                <td></td>
+                                <td><strong>GENEL TOPLAM:</strong></td>
+                                <td></td>
+                                <td></td>
+                                <td style="text-align: right"><% expenses | sumOfValue:'income' | numberFormatter %>TL</td>
+                                <td style="text-align: right"><% expenses | sumOfValue:'expense' | numberFormatter %>TL</td>
+                                <td style="text-align: right"><% (expenses | sumOfValue:'income') - (expenses | sumOfValue:'expense') |
+                                    numberFormatter %>TL
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr ng-repeat="expense in (expenses | orderBy:orderByDate | searchFor:search) as sorted track by $index">
+                                <td ng-show="showMe(expense.type)"><strong><% $index+1 %></strong></td>
+                                <td ng-show="showMe(expense.type)"><strong><% expense.date %></strong></td>
+                                <td ng-show="showMe(expense.type)"><% expense.definition %></td>
+                                <td ng-show="showMe(expense.type)"><% expense.buyer %></td>
+                                <td ng-show="showMe(expense.type)"><% expense.type == 0 ? 'Nakit' : 'Kredi Kartı (' +
+                                    expense.card_owner + ')' %>
+                                </td>
+                                <td style="text-align: right" ng-show="showMe(expense.type)"><% expense.income | numberFormatter%>TL</td>
+                                <td style="text-align: right" ng-show="showMe(expense.type)"><% expense.expense | numberFormatter%>TL</td>
+                                <td style="text-align: right" ng-show="showMe(expense.type)"><% show=='both' ? (sorted | subTotal:$index+1 |
+                                    numberFormatter) : ''
+                                    %>TL
+                                </td>
+                                <td ng-show="showMe(expense.type)"><a href="#" ng-click="remove_field(expense)"><i
+                                                class="fa fa-close"></i></a></td>
+
+                            </tr>
+                            <tr class="bg-warning" ng-show="show!='both'">
+                                <td></td>
+                                <td></td>
+                                <td><strong><% show=='0' ? 'NAKİT HARCAMALAR' : 'KART HARCAMALARI' %> TOPLAMI</strong>
+                                </td>
+                                <td></td>
+                                <td></td>
+                                <td style="text-align: right"><% expenses | filTotal:show:'income' | numberFormatter %>TL</td>
+                                <td style="text-align: right"><% expenses | filTotal:show:'expense' | numberFormatter%>TL</td>
+                                <td style="text-align: right"><% ((expenses | filTotal:show:'income') - ( expenses | filTotal:show:'expense')) |
+                                    numberFormatter %>
+                                    TL
+                                </td>
+
+                            </tr>
+
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

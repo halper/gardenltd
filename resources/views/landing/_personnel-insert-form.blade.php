@@ -49,7 +49,7 @@ foreach ($management_depts->management() as $dept) {
 <div class="form-group {{ $errors->has('staff_id') ? 'has-error' : '' }}">
     <div class="row">
         <div class="col-sm-2">
-            {!! Form::label('staff_id', 'İş Kolu: ', ['class' => 'control-label']) !!}
+            {!! Form::label('staff_id', 'İş Kolu:* ', ['class' => 'control-label']) !!}
         </div>
         <div class="col-sm-6">
             <select name="staff_id" class="staff-select form-control">
@@ -64,7 +64,7 @@ foreach ($management_depts->management() as $dept) {
         <div class="col-sm-2">
             {!! Form::label('exit_date', 'Çıkış Tarihi: ', ['class' => 'control-label']) !!}
         </div>
-        <div class="col-sm-10">
+        <div class="col-sm-6">
             <div class="input-group input-append date dateRangePicker">
                 <input type="text" class="form-control" name="exit_date"
                        placeholder="Çıkış tarihi seçiniz" />
@@ -75,11 +75,31 @@ foreach ($management_depts->management() as $dept) {
     </div>
 </div>
 
+@if(!isset($wage_exists))
+    <div class="form-group {{ $errors->has('salary') ? 'has-error' : '' }}">
+        <div class="row">
+            <div class="col-sm-2">
+                {!! Form::label('salary', 'Maaş:* ', ['class' => 'control-label']) !!}
+            </div>
+            <div class="col-sm-6">
+                <div class="row">
+                    <div class="col-sm-11">
+                        {!! Form::text('salary', null, ['class' => 'form-control number', 'placeholder' => 'Personelin maaşını giriniz']) !!}
+                    </div>
+                    <div class="col-sm-1">
+                        <span class="text-left">TL</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
 @if(isset($wage_exists))
 <div class="form-group {{ $errors->has('wage') ? 'has-error' : '' }}">
     <div class="row">
         <div class="col-sm-2">
-            {!! Form::label('wage', 'Günlük Ücret: ', ['class' => 'control-label']) !!}
+            {!! Form::label('wage', 'Günlük Ücret:* ', ['class' => 'control-label']) !!}
         </div>
         <div class="col-sm-6">
             <div class="row">
@@ -94,6 +114,17 @@ foreach ($management_depts->management() as $dept) {
     </div>
 </div>
 @endif
+
+<div class="form-group {{ $errors->has('iddoc') ? 'has-error' : '' }}">
+    <div class="row">
+        <div class="col-sm-2">
+            {!! Form::label('iddoc', 'Nüfus Cüzdanı:* ', ['class' => 'control-label']) !!}
+        </div>
+        <div class="col-sm-10">
+            <input type="file" name="iddoc" id="idToUpload">
+        </div>
+    </div>
+</div>
 
 <div class="form-group {{ $errors->has('contract') ? 'has-error' : '' }}">
     <div class="row">

@@ -24,6 +24,10 @@
     $('p.alert-success').not('.alert-important').delay(7500).slideUp(300);
 
     $('.number').number(true, 2, ',', '.');
+    $('span.inumber').each(function () {
+        var $text = $(this).text();
+        $(this).text($.number($text, 2, ',', '.'));
+    });
     $('.dateRangePicker').datepicker({
         language: 'tr',
         autoclose: true

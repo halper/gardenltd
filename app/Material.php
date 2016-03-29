@@ -26,6 +26,11 @@ class Material extends Model
         return $this->hasMany('App\Inmaterial');
     }
 
+    public function outmaterial()
+    {
+        return $this->hasMany('App\Outmaterial');
+    }
+
     public function hasDemanded($id)
     {
         return !is_null($this->inmaterial()->where('demand_id', $id)->first());

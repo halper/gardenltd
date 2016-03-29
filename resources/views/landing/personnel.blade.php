@@ -12,16 +12,136 @@ foreach ($management_depts->management() as $dept) {
             $staff_options .= "<option value=\"$staff->id\">" . \App\Library\TurkishChar::tr_up($staff->staff) . "</option>";
     }
 }
+$exit_date = $personnel->contract()->get()->isEmpty() || (!($personnel->contract()->get()->isEmpty()) && (strpos($personnel->contract->exit_date, '0000-00-00') !== false)) ? null : \App\Library\CarbonHelper::getTurkishDate($personnel->contract->exit_date);
 ?>
 
 @section('page-specific-css')
     <link href="<?= URL::to('/'); ?>/css/lightbox.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.min.css"/>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker3.min.css"/>
 @stop
 
 @section('page-specific-js')
     <script src="<?= URL::to('/'); ?>/js/lightbox.js" type="text/javascript"></script>
+    <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
+    <script src="<?= URL::to('/'); ?>/js/moment.min.js" type="text/javascript"></script>
+    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
+    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
 
     <script>
+        $('#dateRangePicker').datepicker({
+            autoclose: true,
+            language: 'tr'
+        });
+        $("#dateRangePicker > input").val(moment().format('DD.MM.YYYY'));
+        var puantajApp = angular.module('puantajApp', [], function ($interpolateProvider) {
+            $interpolateProvider.startSymbol('<%');
+            $interpolateProvider.endSymbol('%>');
+        }).controller('PuantajController', function ($scope, $http) {
+            $scope.data = null;
+            $scope.pid = '{{$personnel->id}}';
+            $scope.subError = '';
+            $scope.date = moment().format('DD.MM.YYYY');
+
+            @if($personnel->isSitePersonnel())
+$scope.salaries = [];
+            $scope.ngSalary = '';
+            $scope.getSalaries = function () {
+                $http.post("{{url("/admin/retrieve-salaries")}}", {
+                    pid: $scope.pid
+                }).then(function (response) {
+                    $scope.salaries = response.data
+                });
+            };
+            $scope.getSalaries();
+
+            $scope.addSalary = function () {
+
+                if (!$scope.date || !$scope.ngSalary) {
+                    $scope.subError = 'Lütfen ilgili alanları doldurunuz: Tarih, bağlantı malzeme, fiyat!'
+                }
+                else {
+                    $http.post("<?=URL::to('/');?>/admin/add-salary", {
+                        since: $scope.date,
+                        amount: $scope.ngSalary,
+                        pid: $scope.pid
+                    }).then(function () {
+                        $scope.ngSalary = '';
+                        $scope.date = moment().format('DD.MM.YYYY');
+                        $scope.subError = '';
+                        $scope.getSalaries();
+                    });
+                }
+
+            };
+            $scope.remove_field = function (item) {
+                $http.post("<?=URL::to('/');?>/admin/del-salary", {
+                    id: item.id
+                }).then(function () {
+                    $scope.getSalaries();
+                    if (item.since === "İlk değer") {
+                        $scope.date = '01.01.1970';
+                    } else {
+                        $scope.date = item.since;
+                    }
+                    $scope.ngSalary = item.salary;
+                });
+
+            };
+            @else
+            $scope.wages = [];
+            $scope.dailyWage = '';
+            $scope.getWages = function () {
+                $http.post("{{url("/admin/retrieve-wages")}}", {
+                    pid: $scope.pid
+                }).then(function (response) {
+                    $scope.wages = response.data
+                });
+            };
+            $scope.getWages();
+
+            $scope.addWage = function () {
+
+                if (!$scope.date || !$scope.dailyWage) {
+                    $scope.subError = 'Lütfen ilgili alanları doldurunuz: Tarih, bağlantı malzeme, fiyat!'
+                }
+                else {
+                    $http.post("<?=URL::to('/');?>/admin/add-wage", {
+                        since: $scope.date,
+                        wage: $scope.dailyWage,
+                        pid: $scope.pid
+                    }).then(function (response) {
+                        $scope.dailyWage = '';
+                        $scope.date = moment().format('DD.MM.YYYY');
+                        $scope.subError = '';
+                        $scope.getWages();
+                    });
+                }
+
+            };
+            $scope.remove_field = function (item) {
+                $http.post("<?=URL::to('/');?>/admin/del-wage", {
+                    id: item.id
+                }).then(function () {
+                    $scope.getWages();
+                    if (item.since === "İlk değer") {
+                        $scope.date = '01.01.1970';
+                    } else {
+                        $scope.date = item.since;
+                    }
+                    $scope.dailyWage = item.wage;
+                });
+
+            };
+            @endif
+
+
+        }).filter('numberFormatter', function () {
+            return function (data) {
+                return $.number(data, 2, ',', '.');
+            }
+        });
+
         $(document).delegate('*[data-toggle="lightbox"]', 'click', function (event) {
             event.preventDefault();
             $(this).ekkoLightbox();
@@ -43,7 +163,7 @@ foreach ($management_depts->management() as $dept) {
     </script>
 @stop
 
-@extends('landing/landing')
+@extends('landing.landing')
 
 @section('content')
 
@@ -111,55 +231,87 @@ foreach ($management_depts->management() as $dept) {
         </div>
     </div>
 
-    <div class="form-group {{ $errors->has('wage') ? 'has-error' : '' }}">
+    <div class="form-group {{ $errors->has('exit_date') ? 'has-error' : '' }}">
         <div class="row">
             <div class="col-sm-2">
-                {!! Form::label('wage', 'Günlük Ücret: ', ['class' => 'control-label']) !!}
+                {!! Form::label('exit_date', 'Çıkış Tarihi: ', ['class' => 'control-label']) !!}
             </div>
             <div class="col-sm-6">
-                <div class="row">
-                    <div class="col-sm-11">
-                        {!! Form::text('wage', str_replace('.', ',', $personnel->wage()->orderBy('since', 'DESC')->first()->wage), ['class' => 'form-control number', 'placeholder' => 'Personelin günlük ücretini giriniz']) !!}
-                    </div>
-                    <div class="col-sm-1">
-                        <span class="text-left">TL</span>
-                    </div>
+                <div class="input-group input-append date dateRangePicker">
+                    <input type="text" class="form-control" name="exit_date"
+                           placeholder="Çıkış tarihi seçiniz" value="{{$exit_date}}"/>
+                                        <span class="input-group-addon add-on"><span
+                                                    class="glyphicon glyphicon-calendar"></span></span>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="form-group {{ $errors->has('contract') ? 'has-error' : '' }}">
+    <div class="form-group {{ $errors->has('iddoc') ? 'has-error' : '' }}">
         <div class="row">
             <div class="col-sm-2">
-                {!! Form::label('contract', 'İşe Giriş Belgesi:* ', ['class' => 'control-label']) !!}
+                {!! Form::label('iddoc', 'Nüfus Cüzdanı:* ', ['class' => 'control-label']) !!}
             </div>
             <div class="col-sm-10">
-                <input type="file" name="contract" id="contractToUpload">
+                <input type="file" name="iddoc" id="idToUpload">
             </div>
         </div>
     </div>
 
     <div class="form-group">
         <div class="row">
-            <div class="col-sm-2"><strong>Mevcut Giriş Belgesi: </strong></div>
+            <div class="col-sm-2"><strong>Mevcut Nüfus Belgesi: </strong></div>
             <div class="col-sm-10">
                 <?php
-                $my_path = '';
-                $file_name = '';
+                $id_path = '';
+                $id_file_name = '';
 
-                if (!empty($personnel->contract)) {
-                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $personnel->contract->file()->orderBy('created_at','DESC')->first()->path);
-                    $file_name = $personnel->contract->file()->orderBy('created_at', 'DESC')->first()->name;
-                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
+                if (!empty($personnel->iddoc()->first())) {
+                    $id_path_arr = explode(DIRECTORY_SEPARATOR, $personnel->iddoc->file()->orderBy('created_at', 'DESC')->first()->path);
+                    $id_file_name = $personnel->iddoc->file()->orderBy('created_at', 'DESC')->first()->name;
+                    $id_path = "/uploads/" . $id_path_arr[sizeof($id_path_arr) - 1] . "/" . $id_file_name;
                 }
                 ?>
-                <a href="{{!empty($my_path) ? $my_path : ""}}">
-                    {{!empty($file_name) ? $file_name : ""}}
+                <a href="{{!empty($id_path) ? $id_path : ""}}">
+                    {{!empty($id_file_name) ? $id_file_name : ""}}
                 </a>
             </div>
         </div>
     </div>
+
+    @if(!empty($personnel->iddoc()->first()))
+        <div class="form-group {{ $errors->has('contract') ? 'has-error' : '' }}">
+            <div class="row">
+                <div class="col-sm-2">
+                    {!! Form::label('contract', 'İşe Giriş Belgesi:* ', ['class' => 'control-label']) !!}
+                </div>
+                <div class="col-sm-10">
+                    <input type="file" name="contract" id="contractToUpload">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="row">
+                <div class="col-sm-2"><strong>Mevcut Giriş Belgesi: </strong></div>
+                <div class="col-sm-10">
+                    <?php
+                    $my_path = '';
+                    $file_name = '';
+                    if (count($personnel->contract) && count($personnel->contract->file()->get())) {
+                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $personnel->contract->file()->orderBy('created_at', 'DESC')->first()->path);
+                        $file_name = $personnel->contract->file()->orderBy('created_at', 'DESC')->first()->name;
+
+                        $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
+                    }
+                    ?>
+                    <a href="{{!empty($my_path) ? $my_path : ""}}">
+                        {{!empty($file_name) ? $file_name : ""}}
+                    </a>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <div class="form-group">
         <div class="row">
@@ -194,7 +346,7 @@ foreach ($management_depts->management() as $dept) {
 
                 <a id="lb-link-{{$photo->id}}" href="{{$image}}"
                    data-toggle="lightbox" data-gallery="personnel-photos"
-                   data-title = "{{$photo->file->name}}"
+                   data-title="{{$photo->file->name}}"
                    data-footer="<a data-dismiss='modal' class='remove-files' href='#' onclick='removeFiles({{$photo->id}})'>Dosyayı Sil<a/>"
                    class="col-sm-4">
                     <img src="{{$image}}" class="img-responsive" style="height: 45px">
@@ -204,11 +356,118 @@ foreach ($management_depts->management() as $dept) {
             @endforeach
         </div>
     @endif
+    <div class="row">
+        <div class="col-sm-4 col-md-offset-3">
 
-    <div class="form-group pull-right">
-        <button type="submit" class="btn btn-flat btn-primary" id="add-personnel">Personel
-            Güncelle
-        </button>
+            <button type="submit" class="btn btn-flat btn-block btn-primary" id="add-personnel">Personel
+                Güncelle
+            </button>
+
+        </div>
     </div>
+
+    {!! Form::close() !!}
+
+    <br>
+
+    @if(!($personnel->isSitePersonnel()))
+        <div ng-app="puantajApp" ng-controller="PuantajController">
+
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="input-group input-append date " id="dateRangePicker">
+                            <input type="text" class="form-control" name="exp_date" ng-model="date"/>
+                                        <span class="input-group-addon add-on"><span
+                                                    class="glyphicon glyphicon-calendar"></span></span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <input type="text" class="form-control number" name="price" ng-model="dailyWage"
+                               placeholder="Günlük ücret"/>
+                    </div>
+
+
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-primary btn-flat btn-block" ng-click="addWage()">Ekle
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-12">
+                    <table class="table table-responsive table-extra-condensed dark-bordered">
+                        <thead>
+                        <tr style="font-size: smaller">
+                            <th class="text-center">Tarihi İtibariyle</th>
+                            <th class="text-right">Günlük Ücret</th>
+                            <th class="text-center">Sil</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="wage in wages track by $index">
+                            <td class="text-center"><%wage.since%></td>
+                            <td class="text-right"><%wage.wage|numberFormatter%> TL</td>
+                            <td class="text-center"><a href="#!" ng-click="remove_field(wage)"><i
+                                            class="fa fa-close"></i></a>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    @else
+        <div ng-app="puantajApp" ng-controller="PuantajController">
+
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="input-group input-append date " id="dateRangePicker">
+                            <input type="text" class="form-control" name="exp_date" ng-model="date"/>
+                                        <span class="input-group-addon add-on"><span
+                                                    class="glyphicon glyphicon-calendar"></span></span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <input type="text" class="form-control number" name="salary" ng-model="ngSalary"
+                               placeholder="Maaş"/>
+                    </div>
+
+
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-primary btn-flat btn-block" ng-click="addSalary()">Ekle
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="row" ng-hide="salaries.length == 0">
+                <div class="col-sm-12">
+                    <table class="table table-responsive table-extra-condensed dark-bordered">
+                        <thead>
+                        <tr style="font-size: smaller">
+                            <th class="text-center">Tarihi İtibariyle</th>
+                            <th class="text-right">Maaş</th>
+                            <th class="text-center">Sil</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="salary in salaries track by $index">
+                            <td class="text-center"><%salary.since%></td>
+                            <td class="text-right"><%salary.salary|numberFormatter%> TL</td>
+                            <td class="text-center"><a href="#!" ng-click="remove_field(salary)"><i
+                                            class="fa fa-close"></i></a>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    @endif
 
 @stop

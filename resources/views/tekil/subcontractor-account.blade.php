@@ -91,9 +91,12 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                                     <tbody>
 
                                     @foreach($site->subcontractor()->get() as $sub)
+                                        @if(count($sub->subdetail))
                                         <?php
+
                                         $contract_entry_exists = false;
-                                        if (!($sub->contract()->get()->isEmpty()))
+
+                                        if (count($sub->contract()->get()))
                                             $contract_entry_exists = true;
                                         ?>
                                         <tr>
@@ -144,6 +147,7 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                                             </td>
 
                                         </tr>
+                                        @endif
                                     @endforeach
                                     </tbody>
                                 </table>

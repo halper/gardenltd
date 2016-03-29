@@ -22,7 +22,7 @@
                 @foreach($demands as $demand)
                     <tr class="valign">
                         <td>{{ $demand->material->material }}</td>
-                        <td>{{ \App\Library\TurkishChar::convertToTRcurrency($demand->contract_cost) }}</td>
+                        <td><span class="inumber">{{ \App\Library\TurkishChar::convertToTRcurrency($demand->contract_cost) }}</span>TL</td>
                         <td>
                             <?php
                             $i = 0;

@@ -16,6 +16,6 @@ class Stock extends Model
 
     public function site()
     {
-        return $this->belongsToMany('App\Site')->withPivot('amount', 'detail')->withTimestamps();
+        return $this->belongsToMany('App\Site')->withPivot('amount', 'detail', 'id')->withTimestamps();
     }
 }

@@ -16,5 +16,10 @@ class File extends Model
         return $this->morphTo();
     }
 
+    public function tag()
+    {
+        return $this->morphToMany('App\Tag', 'taggable');
+    }
+
 
 }

@@ -70,4 +70,19 @@ class Personnel extends Model
         return $this->hasMany('App\Wage');
     }
 
+    public function iddoc()
+    {
+        return $this->hasOne('App\Iddoc');
+    }
+
+    public function salary()
+    {
+        return $this->hasMany('App\Salary');
+    }
+
+    public function site()
+    {
+        return $this->belongsToMany('App\Site')->withTimestamps();
+    }
+
 }

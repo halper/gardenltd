@@ -221,37 +221,72 @@ $exit_date = $personnel->contract()->get()->isEmpty() || (!($personnel->contract
         </div>
     @endif
 
-    <div class="form-group {{ $errors->has('contract') ? 'has-error' : '' }}">
+
+    <div class="form-group {{ $errors->has('iddoc') ? 'has-error' : '' }}">
         <div class="row">
             <div class="col-sm-2">
-                {!! Form::label('contract', 'İşe Giriş Belgesi:* ', ['class' => 'control-label']) !!}
+                {!! Form::label('iddoc', 'Nüfus Cüzdanı:* ', ['class' => 'control-label']) !!}
             </div>
             <div class="col-sm-10">
-                <input type="file" name="contract" id="contractToUpload">
+                <input type="file" name="iddoc" id="idToUpload">
             </div>
         </div>
     </div>
 
     <div class="form-group">
         <div class="row">
-            <div class="col-sm-2"><strong>Mevcut Giriş Belgesi: </strong></div>
+            <div class="col-sm-2"><strong>Mevcut Nüfus Belgesi: </strong></div>
             <div class="col-sm-10">
                 <?php
-                $my_path = '';
-                $file_name = '';
+                $id_path = '';
+                $id_file_name = '';
 
-                if (!empty($personnel->contract)) {
-                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $personnel->contract->file()->orderBy('created_at', 'DESC')->first()->path);
-                    $file_name = $personnel->contract->file()->orderBy('created_at', 'DESC')->first()->name;
-                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
+                if (count($personnel->iddoc) && count($personnel->iddoc->file()->get())) {
+                    $id_path_arr = explode(DIRECTORY_SEPARATOR, $personnel->iddoc->file()->orderBy('created_at', 'DESC')->first()->path);
+                    $id_file_name = $personnel->iddoc->file()->orderBy('created_at', 'DESC')->first()->name;
+                    $id_path = "/uploads/" . $id_path_arr[sizeof($id_path_arr) - 1] . "/" . $id_file_name;
                 }
                 ?>
-                <a href="{{!empty($my_path) ? $my_path : ""}}">
-                    {{!empty($file_name) ? $file_name : ""}}
+                <a href="{{!empty($id_path) ? $id_path : ""}}">
+                    {{!empty($id_file_name) ? $id_file_name : ""}}
                 </a>
             </div>
         </div>
     </div>
+
+    @if(count($personnel->iddoc))
+        <div class="form-group {{ $errors->has('contract') ? 'has-error' : '' }}">
+            <div class="row">
+                <div class="col-sm-2">
+                    {!! Form::label('contract', 'İşe Giriş Belgesi:* ', ['class' => 'control-label']) !!}
+                </div>
+                <div class="col-sm-10">
+                    <input type="file" name="contract" id="contractToUpload">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="row">
+                <div class="col-sm-2"><strong>Mevcut Giriş Belgesi: </strong></div>
+                <div class="col-sm-10">
+                    <?php
+                    $my_path = '';
+                    $file_name = '';
+
+                    if (count($personnel->contract) && count($personnel->contract->file()->get())) {
+                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $personnel->contract->file()->orderBy('created_at', 'DESC')->first()->path);
+                        $file_name = $personnel->contract->file()->orderBy('created_at', 'DESC')->first()->name;
+                        $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
+                    }
+                    ?>
+                    <a href="{{!empty($my_path) ? $my_path : ""}}">
+                        {{!empty($file_name) ? $file_name : ""}}
+                    </a>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <div class="form-group">
         <div class="row">

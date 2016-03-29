@@ -62,8 +62,8 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                 }
                 $scope.loading = true;
                 $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/overtimes", {
-                    'start_date': $scope.startDate,
-                    'end_date': $scope.endDate
+                    start_date: $scope.startDate,
+                    end_date: $scope.endDate
                 }).then(function (response) {
                     $scope.data = response.data;
                     $scope.days = response.data.days;
@@ -240,6 +240,20 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                                         </tr>
                                         </thead>
                                         <tbody>
+                                        <tr ng-repeat="main in data.main | searchFor:name track by $index">
+                                            <td class="puantaj"><% main.name %></td>
+                                            <td ng-repeat="type in main.puantaj track by $index"
+                                                class="text-center"
+                                                style="font-size: 11px"
+                                                ng-class="weekends[$index] == 1 && 'garden-orange'"
+                                                ><%
+                                                type |
+                                                uppercase
+                                                %>
+                                            </td>
+                                            <td class="text-right"><% main.total %></td>
+                                            <td class="text-right"><% main.total %></td>
+                                        </tr>
                                         <tr ng-repeat="person in personnel | searchFor:name track by $index">
 
                                             <td class="puantaj"

@@ -2,6 +2,12 @@
 use Carbon\Carbon;
 $personnel = $subcontractor->personnel()->get();
 $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
+
+if (Session::has('tab')) {
+    $tab = Session::get('tab');
+} else {
+    $tab = '';
+}
 ?>
 @extends('tekil.layout')
 
@@ -55,7 +61,7 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                     $scope.balance = response.data.balance;
                     $scope.claim = response.data.claim;
                     $scope.debt = response.data.debt;
-                    $scope.showPayment = parseFloat($scope.claim.replace(',', '.'))*0.9 <= parseFloat($scope.debt.replace(',', '.')) ;
+                    $scope.showPayment = parseFloat($scope.claim.replace(',', '.')) * 0.9 <= parseFloat($scope.debt.replace(',', '.'));
                 });
             };
             $scope.getPayments();
@@ -234,16 +240,16 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
             <!-- Custom Tabs -->
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs">
-                    <li class="active"><a href="#tab_1" data-toggle="tab">Alt Yüklenici Sözleşme Bilgileri</a></li>
+                    <li {{empty($tab) ? 'class=active' : ''}}><a href="#tab_1" data-toggle="tab">Alt Yüklenici Sözleşme Bilgileri</a></li>
                     <li><a href="#tab_2" data-toggle="tab">Ücretler ve Oranlar</a></li>
                     <li><a href="#tab_5" data-toggle="tab">Ek Belgeler</a></li>
-                    <li><a href="#tab_6" data-toggle="tab">Personel Ekle</a></li>
+                    <li {{strpos($tab, 'insert') !== false ? 'class=active' : ''}}><a href="#tab_6" data-toggle="tab">Personel Ekle</a></li>
                     <li><a href="#tab_7" data-toggle="tab">Personel Düzenle</a></li>
 
                 </ul>
                 <div class="tab-content">
                     <!-- /.tab-pane -->
-                    <div class="tab-pane active" id="tab_1">
+                    <div class="tab-pane {{empty($tab) ? 'active' : ''}}" id="tab_1">
 
                         {!! Form::model($subcontractor, [
                                                                         'url' => "/tekil/$site->slug/update-subcontractor",
@@ -309,7 +315,7 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                         </div>
                     </div>
 
-                    <div class="tab-pane" id="tab_6">
+                    <div class="tab-pane {{strpos($tab, 'insert') !== false ? 'active' : ''}}" id="tab_6">
                         {!! Form::open([
                                                                         'url' => "/tekil/$site->slug/add-subcontractor-personnel",
                                                                         'method' => 'POST',
@@ -337,6 +343,8 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                                     <tr>
                                         <th>Adı-Soyadı</th>
                                         <th>TCK No</th>
+                                        <th>Nüfus Cüzdanı</th>
+                                        <th>İşe Giriş Belgesi</th>
                                         <th>Kullanıcı İşlemleri</th>
                                     </tr>
                                     </thead>
@@ -346,6 +354,36 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                                         <tr>
                                             <td>{{ \App\Library\TurkishChar::tr_camel($per->name) }}</td>
                                             <td>{{ $per->tck_no }}</td>
+                                            <?php
+                                            $id_path = '';
+                                            $id_file_name = '';
+                                            $iddoc = '-';
+
+                                            if (count($per->iddoc) && count($per->iddoc->file()->get())) {
+                                                $id_path_arr = explode(DIRECTORY_SEPARATOR, $per->iddoc->file()->orderBy('created_at', 'DESC')->first()->path);
+                                                $id_file_name = $per->iddoc->file()->orderBy('created_at', 'DESC')->first()->name;
+                                                $id_path = "/uploads/" . $id_path_arr[sizeof($id_path_arr) - 1] . "/" . $id_file_name;
+                                                $iddoc = '<a href="' . $id_path . '">' . $id_file_name . '</a>';
+                                            }
+
+
+                                            $my_path = '';
+                                            $file_name = '';
+                                            $cont = '-';
+
+                                            if (count($per->contract) && count($per->contract->file()->get())) {
+
+                                                $my_path_arr = explode(DIRECTORY_SEPARATOR, $per->contract->file()->orderBy('created_at', 'DESC')->first()->path);
+                                                $file_name = $per->contract->file()->orderBy('created_at', 'DESC')->first()->name;
+
+                                                $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
+                                                $cont = '<a href="' . $my_path . '">' . $file_name . '</a>';
+                                            }
+                                            $exit_date = $per->contract()->get()->isEmpty() || (!($per->contract()->get()->isEmpty()) && (strpos($per->contract->exit_date, '0000-00-00') !== false)) ? null : \App\Library\CarbonHelper::getTurkishDate($per->contract->exit_date);
+                                            ?>
+
+                                            <td>{!! $iddoc!!}</td>
+                                            <td>{!! $cont !!}</td>
 
                                             <td>
                                                 <div class="row">
@@ -393,7 +431,7 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                 </div>
                 <div class="modal-footer">
                     {!! Form::open([
-                    'url' => '/tekil/del-personnel',
+                    'url' => "/tekil/$site->slug/del-personnel",
                     'method' => 'POST',
                     'class' => 'form',
                     'id' => 'userDeleteForm',

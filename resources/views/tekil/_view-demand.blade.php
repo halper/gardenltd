@@ -30,7 +30,7 @@
                         $i = 0;
                         ?>
                         @foreach($demand->materials()->get() as $mat)
-                            {!! $mat->material . ' - ' . str_replace('.', ',', $mat->pivot->quantity) ." ". $mat->pivot->unit . (++$i != sizeof($demand->materials()->get())? '<br>':'')!!}
+                            {!! $mat->material . ' - <span class="inumber">' . $mat->pivot->quantity . '</span> '. $mat->pivot->unit . (++$i != sizeof($demand->materials()->get())? '<br>':'')!!}
 
                         @endforeach
                     </td>
@@ -88,7 +88,7 @@
                                     $demand_status = 'Onaylandı';
                                     break;
                                 case 4:
-                                    $demand_status = 'Reddedildi: ' . $demand->rejection()->reason;
+                                    $demand_status = 'Reddedildi: ' . $demand->rejection->reason;
                                     break;
                             }
 

@@ -76,7 +76,12 @@ class ModulesTableSeeder extends Seeder
 
         Module::create(array(
             'name' => 'Gelen Malzeme',
-            'icon' => 'fa-cart-arrow-down',
+            'icon' => 'fa-caret-square-o-down',
+        ));
+
+        Module::create(array(
+            'name' => 'Giden Malzeme',
+            'icon' => 'fa-caret-square-o-up',
         ));
 
 
@@ -87,7 +92,7 @@ class ModulesTableSeeder extends Seeder
 
 
         Module::create(array(
-            'name' => 'Taşeron Cari Hesap',
+            'name' => 'Alt Yüklenici Cari Hesap',
             'icon' => 'ion-social-usd',
         ));
 
@@ -111,6 +116,46 @@ class ModulesTableSeeder extends Seeder
             'icon' => 'ion-images',
         ));
 
+        Module::create([
+            'name' => 'İcmal',
+            'icon' => 'fa-tachometer',
+            'expandable' => 'Maliyet'
+        ]);
+        Module::create([
+            'name' => 'Genel Giderler',
+            'icon' => 'fa-tachometer',
+            'expandable' => 'Maliyet'
+        ]);
+        Module::create([
+            'name' => 'Sözleşme Giderleri',
+            'icon' => 'fa-tachometer',
+            'expandable' => 'Maliyet'
+        ]);
+        Module::create([
+            'name' => 'Muhtelif Sarf Malzeme',
+            'icon' => 'fa-tachometer',
+            'expandable' => 'Maliyet'
+        ]);
+        Module::create([
+            'name' => 'İnşaat Malzeme',
+            'icon' => 'fa-tachometer',
+            'expandable' => 'Maliyet'
+        ]);
+        Module::create([
+            'name' => 'Taşeron Hakedişleri',
+            'icon' => 'fa-tachometer',
+            'expandable' => 'Maliyet'
+        ]);
+        Module::create([
+            'name' => 'Şantiye Personel Maaş',
+            'icon' => 'fa-tachometer',
+            'expandable' => 'Maliyet'
+        ]);
+        Module::create([
+            'name' => 'Şantiye İşçilik',
+            'icon' => 'fa-tachometer',
+            'expandable' => 'Maliyet'
+        ]);
     }
 
 }

@@ -3,6 +3,7 @@
 $personnel = \App\Personnel::all();
 $subcontractor = \App\Subdetail::all();
 $equipments = \App\Equipment::all();
+$tags = \App\Tag::all();
 $materials = \App\Material::all();
 $departments = \App\Department::all();
 $staff = \App\Staff::allStaff();
@@ -10,7 +11,7 @@ $staff = \App\Staff::allStaff();
 ?>
 
 
-@extends('landing/landing')
+@extends('landing.landing')
 
 @section('page-specific-css')
     <link href="<?= URL::to('/'); ?>/css/select2.min.css" rel="stylesheet"/>
@@ -84,6 +85,8 @@ $staff = \App\Staff::allStaff();
                     <li><a href="#tab_mat" data-toggle="tab">Malzeme</a></li>
                     <li><a href="#tab_sub" data-toggle="tab">Bağlantılı Malzeme</a></li>
                     <li><a href="#tab_4" data-toggle="tab">İş Makinesi</a></li>
+                    <li><a href="#tab_tag" data-toggle="tab">Etiketler</a></li>
+                    <li><a href="#tab_exp" data-toggle="tab">Gider Kalemleri</a></li>
 
                 </ul>
 
@@ -98,12 +101,19 @@ $staff = \App\Staff::allStaff();
                                         <th>Adı-Soyadı</th>
                                         <th>TCK No</th>
                                         <th>Detay</th>
-                                        <th>Kullanıcı İşlemleri</th>
+                                        <th>Çıkış Tarihi</th>
+                                        <th class="col-sm-1">Nüfus Cüzdanı</th>
+                                        <th class="col-sm-1">İşe Giriş Belgesi</th>
+                                        <th class="col-sm-2">Kullanıcı İşlemleri</th>
                                     </tr>
                                     </thead>
                                     <tbody>
 
                                     @foreach($personnel as $per)
+
+                                        <?php
+                                        $exit_date = $per->contract()->get()->isEmpty() || (!($per->contract()->get()->isEmpty()) && (strpos($per->contract->exit_date, '0000-00-00') !== false)) ? null : \App\Library\CarbonHelper::getTurkishDate($per->contract->exit_date);
+                                        ?>
                                         <tr>
                                             <td>{{ \App\Library\TurkishChar::tr_camel($per->name) }}</td>
                                             <td>{{ $per->tck_no }}</td>
@@ -116,10 +126,37 @@ $staff = \App\Staff::allStaff();
                                                     $pers = $per->personalize->subdetail->name . " Personeli";
                                                 }
                                             }
+
+                                            $id_path = '';
+                                            $id_file_name = '';
+                                            $iddoc = '-';
+
+                                            if (count($per->iddoc) && count($per->iddoc->file()->get())) {
+                                                $id_path_arr = explode(DIRECTORY_SEPARATOR, $per->iddoc->file()->orderBy('created_at', 'DESC')->first()->path);
+                                                $id_file_name = $per->iddoc->file()->orderBy('created_at', 'DESC')->first()->name;
+                                                $id_path = "/uploads/" . $id_path_arr[sizeof($id_path_arr) - 1] . "/" . $id_file_name;
+                                                $iddoc = '<a href="' . $id_path . '">' . $id_file_name . '</a>';
+                                            }
+
+
+                                            $my_path = '';
+                                            $file_name = '';
+                                            $cont = '-';
+
+                                            if (count($per->contract) && count($per->contract->file()->get())) {
+
+                                                $my_path_arr = explode(DIRECTORY_SEPARATOR, $per->contract->file()->orderBy('created_at', 'DESC')->first()->path);
+                                                $file_name = $per->contract->file()->orderBy('created_at', 'DESC')->first()->name;
+
+                                                $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
+                                                $cont = '<a href="' . $my_path . '">' . $file_name . '</a>';
+                                            }
                                             ?>
 
                                             <td>{{$pers}}</td>
-                                            {{--<td>{{dd($pers)}}</td>--}}
+                                            <td>{{$exit_date}}</td>
+                                            <td>{!! $iddoc!!}</td>
+                                            <td>{!! $cont !!}</td>
 
                                             <td>
                                                 <div class="row">
@@ -127,7 +164,7 @@ $staff = \App\Staff::allStaff();
                                                         <a href="{{"personel-duzenle/$per->id"}}"
                                                            class="btn btn-flat btn-warning btn-sm">Düzenle</a>
                                                     </div>
-                                                    <div class="col-sm-2">
+                                                    <div class="col-sm-2 col-sm-offset-1">
                                                         <?php
                                                         echo '<button type="button" class="btn btn-flat btn-danger btn-sm userDelBut" data-id="' . $per->id . '" data-name="' . $per->name . '" data-toggle="modal" data-target="#deleteUserConfirm">Sil</button>';
                                                         ?>
@@ -278,80 +315,136 @@ $staff = \App\Staff::allStaff();
                                 @endforeach
                                 </tbody>
                             </table>
+                        </div>
                     </div>
-                </div>
 
-                <!-- /.tab-pane -->
-                <div class="tab-pane" id="tab_mat">
-                    <div class="row">
-                        <div class="col-xs-12 col-md-12">
-                            @foreach($materials as $material)
-                                <div class="col-sm-4">
-                                    <a href="#" class="inline-edit" name="name" data-type="text"
-                                       data-pk="{{$material->id}}"
-                                       data-url="/admin/modify-material"
-                                       data-title="Malzeme">{{\App\Library\TurkishChar::tr_up($material->material)}}</a>
+                    <!-- /.tab-pane -->
+                    <div class="tab-pane" id="tab_mat">
+                        <div class="row">
+                            <div class="col-xs-12 col-md-12">
+                                @foreach($materials as $material)
+                                    <div class="col-sm-4">
+                                        <a href="#" class="inline-edit" name="name" data-type="text"
+                                           data-pk="{{$material->id}}"
+                                           data-url="/admin/modify-material"
+                                           data-title="Malzeme">{{\App\Library\TurkishChar::tr_up($material->material)}}</a>
+                                    </div>
+                                @endforeach
+
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="tab-pane" id="tab_sub">
+                        <h4>1. Seviye Bağlantılı Malzeme</h4>
+
+                        <div class="row">
+
+                            @foreach(\App\Submaterial::bare()->get() as $sm)
+                                <div class="col-sm-3">
+                                    <a href="#" class="inline-edit" data-type="text"
+                                       data-pk="{{$sm->id}}"
+                                       data-url="/admin/modify-submaterial"
+                                       data-title="1. seviye">{{\App\Library\TurkishChar::tr_up($sm->name)}}</a>
                                 </div>
                             @endforeach
 
                         </div>
+                        <h4>2. Seviye Bağlantılı Malzeme</h4>
+
+                        <div class="row">
+                            @foreach(\App\Feature::all() as $feat)
+                                <div class="col-sm-3">
+                                    <a href="#" class="inline-edit" data-type="text"
+                                       data-pk="{{$feat->id}}"
+                                       data-url="/admin/modify-feature"
+                                       data-title="Özellik">{{\App\Library\TurkishChar::tr_up($feat->name)}}</a>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
-                </div>
 
-
-                <div class="tab-pane" id="tab_sub">
-                    <h4>1. Seviye Bağlantılı Malzeme</h4>
-
-                    <div class="row">
-
-                        @foreach(\App\Submaterial::bare()->get() as $sm)
-                            <div class="col-sm-3">
-                                <a href="#" class="inline-edit" data-type="text"
-                                   data-pk="{{$sm->id}}"
-                                   data-url="/admin/modify-submaterial"
-                                   data-title="1. seviye">{{\App\Library\TurkishChar::tr_up($sm->name)}}</a>
+                    <!-- /.tab-pane -->
+                    <div class="tab-pane" id="tab_4">
+                        <div class="row">
+                            <div class="col-xs-12 col-md-12">
+                                <div class="row">
+                                    @foreach($equipments as $equipment)
+                                        <div class="col-sm-4">
+                                            <a href="#" class="inline-edit" name="name" data-type="text"
+                                               data-pk="{{$equipment->id}}"
+                                               data-url="/admin/modify-equipment"
+                                               data-title="İş Makinesi">{{\App\Library\TurkishChar::tr_up($equipment->name)}}</a>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
-                        @endforeach
-
+                        </div>
                     </div>
-                    <h4>2. Seviye Bağlantılı Malzeme</h4>
 
-                    <div class="row">
-                        @foreach(\App\Feature::all() as $feat)
-                            <div class="col-sm-3">
-                                <a href="#" class="inline-edit" data-type="text"
-                                   data-pk="{{$feat->id}}"
-                                   data-url="/admin/modify-feature"
-                                   data-title="Özellik">{{\App\Library\TurkishChar::tr_up($feat->name)}}</a>
+                    <div class="tab-pane" id="tab_tag">
+                        <div class="row">
+                            <div class="col-xs-12 col-md-12">
+                                <div class="row">
+                                    @foreach($tags as $tag)
+                                        <div class="col-sm-4">
+                                            <a href="#" class="inline-edit" name="name" data-type="text"
+                                               data-pk="{{$tag->id}}"
+                                               data-url="/admin/modify-tag"
+                                               data-title="Etiket">{{\App\Library\TurkishChar::tr_up($tag->name)}}</a>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
-                        @endforeach
+                        </div>
                     </div>
-                </div>
 
                 <!-- /.tab-pane -->
-                <div class="tab-pane" id="tab_4">
+                <div class="tab-pane" id="tab_exp">
                     <div class="row">
                         <div class="col-xs-12 col-md-12">
                             <div class="row">
-                                @foreach($equipments as $equipment)
-                                    <div class="col-sm-4">
-                                        <a href="#" class="inline-edit" name="name" data-type="text"
-                                           data-pk="{{$equipment->id}}"
-                                           data-url="/admin/modify-equipment"
-                                           data-title="İş Makinesi">{{\App\Library\TurkishChar::tr_up($equipment->name)}}</a>
+                                @foreach(\App\Expdetail::all() as $exp)
+                                    <div class="col-sm-3">
+                                        <a href="#" class="inline-edit" data-type="text"
+                                           data-pk="{{$exp->id}}"
+                                           data-url="/admin/modify-expdetail"
+                                           data-title="Gider Kalemi">{{\App\Library\TurkishChar::tr_up($exp->name)}}</a>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <?php
+                                        $group = 'GENEL GİDERLER';
+                                        switch ($exp->group) {
+                                            case(2):
+                                                $group = 'SÖZLEŞME GİDERLERİ';
+                                                break;
+                                            case(3):
+                                                $group = 'SARF MALZEME GİDERLERİ';
+                                                break;
+                                            case(4):
+                                                $group = 'İNŞAAT MALZEME GİDERLERİ';
+                                                break;
+                                            default:
+                                                break;
+                                        }
+
+                                        ?>
+                                        {{$group}}
                                     </div>
                                 @endforeach
                             </div>
                         </div>
                     </div>
                 </div>
+                </div>
+
+
+                <!-- /.tab-pane -->
+
             </div>
-
-            <!-- /.tab-pane -->
-
+            <!-- nav-tabs-custom -->
         </div>
-        <!-- nav-tabs-custom -->
-    </div>
     </div>
 
     <div id="deleteUserConfirm" class="modal fade" role="dialog">

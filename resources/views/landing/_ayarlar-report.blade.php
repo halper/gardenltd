@@ -34,7 +34,11 @@
         </div>
     </div>
     <div ng-hide="!message" class="row">
-        <div class="row"><p class="text-success"><% message %></p></div>
+        <div class="row">
+            <div class="col-sm-12">
+                <p class="text-success"><% message %></p>
+            </div>
+        </div>
     </div>
 
     <div class="form-group">

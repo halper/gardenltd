@@ -15,4 +15,9 @@ class Expense extends Model
     {
         return $this->belongsTo('App\Account');
     }
+
+    public function scopeDateRange($query, $start, $end)
+    {
+        return $query->where('exp_date', '>=', $start)->where('exp_date', '<=', $end);
+    }
 }

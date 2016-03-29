@@ -63,6 +63,11 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
             $scope.quantity = [];
             $scope.detail = [];
 
+            $scope.removeRow = function (rowNumber) {
+                angular.element(document).find('#ang-' + rowNumber).remove();
+                $scope.bill[rowNumber] = -999;
+            };
+
             $scope.getOvertimes = function () {
 
                 $scope.loading = true;
@@ -78,9 +83,8 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
 
             $scope.init = function () {
                 $scope.showRest = true;
-
                 $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/retrieve-submaterials-from-smdemands", {
-                            'id': $scope.selected.id
+                            id: $scope.selected.id
                         }
                 ).then(function (response) {
                     $scope.submaterials = response.data.submats;
@@ -88,7 +92,7 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                 });
 
                 $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/retrieve-smdexpenses", {
-                            'id': $scope.selected.id
+                            id: $scope.selected.id
                         }
                 ).then(function (response) {
                     $scope.expenses = response.data.smdexpense;
@@ -101,24 +105,19 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
             };
 
             $scope.addExpense = function () {
-                var emptyVal = false;
-                if ($scope.inputCounter == 1)
-                    emptyVal = ($scope.bill.length != $scope.inputCounter || $scope.quantity.length != $scope.inputCounter);
-                else
-                    emptyVal = $scope.bill.length == $scope.quantity.length;
 
-                if (!$scope.date || emptyVal || !$scope.sid) {
+                if (!$scope.date || !$scope.sid) {
                     $scope.subError = 'Lütfen ilgili alanları doldurunuz: İrsaliye, miktar, bağlantı malzeme!'
                 }
 
                 else {
                     $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/add-smdexpense", {
-                        'delivery_date': $scope.date,
-                        'detail': $scope.detail,
-                        'bill': $scope.bill,
-                        'quantity': $scope.quantity,
-                        'subid': $scope.sid,
-                        'smdid': $scope.selected.id
+                        delivery_date: $scope.date,
+                        detail: $scope.detail,
+                        bill: $scope.bill,
+                        quantity: $scope.quantity,
+                        subid: $scope.sid,
+                        smdid: $scope.selected.id
                     }).then(function (response) {
 
                         $scope.submatSelected = '';
@@ -127,6 +126,8 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                         $scope.bill = [];
                         $scope.quantity = [];
                         $scope.irsaliye = [];
+                        $scope.orderedIrsaliye = '';
+                        $scope.hiddenRows = [];
                         $scope.sid = '';
                         $scope.subError = '';
                         for (var i = $scope.inputCounter; i > 1; i--) {
@@ -190,14 +191,17 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                         }
                         for (var i = 0; i < size; i++) {
                             var input = angular.element('' +
-                                    '<div class="form-group ang-added">' +
+                                    '<div class="form-group ang-added" id="ang-' + scope.inputCounter + '">' +
                                     '<div class="row">' +
+                                    '<div class="col-md-2"><div class="row">' +
                                     '<div class="col-md-2">' +
+                                    '<a ng-click="removeRow(' + scope.inputCounter + ')"><i class="fa fa-close"></i></a></div>' +
+                                    '<div class="col-md-10">' +
                                     '<input type="text" class="form-control"' +
                                     'name="no" ng-model="bill[' + scope.inputCounter + ']"' +
                                     'value=""' +
                                     'placeholder="İrsaliye No"/>' +
-                                    '</div>' +
+                                    '</div></div></div>' +
                                     '<div class="col-md-2">' +
                                     '<input type="text" class="form-control number"' +
                                     'name="quantity" ng-model="quantity[' + scope.inputCounter + ']"' +
@@ -217,6 +221,7 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
 
                             scope.detail[scope.inputCounter] = scope.detail[0];
                             scope.quantity[scope.inputCounter] = scope.quantity[0];
+
                             if (scope.orderedIrsaliye) {
                                 scope.bill[scope.inputCounter] = (parseInt(scope.bill[0]) + (size - i));
                             }
@@ -234,23 +239,7 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                         $('.number').number(true, 2, ',', '.');
                         scope.inputSize = '';
                     });
-                    element.find('.btn-primary').bind('click', function () {
-                        // I'm using Angular syntax. Using jQuery will have the same effect
-                        // Create input element
 
-                        for (var i = scope.inputCounter; i > 1; i--) {
-
-                            // Compile the HTML and assign to scope
-                            var compile = $compile()(scope);
-
-                            // Append input to div
-                            element.remove(element.find('.ng-scope'));
-
-                            // Increment the counter for the next input to be added
-                            scope.inputCounter--;
-                        }
-
-                    });
                 }
             }
         }]);

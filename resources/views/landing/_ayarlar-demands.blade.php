@@ -3,7 +3,7 @@
         <table class="table table-responsive">
             <thead>
             <tr>
-                <th>Şantiye</th>
+                <th class="col-sm-2" style="text-align: center">Şantiye</th>
                 <th>Tarih</th>
                 <th>Talep No</th>
                 <th>Malzeme - Miktar</th>
@@ -11,7 +11,7 @@
                 <th>Açıklama</th>
                 <th>Temin Tarihi</th>
                 <th>Durum</th>
-                <th>İşlemler</th>
+                <th class="col-sm-2" style="text-align: center">İşlemler</th>
             </tr>
             </thead>
             <tbody>
@@ -21,7 +21,7 @@
             ?>
             @foreach($demands as $demand)
                 <tr class="valign {{$demand->approval_status == 3 ? "bg-success" : "bg-danger"}}">
-                    <td>{{$demand->site->job_name}}</td>
+                    <td style="text-align: center">{{$demand->site->job_name}}</td>
                     <td>{{ \App\Library\CarbonHelper::getTurkishDate($demand->created_at) }}</td>
                     <td>{{ $demand->id }}</td>
                     <td>
@@ -65,29 +65,23 @@
 
 
                     </td>
-                    <td>
+                    <td style="text-align: center">
                         @if($demand->approval_status < 3)
 
-                            <div class="col-sm-12">
-                                <div class="row">
-                                    <div class="col-sm-6">
-                                        <a class="btn btn-flat btn-success btn-sm"
-                                           href="{{url("/admin/talep-onay/$demand->id")}}">
-                                            Onayla
-                                        </a>
-                                    </div>
-                                    <div class="col-sm-6">
-                                        <button type="button"
-                                                class="btn btn-flat btn-danger btn-sm demandRejectBut"
-                                                data-id="{{$demand->id}}"
-                                                data-name="{{\App\Library\CarbonHelper::getTurkishDate($demand->created_at)}}"
-                                                data-toggle="modal" data-target="#rejectDemandConfirm">
-                                            Reddet
-                                        </button>
+                                <a class="btn btn-flat btn-success btn-sm"
+                                   href="{{url("/admin/talep-onay/$demand->id")}}">
+                                    Onayla
+                                </a>
 
-                                    </div>
-                                </div>
-                            </div>
+                                <button type="button"
+                                        class="btn btn-flat btn-danger btn-sm demandRejectBut"
+                                        data-id="{{$demand->id}}"
+                                        data-name="{{\App\Library\CarbonHelper::getTurkishDate($demand->created_at)}}"
+                                        data-toggle="modal" data-target="#rejectDemandConfirm">
+                                    Reddet
+                                </button>
+
+
                         @endif
                     </td>
 

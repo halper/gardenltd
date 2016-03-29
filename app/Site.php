@@ -125,4 +125,19 @@ class Site extends Eloquent implements SluggableInterface
     {
         return $this->belongsToMany('App\Stock')->withPivot('amount', 'detail')->withTimestamps();
     }
+
+    public function expenditure()
+    {
+        return $this->hasMany('App\Expenditure');
+    }
+
+    public function employee()
+    {
+        return $this->belongsToMany('App\Personnel', 'personnel_site', 'site_id', 'personnel_id')->withTimestamps();
+    }
+
+    public function labor()
+    {
+        return $this->hasMany('App\Labor');
+    }
 }

@@ -25,6 +25,7 @@ $today = Carbon::now()->toDateString();
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/select2.min.js"></script>
     <script>
+
         $(document).on("click", ".subDelBut", function (e) {
 
             e.preventDefault();

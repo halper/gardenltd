@@ -20,4 +20,9 @@ class Outmaterial extends Model
     {
         return $this->belongsTo('App\Report');
     }
+
+    public function material()
+    {
+        return $this->belongsTo('App\Material');
+    }
 }

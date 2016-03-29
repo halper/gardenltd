@@ -55,14 +55,16 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                 }
                 $scope.loading = true;
                 $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/retrieve-inmaterials", {
-                    'start_date': $scope.startDate,
-                    'end_date': $scope.endDate
+                    start_date: $scope.startDate,
+                    end_date: $scope.endDate
                 }).then(function (response) {
                     $scope.data = response.data;
                     $scope.incomingmat = response.data.incomingmat;
                 }).finally(function () {
                     $scope.loading = false;
                     setHeaderHeights();
+                    $scope.startDate = '';
+                    $scope.endDate = '';
                 });
             }
         }).filter('searchFor', function () {
@@ -79,7 +81,24 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                 });
                 return result;
             };
+        }).filter('numberFormatter', function () {
+            return function (data) {
+                return $.number(data, 2, ',', '.');
+            }
+        }).filter('sumOfValue', function () {
+            return function (data, key) {
+                console.log(data + " " + key);
+                if (typeof (data) === 'undefined' && typeof (key) === 'undefined') {
+                    return 0;
+                }
+                var sum = 0.0;
+                for (var i = 0; i < data.length; i++) {
+                    sum = sum + parseFloat(data[i][key]);
+                }
+                return sum;
+            };
         });
+
         function cb(start, end) {
             $('#reportrange span').html(start.format('D MMMM YYYY') + ' - ' + end.format('D MMMM YYYY'));
         }
@@ -120,8 +139,8 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
             setHeaderHeights();
             $('.date-filter').on('click', function (e) {
                 e.preventDefault();
-                $('input[name="start-date"]').val();
-                $('input[name="end-date"]').val();
+                $('input[name="start-date"]').val('');
+                $('input[name="end-date"]').val('');
                 $('#reportrange span').html("Filtrelemek için tarih seçiniz.");
                 angular.element('#angPuantaj').scope().getOvertimes();
                 $(this).hide();
@@ -186,26 +205,37 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                                         <thead>
                                         <tr style="font-size: smaller">
                                             <th>TARİH</th>
-                                            <th>TALEP NO</th>
-                                            <th>MALZEME</th>
-                                            <th>BİRİM</th>
-                                            <th>MİKTAR</th>
-                                            <th>FİRMA</th>
+                                            <th style="text-align: center">TALEP NO</th>
+                                            <th style="text-align: center">MALZEME</th>
+                                            <th style="text-align: center">BİRİM</th>
+                                            <th style="text-align: right">MİKTAR</th>
+                                            <th style="text-align: center">FİRMA</th>
                                             <th>AÇIKLAMA</th>
-                                            <th>İRSALİYE NO</th>
+                                            <th style="text-align: center">İRSALİYE NO</th>
                                         </tr>
                                         </thead>
                                         <tbody>
-                                        <tr ng-repeat="mat in incomingmat | searchFor:name track by $index">
+                                        <tr ng-repeat="mat in resultValue=(incomingmat | searchFor:name) track by $index">
 
                                             <td><% mat.date %></td>
-                                            <td><% mat.id %></td>
-                                            <td><% mat.name %></td>
-                                            <td><% mat.unit %></td>
-                                            <td><% mat.quantity %></td>
-                                            <td><% mat.firm %></td>
+                                            <td style="text-align: center"><% mat.id %></td>
+                                            <td style="text-align: center"><% mat.name %></td>
+                                            <td style="text-align: center"><% mat.unit %></td>
+                                            <td style="text-align: right"><% mat.quantity |numberFormatter %></td>
+                                            <td style="text-align: center"><% mat.firm %></td>
                                             <td><%mat.explanation%></td>
-                                            <td><%mat.irsaliye%></td>
+                                            <td style="text-align: center"><%mat.irsaliye%></td>
+
+                                        </tr>
+                                        <tr ng-hide="!name" class="bg-warning">
+                                            <td></td>
+                                            <td></td>
+                                            <td style="text-align: center"><strong>MALZEME TOPLAM:</strong></td>
+                                            <td></td>
+                                            <td style="text-align: right"><strong><%resultValue | sumOfValue:'quantity' | numberFormatter%></strong></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
 
                                         </tr>
                                         </tbody>

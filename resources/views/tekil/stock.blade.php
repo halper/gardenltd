@@ -15,29 +15,51 @@ $today = Carbon::now()->toDateString();
 @section('page-specific-js')
 
     <script src="<?= URL::to('/'); ?>/js/select2.min.js"></script>
+    <script src="<?= URL::to('/'); ?>/js/moment.min.js"></script>
+    <script src="<?= URL::to('/'); ?>/js/combodate.js"></script>
     <script src="<?= URL::to('/'); ?>/js/bootstrap-editable.min.js" type="text/javascript"></script>
     <script>
         $.fn.editable.defaults.mode = 'inline';
+        $(function () {
+            $('.dob').editable({
+                format: 'YYYY-MM-DD',
+                viewformat: 'DD.MM.YYYY',
+                template: 'DD / MMM / YYYY',
+                combodate: {
+                    minYear: 2015,
+                    maxYear: 2020,
+                    minuteStep: 1
+                }
+            });
+        });
+
         $(document).ready(function () {
+            moment.locale('tr');
             $('.inline-edit').editable({
                 validate: true
             });
         });
-        $(document).on("click", ".subDelBut", function (e) {
 
-            e.preventDefault();
-            var myUserId = $(this).data('id');
-            var myUserName = $(this).data('name');
-            var myForm = $('.modal-footer #subDeleteForm');
-            var myP = $('.modal-body .userDel');
-            myP.html("<em>" + myUserName + "</em> demirbaşını silmek istediğinize emin misiniz?");
-            $('<input>').attr({
-                type: 'hidden',
-                name: 'id',
-                value: myUserId
-            }).appendTo(myForm);
-            $('#deleteSubcontractorConfirm').modal('show');
+        $('.btn-approve').on('click', function () {
+            $(this).next().removeClass("hidden");
+            $(this).next().show();
+            $(this).hide();
         });
+        $('.btn-cancel-sm').on('click', function () {
+            $(this).parent("div").parent("div").prev().show();
+            $(this).parent("div").parent("div").hide();
+        });
+        $('.btn-remove-sm').on('click', function () {
+            var $stockTId = $(this).data('id');
+            $.post("{{"/tekil/$site->slug/del-site-stock"}}",
+                    {
+                        id: $stockTId
+                    })
+                    .done(function () {
+                        $('#tr-st-' + $stockTId).remove();
+                    });
+        });
+
 
         $.get("<?=URL::to('/');?>/tekil/{{$site->slug}}/retrieve-stocks",
                 function (data) {
@@ -134,9 +156,12 @@ $today = Carbon::now()->toDateString();
                             <table class="table table-condensed table-bordered">
                                 <thead>
                                 <tr>
-                                    <th> Demirbaş</th>
-                                    <th> Birim</th>
-                                    <th class="text-right"> Miktar</th>
+                                    <th class="col-sm-1"> Demirbaş</th>
+                                    <th class="col-sm-1"> Birim</th>
+                                    <th class="text-right col-sm-2"> Miktar</th>
+                                    <th class="col-sm-2 text-center">Giriş Tarihi</th>
+                                    <th class="col-sm-2 text-center">Çıkış Tarihi</th>
+                                    <th class="col-sm-4">Açıklama</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -158,10 +183,31 @@ $today = Carbon::now()->toDateString();
                                             <div class="form-group">
                                                 {!! Form::number('quantity[]', null, ['class' =>
                                                 'form-control text-right', 'autocomplete' => 'off', 'max' => $stock_array[$i]['left'],
-                                                'placeholder' => $mat->name." demirbaş miktarını giriniz"]) !!} (En
-                                                fazla {{$stock_array[$i]['left'] . " " . $mat->unit}} istekte
-                                                bulunabilirsiniz.)
+                                                'placeholder' =>"Miktar giriniz"]) !!}
+                                                (Max: {{$stock_array[$i]['left'] . " " . $mat->unit}})
                                                 <span></span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="input-group input-append date dateRangePicker">
+                                                <input type="text" class="form-control" name="entry_date[]"
+                                                       placeholder="Demirbaş giriş" value="">
+                                                <span class="input-group-addon add-on"><span
+                                                            class="glyphicon glyphicon-calendar"></span></span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="input-group input-append date dateRangePicker">
+                                                <input type="text" class="form-control" name="exit_date[]"
+                                                       placeholder="Demirbaş çıkış" value="">
+                                                <span class="input-group-addon add-on"><span
+                                                            class="glyphicon glyphicon-calendar"></span></span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="form-group">
+                                                <input class="form-control" autocomplete="off" type="text"
+                                                       name="site_detail[]">
                                             </div>
                                         </td>
 
@@ -188,32 +234,5 @@ $today = Carbon::now()->toDateString();
         </div>
     @endif
 
-    <div id="deleteSubcontractorConfirm" class="modal fade" role="dialog">
-        <div class="modal-dialog">
 
-            <!-- Modal content-->
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">Demirbaş Sil</h4>
-                </div>
-                <div class="modal-body">
-                    <p class="userDel"></p>
-                </div>
-                <div class="modal-footer">
-                    {!! Form::open([
-                    'url' => "/tekil/$site->slug/del-site-stock",
-                    'method' => 'POST',
-                    'class' => 'form',
-                    'id' => 'subDeleteForm',
-                    'role' => 'form'
-                    ]) !!}
-                    <button type="submit" class="btn btn-flat btn-warning">Sil</button>
-                    <button type="button" class="btn btn-flat btn-default" data-dismiss="modal">İptal</button>
-                    {!! Form::close() !!}
-                </div>
-            </div>
-
-        </div>
-    </div>
 @stop

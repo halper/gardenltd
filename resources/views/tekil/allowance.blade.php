@@ -60,7 +60,7 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                         'detail': $scope.detail,
                         'no': $scope.no,
                         'amount': $scope.amount,
-                        'id' : response.data.id
+                        'id': response.data.id
                     });
                     $scope.total += parseFloat($scope.amount);
                     $scope.left -= parseFloat($scope.amount);
@@ -72,7 +72,7 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                 });
 
             };
-            $scope.remove_field = function(item) {
+            $scope.remove_field = function (item) {
                 $http.post("<?=URL::to('/');?>/tekil/{{$site->slug}}/del-hakedis", {
                     'id': item.id
                 }).then(function () {
@@ -88,8 +88,8 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                 });
 
             }
-        }).filter('numberFormatter', function(){
-            return function (data){
+        }).filter('numberFormatter', function () {
+            return function (data) {
                 return $.number(data, 2, ',', '.');
             }
         });
@@ -167,33 +167,34 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                                     <table class="table table-responsive table-extra-condensed dark-bordered">
                                         <thead>
                                         <tr style="font-size: smaller">
-                                            <th>NO</th>
-                                            <th>TARİH</th>
-                                            <th>TUTAR</th>
+                                            <th class="text-center">NO</th>
+                                            <th class="text-center">TARİH</th>
                                             <th>AÇIKLAMA</th>
-                                            <th>SİL</th>
+                                            <th class="text-right">TUTAR</th>
+                                            <th class="text-center">SİL</th>
                                         </tr>
                                         </thead>
                                         <tbody>
                                         <tr ng-repeat="st in staff track by $index">
 
-                                            <td><% st.no %></td>
-                                            <td><% st.date%></td>
-                                            <td><%st.amount | numberFormatter%></td>
+                                            <td class="text-center"><% st.no %></td>
+                                            <td class="text-center"><% st.date%></td>
                                             <td><%st.detail%></td>
-                                            <td><a href="#" ng-click="remove_field(st)"><i class="fa fa-close"></i></a></td>
+                                            <td class="text-right"><%st.amount | numberFormatter%> TL</td>
+                                            <td class="text-center"><a href="#" ng-click="remove_field(st)"><i
+                                                            class="fa fa-close"></i></a></td>
                                         </tr>
-                                        <tr>
-                                            <td><strong>TOPLAM: </strong></td>
+                                        <tr class="bg-warning">
                                             <td></td>
-                                            <td><%total | numberFormatter%></td>
-                                        <td></td>
+                                            <td></td>
+                                            <td class="text-center"><strong>TOPLAM: </strong></td>
+                                            <td class="text-right"><%total | numberFormatter%> TL</td>
                                         </tr>
-                                        <tr>
-                                            <td><strong>KALAN: </strong></td>
+                                        <tr class="bg-info">
                                             <td></td>
-                                            <td><%left | numberFormatter%></td>
-                                        <td></td>
+                                            <td></td>
+                                            <td class="text-center"><strong>KALAN: </strong></td>
+                                            <td class="text-right"><%left | numberFormatter%> TL</td>
                                         </tr>
                                         </tbody>
                                     </table>

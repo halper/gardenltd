@@ -6,8 +6,10 @@ use App\Contract;
 use App\Demand;
 use App\Department;
 use App\Equipment;
+use App\Expdetail;
 use App\Feature;
 use App\File;
+use App\Iddoc;
 use App\Library\CarbonHelper;
 use App\Library\TurkishChar;
 use App\Manufacturing;
@@ -18,6 +20,7 @@ use App\Photo;
 use App\Pwunit;
 use App\Rejection;
 use App\Report;
+use App\Salary;
 use App\Sfile;
 use App\Site;
 use App\Staff;
@@ -25,6 +28,7 @@ use App\Stock;
 use App\Subcontractor;
 use App\Subdetail;
 use App\Submaterial;
+use App\Tag;
 use App\User;
 use App\Wage;
 use Carbon\Carbon;
@@ -84,12 +88,12 @@ class AdminController extends Controller
     public function getAyarlar()
     {
         $users = User::all();
-        return view('landing/ayarlar', compact('users'));
+        return view('landing.ayarlar', compact('users'));
     }
 
     public function edit(User $user)
     {
-        return view('landing/edit', compact('user'));
+        return view('landing.edit', compact('user'));
     }
 
     public function approve(Demand $demand)
@@ -191,7 +195,7 @@ class AdminController extends Controller
 
     public function getEkle()
     {
-        return view('landing/insert');
+        return view('landing.insert');
     }
 
     public function postCheckTck(Request $request)
@@ -209,13 +213,15 @@ class AdminController extends Controller
         $this->validate($request, [
             'tck_no' => 'required | size:11',
             'name' => 'required',
-            'contract' => 'required'
+            'contract' => 'required',
+            'iddoc' => 'required'
         ]);
         $per_arr = $request->all();
         if (!empty($request->get("iban"))) {
             $per_arr["iban"] = preg_replace("/\\s+/ ", "", $request->get("iban"));
         }
         $personnel = Personnel::create($per_arr);
+
         if (isset($per_arr["wage"])) {
             $per_arr["wage"] = str_replace(",", ".", $request->get("wage"));
         } else {
@@ -248,9 +254,18 @@ class AdminController extends Controller
                 }
             }
         }
+        $id_file = $this->uploadFile($request->file("iddoc"), $directory);
+        $iddoc = new Iddoc();
+        $iddoc->save();
+        $iddoc->file()->save($id_file);
+        $personnel->iddoc()->save($iddoc);
         $personnel->contract()->save($contract);
         (new Site)->personnel()->save($personnel);
-
+        if (isset($request->exit_date) && !empty($request->exit_date)) {
+            $contract = $personnel->contract;
+            $contract->exit_date = CarbonHelper::getMySQLDate($request->exit_date);
+            $contract->save();
+        }
         Session::flash('flash_message', 'Personel eklendi');
         return redirect()->back();
     }
@@ -291,6 +306,13 @@ class AdminController extends Controller
         return !empty($eq) ? response()->json('success', 200) : response()->json('error', 400);
     }
 
+    public function postAddTag(Request $request)
+    {
+        $eq = Tag::create($request->all());
+
+        return !empty($eq) ? response()->json('success', 200) : response()->json('error', 400);
+    }
+
     public function postAddStaff(Request $request)
     {
         $st = Staff::create($request->all());
@@ -311,46 +333,49 @@ class AdminController extends Controller
 
     public function getGuncelle()
     {
-        return view('landing/modify');
+        return view('landing.modify');
     }
 
     public function getPersonelDuzenle(Personnel $personnel)
     {
-        return view('landing/personnel', compact('personnel'));
+        return view('landing.personnel', compact('personnel'));
     }
 
     public function postModifyPersonnel(Request $request)
     {
         $per_arr = $request->all();
         unset($per_arr["_token"]);
+        unset($per_arr["exit_date"]);
         $per_wage = str_replace(",", ".", $request->get("wage"));
         unset($per_arr["wage"]);
         unset($per_arr["id"]);
         unset($per_arr["contract"]);
+        unset($per_arr["iddoc"]);
         unset($per_arr["documents"]);
         if (!empty($request->get("iban"))) {
             $per_arr["iban"] = preg_replace("/\\s+/ ", "", $request->get("iban"));
         }
 
         $per = Personnel::find($request->get("id"));
+        if (isset($request->exit_date) && !empty($request->exit_date)) {
+            $contract = $per->contract;
+            $contract->exit_date = CarbonHelper::getMySQLDate($request->exit_date);
+            $contract->save();
+        }
         foreach ($per_arr as $k => $v) {
             $per->$k = $v;
         }
         $per->save();
-        $wage = Wage::create([
-            'wage' => $per_wage,
-            'since' => Carbon::parse($per->updated_at)->toDateString()]);
-        $wage->personnel()->associate($per);
-        $wage->save();
 
         $directory = public_path() . '/uploads/' . uniqid(rand(), true);
-        if (!empty($request->file("contract"))) {
+
+        if ($request->hasFile("contract")) {
             $contract_file = $this->uploadFile($request->file("contract"), $directory);
             $contract = $per->contract;
             $contract->file()->save($contract_file);
         }
 
-        if (!empty($request->file("documents"))) {
+        if ($request->hasFile("documents")) {
             foreach ($request->file("documents") as $file) {
 
                 $db_file = $this->uploadFile($file, $directory);
@@ -361,6 +386,23 @@ class AdminController extends Controller
                     $per->photo()->save($photo);
                 }
             }
+        }
+
+        if ($request->hasFile("iddoc")) {
+            $id_file = $request->file('iddoc');
+            $db_file = $this->uploadFile($id_file, $directory);
+
+            if ($db_file) {
+                if (!empty($per->iddoc()->first())) {
+                    $iddoc = $per->iddoc()->first();
+                } else {
+                    $iddoc = Iddoc::create();
+                    $iddoc->personnel()->associate($per);
+                    $iddoc->save();
+                }
+                $iddoc->file()->save($db_file);
+            }
+
         }
 
         Session::flash('flash_message', 'Personel güncellendi');
@@ -379,6 +421,70 @@ class AdminController extends Controller
         Personnel::find($request->get('userDeleteIn'))->delete();
         Session::flash('flash_message', 'Personel silindi');
         return redirect()->back();
+    }
+
+    public function postRetrieveWages(Request $request)
+    {
+        $personnel = Personnel::find($request->pid);
+        $resp_arr = [];
+        foreach ($personnel->wage()->orderBy('since', 'DESC')->get() as $wage) {
+            array_push($resp_arr, [
+                'id' => $wage->id,
+                'since' => CarbonHelper::getTurkishDate($wage->since),
+                'wage' => str_replace('.', ',', $wage->wage)
+            ]);
+        }
+        return response($resp_arr, 200);
+    }
+
+    public function postAddWage(Request $request)
+    {
+        $personnel = Personnel::find($request->pid);
+        $wage = new Wage();
+        $wage->wage = $request->wage;
+        $wage->since = CarbonHelper::getMySQLDate($request->since);
+        $wage->personnel()->associate($personnel);
+        $wage->save();
+        return response('success', 200);
+
+    }
+
+    public function postDelWage(Request $request)
+    {
+        Wage::find($request->id)->delete();
+        return response('success', 200);
+    }
+
+    public function postRetrieveSalaries(Request $request)
+    {
+        $personnel = Personnel::find($request->pid);
+        $resp_arr = [];
+        foreach ($personnel->salary()->orderBy('since', 'DESC')->get() as $salary) {
+            array_push($resp_arr, [
+                'id' => $salary->id,
+                'since' => CarbonHelper::getTurkishDate($salary->since),
+                'salary' => str_replace('.', ',', $salary->amount)
+            ]);
+        }
+        return response($resp_arr, 200);
+    }
+
+    public function postAddSalary(Request $request)
+    {
+        $personnel = Personnel::find($request->pid);
+        $salary = new Salary();
+        $salary->amount = $request->amount;
+        $salary->since = CarbonHelper::getMySQLDate($request->since);
+        $salary->personnel()->associate($personnel);
+        $salary->save();
+        return response('success', 200);
+
+    }
+
+    public function postDelSalary(Request $request)
+    {
+        Salary::find($request->id)->delete();
+        return response('success', 200);
     }
 
     public function getAltyukleniciDuzenle(Subdetail $subdetail)
@@ -427,6 +533,12 @@ class AdminController extends Controller
         return $this->modifyEntry($eq, $request);
     }
 
+    public function postModifyTag(Request $request)
+    {
+        $eq = Tag::find($request->get("pk"));
+        return $this->modifyEntry($eq, $request);
+    }
+
     public function postModifyStaff(Request $request)
     {
         $eq = Staff::find($request->get("pk"));
@@ -448,6 +560,12 @@ class AdminController extends Controller
     public function postModifyFeature(Request $request)
     {
         $eq = Feature::find($request->get("pk"));
+        return $this->modifyEntry($eq, $request);
+    }
+
+    public function postModifyExpdetail(Request $request)
+    {
+        $eq = Expdetail::find($request->get("pk"));
         return $this->modifyEntry($eq, $request);
     }
 
@@ -542,7 +660,7 @@ class AdminController extends Controller
         $total_date = $this->getTotalDate($request->get('start_date'), $request->get('end_date'));
         for ($x = $total_date; $x >= 0; $x--) {
             $rep_date = Carbon::parse($request->get('end_date'))->subDays($x)->toDateString();
-            if($site->report()->whereDate('created_at', '=', $rep_date)->get()->isEmpty()){
+            if ($site->report()->whereDate('created_at', '=', $rep_date)->get()->isEmpty()) {
                 $report = new Report();
                 $report->created_at = $rep_date;
                 $report->site()->associate($site);
@@ -568,7 +686,7 @@ class AdminController extends Controller
         $total_date = $this->getTotalDate($request->get('start_date'), $request->get('end_date'));
         for ($x = $total_date; $x >= 0; $x--) {
             $rep_date = Carbon::parse($request->get('end_date'))->subDays($x)->toDateString();
-            if($site->report()->whereDate('created_at', '=', $rep_date)->get()->isEmpty()){
+            if ($site->report()->whereDate('created_at', '=', $rep_date)->get()->isEmpty()) {
                 $report = new Report();
                 $report->created_at = $rep_date;
                 $report->site()->associate($site);
@@ -581,7 +699,7 @@ class AdminController extends Controller
                 foreach ($site->equipment()->get() as $eq) {
                     $report->equipment()->attach($eq->id);
                 }
-            }else{
+            } else {
                 $report = $site->report()->whereDate('created_at', '=', $rep_date)->first();
             }
             $report->user()->attach($user);
@@ -593,6 +711,39 @@ class AdminController extends Controller
     {
         $user = User::find($request->uid);
         $user->report()->detach(Report::find($request->id));
+        return response('success', 200);
+    }
+
+    public function getRetrieveExpdetail()
+    {
+        $resp_arr = [];
+
+        foreach (Expdetail::all() as $exp) {
+            $group = 'GENEL GİDERLER';
+            switch ($exp->group) {
+                case(2):
+                    $group = 'SÖZLEŞME GİDERLERİ';
+                    break;
+                case(3):
+                    $group = 'SARF MALZEME GİDERLERİ';
+                    break;
+                case(4):
+                    $group = 'İNŞAAT MALZEME GİDERLERİ';
+                    break;
+                default:
+                    break;
+            }
+            array_push($resp_arr, [
+                'name' => $exp->name,
+                'group' => $group
+            ]);
+        }
+        return response($resp_arr, 200);
+    }
+
+    public function postAddExpenditure(Request $request)
+    {
+        Expdetail::create($request->all());
         return response('success', 200);
     }
 

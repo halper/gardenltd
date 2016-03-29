@@ -1,5 +1,23 @@
 <?php
 use App\Library\TurkishChar;
+$expanding_arr = DB::table('modules')->select('expandable')->whereNotNull('expandable')->distinct()->get();
+$expandable_arr = [];
+$exp_mod_arr = [];
+foreach ($expanding_arr as $expander) {
+    $expander_arr = DB::table('modules')->select('id', 'name', 'slug')->where('expandable', '=', $expander->expandable)->get();
+    foreach ($expander_arr as $expanding) {
+        if (Auth::User()->hasAnyPermissionOnModule($expanding->id) || Auth::User()->isAdmin()) {
+            array_push($expandable_arr, $expanding);
+        }
+    }
+    if (sizeof($expandable_arr) > 0) {
+        array_push($exp_mod_arr, [
+                'name' => $expander->expandable,
+                'modules' => $expandable_arr
+        ]);
+    }
+}
+
 ?>
         <!DOCTYPE html>
 <html>
@@ -54,8 +72,8 @@ use App\Library\TurkishChar;
                 @foreach($modules->getModules() as $module)
                     @if(Auth::User()->hasAnyPermissionOnModule($module->id) || Auth::User()->isAdmin())
                         <?php
-                            $addr = explode("/", $_SERVER['REQUEST_URI']);
-                            $module_name = $addr[sizeof($addr)-1];
+                        $addr = explode("/", $_SERVER['REQUEST_URI']);
+                        $module_name = $addr[sizeof($addr) - 1];
                         if (strpos($module->icon, "ion-") !== false) {
                             $i_icon = "ion ";
                         } else {
@@ -64,14 +82,29 @@ use App\Library\TurkishChar;
                         $i_icon .= $module->icon
                         ?>
 
-                        <li {!! strpos($module_name, $module->slug) !==false ? "class='active'" : "" !!}><a href="/tekil/{{$site->slug."/".$module->slug}}" class="menu">
+                        <li {!! strpos($module_name, $module->slug) !==false ? "class='active'" : "" !!}><a
+                                    href="/tekil/{{$site->slug."/".$module->slug}}" class="menu">
                                 {!! empty($module->icon) ? "" : ("<i class=\"$i_icon\"></i>")!!}
                                 {{ $module->name}}
                             </a></li>
                     @endif
 
                 @endforeach
-
+                @if(sizeof($exp_mod_arr)>0)
+                    <li class="treeview">
+                        @foreach($exp_mod_arr as $exp)
+                            <a href="#"  class="menu">
+                                <i class="fa fa-dashboard"></i> <span>{{$exp['name']}}</span> <i
+                                        class="fa fa-angle-left pull-right"></i>
+                            </a>
+                        <ul class="treeview-menu">
+                            @foreach($exp['modules'] as $mod)
+                                <li><a href="/tekil/{{$site->slug."/".$mod->slug}}"  class="menu"><i class="fa fa-circle-o"></i> {{$mod->name}}</a></li>
+                            @endforeach
+                        </ul>
+                        @endforeach
+                    </li>
+                @endif
 
             </ul>
 
@@ -86,7 +119,7 @@ use App\Library\TurkishChar;
         <section class="content">
 
 
-        @if(Session::has('flash_message') || Session::has('flash_message_important') || Session::has('flash_message_error'))
+            @if(Session::has('flash_message') || Session::has('flash_message_important') || Session::has('flash_message_error'))
 
                 <div class="alert {{ Session::has('flash_message_error') ? 'alert-danger ' : 'alert-success ' }} fade in alert-box {{ Session::has('flash_message_important') ? 'alert-important' : '' }}">
                     @if(Session::has('flash_message_important') || Session::has('flash_message_error'))

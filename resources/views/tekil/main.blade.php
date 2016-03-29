@@ -191,7 +191,7 @@ EOF;
 
                     </div>
                     <p>
-                        Hakedişler: <strong>{{$total_allowance}}TL</strong>, Kalan: <strong>{{$left_allowance}}TL</strong>
+                        Hakedişler: <strong><span class="inumber">{{$total_allowance}}</span> TL</strong> - Kalan: <strong><span class="inumber">{{$left_allowance}}</span> TL</strong>
                     </p>
                 </div>
             </div>

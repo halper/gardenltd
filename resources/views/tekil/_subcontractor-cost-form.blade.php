@@ -58,6 +58,7 @@
                                         <option value="Temizlik">GARDEN TARAFINDAN SAĞLANAN TEMİZLİK BEDELİ</option>
                                         <option value="İşçilik">ALT YÜKLENİCİ ADINA ÇALIŞTIRILAN İŞÇİLİK BEDELİ</option>
                                         <option value="Ek Ödeme">EK ÖDEME</option>
+                                        <option value="İş Avansı">İŞ AVANSI</option>
                                         <option value="Diğer">DİĞER</option>
                                     </select>
                                 </div>
@@ -126,9 +127,9 @@
                                     <th></th>
                                     <th></th>
                                     <th class="text-right">GENEL TOPLAM</th>
-                                    <th class="text-right"><%debt|numberFormatter%></th>
-                                    <th class="text-right"><%claim|numberFormatter%></th>
-                                    <th class="text-right"><%balance|numberFormatter%></th>
+                                    <th class="text-right"><%debt|numberFormatter%> TL</th>
+                                    <th class="text-right"><%claim|numberFormatter%> TL</th>
+                                    <th class="text-right"><%balance|numberFormatter%> TL</th>
                                     <th></th>
                                 </tr>
                                 </thead>
@@ -138,9 +139,9 @@
                                     <td class="text-center"><%payment.type%></td>
                                     <td class="text-center"><%payment.method%></td>
                                     <td class="text-left"><%payment.detail%></td>
-                                    <td class="text-right"><%payment.debt|numberFormatter%></td>
+                                    <td class="text-right"><%payment.debt|numberFormatter%> TL</td>
                                     <td></td>
-                                    <td class="text-right"><%payment.balance|numberFormatter%></td>
+                                    <td class="text-right"><%payment.balance|numberFormatter%> TL</td>
                                     <td class="text-center"><a href="#!" ng-click="remove_field(payment)"><i
                                                     class="fa fa-close"></i></a>
                                 </tr>

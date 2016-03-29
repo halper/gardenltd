@@ -6,11 +6,15 @@ use App\Account;
 use App\Allowance;
 use App\Contract;
 use App\Demand;
+use App\Expdetail;
+use App\Expenditure;
 use App\Expense;
 use App\Feature;
 use App\Fee;
 use App\File;
+use App\Iddoc;
 use App\Inmaterial;
+use App\Labor;
 use App\Library\CarbonHelper;
 use App\Library\TurkishChar;
 use App\Library\Weather;
@@ -38,12 +42,16 @@ use App\Stock;
 use App\Subcontractor;
 use App\Submaterial;
 use App\Swunit;
+use App\Tag;
 use App\Wage;
 use Carbon\Carbon;
+use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\URL;
+use PhpParser\Node\Expr\AssignOp\Mod;
 
 
 class TekilController extends ManagementController
@@ -262,28 +270,28 @@ class TekilController extends ManagementController
     public function postSaveStaff(Site $site, Request $request)
     {
 //        Main contractor
-        $personnel_arr = $this->getDistinct($request->get("staffs"));
-
         $report = Report::find($request->get("report_id"));
+        if ($request->has("staffs")) {
+            $personnel_arr = $this->getDistinct($request->get("staffs"));
+            $report->staff()->detach();
+            for ($i = 0; $i < sizeof($personnel_arr); $i++) {
+                $per = Personnel::find($personnel_arr[$i]);
+                $this->createShiftsMealsFromPerRepSite($per, $site, $report);
 
-        $report->staff()->detach();
-        for ($i = 0; $i < sizeof($personnel_arr); $i++) {
-            $per = Personnel::find($personnel_arr[$i]);
-            $this->createShiftsMealsFromPerRepSite($per, $site, $report);
-
-            /*
-             * quantity nasıl bulunur
-             * Bu personelin staff'ı ilgili raporda ekliyse onun quantity'si alınır
-             * yoksa quantity 1 olur
-             */
-            $quantity = 1;
-            if (!is_null($report->staff()->where('staff_id', $per->staff_id)->first())) {
-                $quantity = (int)$report->staff()->where('staff_id', $per->staff_id)->first()->pivot->quantity + 1;
+                /*
+                 * quantity nasıl bulunur
+                 * Bu personelin staff'ı ilgili raporda ekliyse onun quantity'si alınır
+                 * yoksa quantity 1 olur
+                 */
+                $quantity = 1;
+                if (!is_null($report->staff()->where('staff_id', $per->staff_id)->first())) {
+                    $quantity = (int)$report->staff()->where('staff_id', $per->staff_id)->first()->pivot->quantity + 1;
+                }
+                $report->staff()->detach($per->staff_id);
+                $report->staff()->attach($per->staff_id, ["quantity" => $quantity]);
             }
-            $report->staff()->detach($per->staff_id);
-            $report->staff()->attach($per->staff_id, ["quantity" => $quantity]);
+            Session::flash('flash_message', 'İlgili personel eklendi');
         }
-        Session::flash('flash_message', 'İlgili personel eklendi');
         return redirect()->back()->with('report', $report);
     }
 
@@ -323,7 +331,7 @@ class TekilController extends ManagementController
             }
         }
 
-            $report->save();
+        $report->save();
 
         Session::flash('flash_message', 'Personel kaydı başarılı');
         return redirect()->back()->with('report', $report);
@@ -338,30 +346,59 @@ class TekilController extends ManagementController
         return response()->json('success', 200);
     }
 
+    public function postAttachTag(Request $request)
+    {
+        if ($request->has('fileid')) {
+            $file = File::find($request->fileid);
+            $file->tag()->detach();
+            if (!empty($request->tags))
+                $this->attachTags($request->tags, $file);
+        } else {
+            foreach ($request->file_id as $fid) {
+                $file = File::find($fid);
+                $file->tag()->detach();
+                if ($request->has("tags-" . $fid)) {
+                    $this->attachTags($request->get("tags-" . $fid), $file);
+                }
+            }
+        }
+        return response()->json('success', 200);
+    }
+
+    private function attachTags($tags, $file)
+    {
+        foreach ($tags as $tid) {
+            $tag = Tag::find($tid);
+            $tag->file()->attach($file);
+        }
+    }
+
     public function postSaveSubcontractorStaff(Site $site, Request $request)
     {
 //        Daily report subcontractor staff
         $report = Report::find($request->get("report_id"));
+        if ($request->has("substaffs")) {
 //        Get subcontractor personnel
-        $personnel_arr = $this->getDistinct($request->get("substaffs"));
+            $personnel_arr = $this->getDistinct($request->get("substaffs"));
 
-        for ($i = 0; $i < sizeof($personnel_arr); $i++) {
-            $per = Personnel::find($personnel_arr[$i]);
-            $this->createShiftsMealsFromPerRepSite($per, $site, $report);
-            $subcontractor = $per->personalize;
-            $quantity = 1;
+            for ($i = 0; $i < sizeof($personnel_arr); $i++) {
+                $per = Personnel::find($personnel_arr[$i]);
+                $this->createShiftsMealsFromPerRepSite($per, $site, $report);
+                $subcontractor = $per->personalize;
+                $quantity = 1;
 
-            if ($report->hasSubstaff($per->staff_id, $subcontractor->id)) {
-                $quantity = (int)$report->substaff()->where('substaff_id', $per->staff_id)->where('subcontractor_id', $subcontractor->id)
-                        ->first()->pivot->quantity + 1;
-                $report->detachSubstaff($per->staff_id, $subcontractor->id, $report->id);
+                if ($report->hasSubstaff($per->staff_id, $subcontractor->id)) {
+                    $quantity = (int)$report->substaff()->where('substaff_id', $per->staff_id)->where('subcontractor_id', $subcontractor->id)
+                            ->first()->pivot->quantity + 1;
+                    $report->detachSubstaff($per->staff_id, $subcontractor->id, $report->id);
+                }
+                $report->substaff()->attach($per->staff_id, [
+                    "quantity" => $quantity,
+                    "subcontractor_id" => $subcontractor->id]);
             }
-            $report->substaff()->attach($per->staff_id, [
-                "quantity" => $quantity,
-                "subcontractor_id" => $subcontractor->id]);
+            Session::flash('flash_message', 'Alt yüklenici personel kaydı başarılı');
         }
-        Session::flash('flash_message', 'Alt yüklenici personel kaydı başarılı');
-        return redirect()->back()->with('report', $report);
+        return redirect()->back()->with('report', $report)->with('anchor', '#subcontractor_staff');
     }
 
     public function postDeleteReportSubcontractor(Site $site, Request $request)
@@ -410,10 +447,11 @@ class TekilController extends ManagementController
         $site = Site::find($request->sid);
         $resp_arr = [];
         foreach ($site->subcontractor()->get() as $sub) {
-            array_push($resp_arr, [
-                'name' => $sub->subdetail->name,
-                'id' => $sub->id
-            ]);
+            if (count($sub->subdetail))
+                array_push($resp_arr, [
+                    'name' => $sub->subdetail->name,
+                    'id' => $sub->id
+                ]);
         }
         return response($resp_arr, 200);
     }
@@ -548,12 +586,13 @@ class TekilController extends ManagementController
             $inmaterial = new Inmaterial();
             $inmaterial->material()->associate(Material::find($request->get("inmaterials")[$i]));
             $inmaterial->report()->associate($report);
+            $inmaterial->save();
             $this->saveIncomingMaterial($request, $inmaterial, $i);
             Session::flash('flash_message', 'Gelen malzeme tablosu güncellendi');
         }
 
 
-        return redirect()->back()->with('report', $report);
+        return redirect()->back()->with('report', $report)->with('anchor', '#incoming_table');
     }
 
     private function saveIncomingMaterial($request, $inmaterial, $i)
@@ -596,7 +635,7 @@ class TekilController extends ManagementController
         }
 
 
-        return redirect()->back()->with('report', $report);
+        return redirect()->back()->with('report', $report)->with('anchor', '#outgoing_table');
     }
 
     public function postDeleteOutmaterial(Request $request)
@@ -699,7 +738,7 @@ class TekilController extends ManagementController
 
         Session::flash('flash_message', 'Puantaj ve Yemek tablosu güncellendi');
         $report = Report::find($report_id);
-        return redirect()->back()->with('report', $report);
+        return redirect()->back()->with('report', $report)->with('anchor', '#shifts_meals');
     }
 
     public function postSaveNotes(Request $request)
@@ -709,7 +748,7 @@ class TekilController extends ManagementController
         $report->notes = $request->get("notes");
         $report->save();
         Session::flash('flash_message', "Ertesi gün notları kaydedildi");
-        return redirect()->back()->with('report', $report);
+        return redirect()->back()->with('report', $report)->with('anchor', '#notes');
     }
 
 //    END OF GUNLUK RAPOR PAGE
@@ -718,7 +757,7 @@ class TekilController extends ManagementController
     //  TAŞERON CARİ HESAP PAGE AND RELATED OPERATIONS
     public function getAltYukleniciCariHesap(Site $site, Module $modules)
     {
-        return view('tekil/subcontractor-account', compact('site', 'modules'));
+        return view('tekil.subcontractor-account', compact('site', 'modules'));
     }
 
     public function getAltYukleniciDuzenle(Site $site, Module $modules, Subcontractor $subcontractor)
@@ -726,7 +765,7 @@ class TekilController extends ManagementController
         if (is_null($site->subcontractor()->find($subcontractor->id))) {
             return redirect()->back();
         }
-        return view('tekil/subcontractor-edit', compact('subcontractor', 'site', 'modules'));
+        return view('tekil.subcontractor-edit', compact('subcontractor', 'site', 'modules'));
     }
 
     public function postAddSubcontractor(Request $request, Site $site)
@@ -741,6 +780,7 @@ class TekilController extends ManagementController
                     'site_id' => $site->id]);
                 $fee = new Fee();
                 $fee->subcontractor()->associate($sub);
+                $fee->save();
             }
         }
         Session::flash('flash_message', "Alt yüklenici seçimleri güncellendi");
@@ -850,29 +890,7 @@ class TekilController extends ManagementController
 
     public function postRetrievePayments(Request $request)
     {
-        $subcontractor = Subcontractor::find($request->subId);
-        $resp_arr = [];
-        $resp_arr['claim'] = TurkishChar::convertToTRcurrency((double)$subcontractor->price + (double)$subcontractor->additional_bid_cost);
-        $debt = 0;
-        $balance = 0.0-(double)$resp_arr['claim'];
-        $payments = [];
-        foreach ($subcontractor->payment()->orderBy('payment_date', 'DESC')->get() as $payment) {
-            $balance += (double)$payment->amount;
-            $debt += (double)$payment->amount;
-            array_push($payments, [
-                'id' => $payment->id,
-                'date' => CarbonHelper::getTurkishDate($payment->payment_date),
-                'type' => $payment->name,
-                'method' => empty($payment->method) ? '-' : $payment->method,
-                'detail' => $payment->detail,
-                'balance' => TurkishChar::convertToTRcurrency($balance),
-                'debt' => TurkishChar::convertToTRcurrency((double)$payment->amount)
-            ]);
-        }
-        $resp_arr['payments'] = $payments;
-        $resp_arr['debt'] = TurkishChar::convertToTRcurrency($debt);
-        $resp_arr['balance'] = TurkishChar::convertToTRcurrency($balance);
-        return response($resp_arr, 200);
+        return response($this->subcontractorPayments($request->subId), 200);
     }
 
     public function postAddPayment(Request $request)
@@ -924,7 +942,9 @@ class TekilController extends ManagementController
             'tck_no' => 'required | size:11',
             'name' => 'required',
             'contract' => 'required',
-            'wage' => 'required'
+            'iddoc' => 'required',
+            'wage' => 'required',
+            'staff_id' => 'required'
         ]);
         $per_arr = $request->all();
         $per_arr["wage"] = str_replace(",", ".", $request->get("wage"));
@@ -943,6 +963,7 @@ class TekilController extends ManagementController
         if (isset($request->exit_date)) {
             $contract->exit_date = CarbonHelper::getMySQLDate($request->exit_date);
         }
+        $contract->save();
         $contract->file()->save($contract_file);
 
         if (!empty($request->file("documents"))) {
@@ -957,12 +978,17 @@ class TekilController extends ManagementController
             }
         }
 
+        $id_file = $this->uploadFile($request->file("iddoc"), $directory);
+        $iddoc = new Iddoc();
+        $iddoc->save();
+        $iddoc->file()->save($id_file);
+        $personnel->iddoc()->save($iddoc);
         $personnel->contract()->save($contract);
         $subcontractor = Subcontractor::find($request->get('subcontractor_id'));
         $subcontractor->personnel()->save($personnel);
 
         Session::flash('flash_message', 'Personel eklendi');
-        return redirect()->back();
+        return redirect()->back()->with(['tab' => 'insert']);
     }
 
 
@@ -989,7 +1015,7 @@ class TekilController extends ManagementController
 // START OF KASA PAGE
     public function getKasa(Site $site, Module $modules)
     {
-        return view('tekil/account', compact('site', 'modules'));
+        return view('tekil.account', compact('site', 'modules'));
     }
 
     public function postAddExpense(Request $request)
@@ -1007,21 +1033,26 @@ class TekilController extends ManagementController
             'account_id' => $request->get("account_id"),
             'buyer' => $request->get("buyer"),
             'definition' => $request->get("definition"),
-            'expense' => $request->get("expense"),
-            'income' => $request->get("income"),
+            'expense' => empty($request->get("expense")) ? 0 : $request->get("expense"),
+            'income' => empty($request->get("income")) ? 0 : $request->get("income"),
             'type' => $request->get("type"),
         ]);
         return response('success', 200);
     }
 
-    public function getExpenses(Site $site)
+    public function postExpenses(Site $site, Request $request)
     {
-
         $account = $site->account;
         $co = $account->card_owner;
+        $expenses = $account->expense()->get();
+        if ($request->has("start_date") && !empty($request->start_date)) {
+
+            $expenses = $account->expense()->dateRange($request->start_date, $request->end_date)->get();
+        }
         $expense_arr = [];
-        foreach ($account->expense()->get() as $expense) {
+        foreach ($expenses as $expense) {
             array_push($expense_arr, [
+                'id' => $expense->id,
                 'date' => CarbonHelper::getTurkishDate($expense->exp_date),
                 'definition' => $expense->definition,
                 'buyer' => $expense->buyer,
@@ -1036,11 +1067,17 @@ class TekilController extends ManagementController
         return isset($expense_arr) ? response()->json($expense_arr, 200) : response()->json('error', 400);
     }
 
+    public function postDelExpense(Request $request)
+    {
+        Expense::find($request->id)->delete();
+        return response('success', 200);
+    }
+
 //    END OF KASA PAGE
 
     public function postCheckTck(Request $request)
     {
-        if (is_null(Personnel::where('tck_no', $request->get('tck_no'))->first())) {
+        if (is_null(Personnel::withTrashed()->where('tck_no', $request->get('tck_no'))->first())) {
             return response()->json('unique', 200);
         } else {
             return response()->json('found!', 200);
@@ -1053,7 +1090,7 @@ class TekilController extends ManagementController
 
     public function getPuantaj(Site $site, Module $modules)
     {
-        return view('tekil/shift', compact('site', 'modules'));
+        return view('tekil.shift', compact('site', 'modules'));
     }
 
     public function postOvertimes(Site $site, Request $request)
@@ -1077,36 +1114,21 @@ class TekilController extends ManagementController
 
         $i = sizeof($response_arr["personnel"]);
         foreach ($site->subcontractor()->get() as $subcont) {
-            $response_arr["personnel"][$i]["name"] = $subcont->subdetail->name;
-            $i++;
-            $sub_per = $subcont->personnel()->onlyTrashed()->where('deleted_at', '>=', $request->start_date)->get();
-            foreach ($subcont->personnel()->where('created_at', '<=', $request->end_date)->get() as $sub)
-                $sub_per->push($sub);
-
-            foreach ($sub_per as $sub) {
+            if (count($subcont->subdetail)) {
+                $response_arr["personnel"][$i]["name"] = $subcont->subdetail->name;
                 $i++;
-                array_push($response_arr["personnel"], $sub->toArray());
-                $all_personnel->push($sub);
-            }
+                $sub_per = $subcont->personnel()->onlyTrashed()->where('deleted_at', '>=', $request->start_date)->get();
+                foreach ($subcont->personnel()->where('created_at', '<=', $request->end_date)->get() as $sub)
+                    $sub_per->push($sub);
 
-        }
-//        dd($response_arr["personnel"]);
+                foreach ($sub_per as $sub) {
+                    $i++;
+                    array_push($response_arr["personnel"], $sub->toArray());
+                    $all_personnel->push($sub);
+                }
 
-        /*$response_arr["personnel"][0]["name"] = "Garden İnşaat";
-        $all_personnel = Personnel::withTrashed()->sitePersonnel()->get();
-        for ($i = 0; $i < sizeof($all_personnel); $i++) {
-            $response_arr["personnel"][$i + 1] = $all_personnel[$i]->toArray();
-        }
-        $i = sizeof($response_arr["personnel"]);
-        foreach ($site->subcontractor()->get() as $subcont) {
-            $response_arr["personnel"][$i]["name"] = $subcont->subdetail->name;
-            $i++;
-            foreach ($subcont->personnel()->withTrashed()->get() as $per) {
-                $response_arr["personnel"][$i] = $per->toArray();
-                $i++;
-                $all_personnel->push($per);
             }
-        }*/
+        }
 
         $group_indexes = [];
         $my_days_format = $total_date > 25 ? 'd.m' : 'd';
@@ -1238,6 +1260,33 @@ class TekilController extends ManagementController
             $response_arr["personnel"][$i + 1]["wage"] = "-";
         }
         $response_arr["personnel"][0]["wage"] = "-";
+
+        $response_arr["main"] = [
+            ['name' => !empty($site->management_name) ? $site->management_name : "İdare belirtilmemiş", 'puantaj' => [], 'total' => 0],
+            ['name' => !empty($site->employer) ? $site->employer : "İşveren belirtilmemiş", 'puantaj' => [], 'total' => 0],
+            ['name' => !empty($site->building_control) ? $site->building_control : "Yapı Denetim belirtilmemiş", 'puantaj' => [], 'total' => 0],
+            ['name' => !empty($site->isg) ? $site->isg : "İSG belirtilmemiş", 'puantaj' => [], 'total' => 0]
+        ];
+        for ($x = $total_date; $x >= 0; $x--) {
+            $rep_date = Carbon::parse($request->get('end_date'))->subDays($x)->toDateString();
+            $rep = $site->report()->ofDate($rep_date)->first();
+
+            $staff = empty($rep->management_staff) ? 0 : $rep->management_staff;
+            $response_arr["main"][0]['total'] += $staff;
+            array_push($response_arr["main"][0]['puantaj'], $staff);
+
+            $staff = empty($rep->employer_staff) ? 0 : $rep->employer_staff;
+            $response_arr["main"][1]['total'] += $staff;
+            array_push($response_arr["main"][1]['puantaj'], empty($rep->employer_staff) ? 0 : $rep->employer_staff);
+
+            $staff = empty($rep->building_control_staff) ? 0 : $rep->building_control_staff;
+            $response_arr["main"][2]['total'] += $staff;
+            array_push($response_arr["main"][2]['puantaj'], empty($rep->building_control_staff) ? 0 : $rep->building_control_staff);
+
+            $staff = empty($rep->isg_staff) ? 0 : $rep->isg_staff;
+            $response_arr["main"][3]['total'] += $staff;
+            array_push($response_arr["main"][3]['puantaj'], empty($rep->isg_staff) ? 0 : $rep->isg_staff);
+        }
         return response()->json($response_arr, 200);
     }
 
@@ -1288,17 +1337,19 @@ class TekilController extends ManagementController
 
         $i = sizeof($response_arr["personnel"]);
         foreach ($site->subcontractor()->get() as $subcont) {
-            if (!empty($subcont->fee()->first()->has_meal)) {
-                $response_arr["personnel"][$i]["name"] = $subcont->subdetail->name;
-                $i++;
-                $sub_per = $subcont->personnel()->onlyTrashed()->where('deleted_at', '>=', $request->start_date)->get();
-                foreach ($subcont->personnel()->where('created_at', '<=', $request->end_date)->get() as $sub)
-                    $sub_per->push($sub);
-
-                foreach ($sub_per as $sub) {
+            if (count($subcont->subdetail)) {
+                if (!empty($subcont->fee()->first()->has_meal)) {
+                    $response_arr["personnel"][$i]["name"] = $subcont->subdetail->name;
                     $i++;
-                    array_push($response_arr["personnel"], $sub->toArray());
-                    $all_personnel->push($sub);
+                    $sub_per = $subcont->personnel()->onlyTrashed()->where('deleted_at', '>=', $request->start_date)->get();
+                    foreach ($subcont->personnel()->where('created_at', '<=', $request->end_date)->get() as $sub)
+                        $sub_per->push($sub);
+
+                    foreach ($sub_per as $sub) {
+                        $i++;
+                        array_push($response_arr["personnel"], $sub->toArray());
+                        $all_personnel->push($sub);
+                    }
                 }
             }
         }
@@ -1446,7 +1497,7 @@ class TekilController extends ManagementController
     {
         if (!empty($site->subcontractor()->whereId($subcontractor->id)->first())) {
             if (!empty($subcontractor->personnel()->whereId($personnel->id)->first()))
-                return view('tekil/personnel-edit', compact('personnel', 'site', 'modules'));
+                return view('tekil.personnel-edit', compact('personnel', 'site', 'modules'));
         }
         return redirect()->back();
     }
@@ -1460,6 +1511,7 @@ class TekilController extends ManagementController
         unset($per_arr["wage"]);
         unset($per_arr["exit_date"]);
         unset($per_arr["id"]);
+        unset($per_arr["iddoc"]);
         unset($per_arr["contract"]);
         unset($per_arr["documents"]);
         if (!empty($request->get("iban"))) {
@@ -1489,18 +1541,34 @@ class TekilController extends ManagementController
             $contract->file()->save($contract_file);
         }
 
-        if (!empty($request->file("documents"))) {
+        if ($request->hasFile("documents")) {
             foreach ($request->file("documents") as $file) {
-                if (!empty($file)) {
-                    $db_file = $this->uploadFile($file, $directory);
 
-                    if ($db_file) {
-                        $photo = Photo::create();
-                        $photo->file()->save($db_file);
-                        $per->photo()->save($photo);
-                    }
+                $db_file = $this->uploadFile($file, $directory);
+
+                if ($db_file) {
+                    $photo = Photo::create();
+                    $photo->file()->save($db_file);
+                    $per->photo()->save($photo);
                 }
             }
+        }
+
+        if ($request->hasFile("iddoc")) {
+            $id_file = $request->file('iddoc');
+            $db_file = $this->uploadFile($id_file, $directory);
+
+            if ($db_file) {
+                if (!empty($per->iddoc()->first())) {
+                    $iddoc = $per->iddoc()->first();
+                } else {
+                    $iddoc = Iddoc::create();
+                    $iddoc->personnel()->associate($per);
+                    $iddoc->save();
+                }
+                $iddoc->file()->save($db_file);
+            }
+
         }
 
         Session::flash('flash_message', 'Personel güncellendi');
@@ -1639,7 +1707,48 @@ class TekilController extends ManagementController
                     'id' => !is_null($inmat->demand_id) ? $inmat->demand_id : '-',
                     'name' => $inmat->material->material,
                     'unit' => $inmat->unit,
-                    'quantity' => str_replace('.', ',', $inmat->quantity),
+                    'quantity' => $inmat->quantity,
+                    'firm' => $inmat->coming_from,
+                    'explanation' => $inmat->explanation,
+                    'irsaliye' => $inmat->irsaliye,
+                ];
+                array_push($response_arr["incomingmat"], $inmat_arr);
+            }
+        }
+
+        return response()->json($response_arr);
+    }
+
+    //End of gelen malzeme
+
+    /**
+     * GİDEN MALZEME PAGE
+     */
+
+    public function getGidenMalzeme(Site $site, Module $modules)
+    {
+        return view('tekil.outmaterials', compact('site', 'modules'));
+    }
+
+    public function postRetrieveOutmaterials(Site $site, Request $request)
+    {
+        if (empty($request->get("start_date"))) {
+            $reports = $site->report()->orderBy('created_at', 'DESC')
+                ->with('outmaterial')->get();
+        } else {
+            $reports = $site->report()
+                ->dateRange($request->get("start_date"), $request->get("end_date"))
+                ->orderBy('created_at', 'DESC')->with('outmaterial')->get();
+        }
+        $response_arr["incomingmat"] = [];
+        foreach ($reports as $report) {
+            foreach ($report->outmaterial()->get() as $inmat) {
+                $inmat_arr = [
+                    'date' => CarbonHelper::getTurkishDate($inmat->created_at),
+                    'id' => !is_null($inmat->demand_id) ? $inmat->demand_id : '-',
+                    'name' => $inmat->material->material,
+                    'unit' => $inmat->unit,
+                    'quantity' => $inmat->quantity,
                     'firm' => $inmat->coming_from,
                     'explanation' => $inmat->explanation,
                     'irsaliye' => $inmat->irsaliye,
@@ -1841,13 +1950,15 @@ class TekilController extends ManagementController
         $sub_arr = ['contract_cost' => $smdemand->contract_cost,
             'submats' => []];
         foreach ($smdemand->submaterial()->orderBy('id', 'ASC')->get() as $sub) {
+
             array_push($sub_arr['submats'],
                 [
                     'id' => $sub->id,
                     'name' => $sub->name,
-                    'price' => $smdemand->pricesmd()->ofSm($sub->id)->first()->price,
+                    'price' => !empty($smdemand->pricesmd()->ofSm($sub->id)->first()) ? $smdemand->pricesmd()->ofSm($sub->id)->first()->price : 0.0,
                     'quantity' => $sub->pivot->quantity,
                 ]);
+
         }
         return response()->json($sub_arr, 200);
     }
@@ -1860,14 +1971,16 @@ class TekilController extends ManagementController
         $ddate = CarbonHelper::getMySQLDate($request->get('delivery_date'));
         $exp_arr = $request->get("bill");
         for ($i = 0; $i < sizeof($exp_arr); $i++) {
-            $smdexp = new Smdexpense;
-            $smdexp->quantity = TurkishChar::convertCurrencyFromTr($request->get("quantity")[$i]);
-            $smdexp->delivery_date = $ddate;
-            $smdexp->bill = $request->get("bill")[$i];
-            $smdexp->detail = sizeof($exp_arr) == 1 ? (sizeof($request->detail) == 0 ? '' : $request->get('detail')[$i]) : $request->get('detail')[$i];
-            $smdexp->submaterial()->associate($sub);
-            $smdexp->smdemand()->associate($smd);
-            $smdexp->save();
+            if ((int)$request->get("bill")[$i] != -999) {
+                $smdexp = new Smdexpense;
+                $smdexp->quantity = TurkishChar::convertCurrencyFromTr($request->get("quantity")[$i]);
+                $smdexp->delivery_date = $ddate;
+                $smdexp->bill = $request->get("bill")[$i];
+                $smdexp->detail = sizeof($exp_arr) == 1 ? (sizeof($request->detail) == 0 ? '' : $request->get('detail')[$i]) : $request->get('detail')[$i];
+                $smdexp->submaterial()->associate($sub);
+                $smdexp->smdemand()->associate($smd);
+                $smdexp->save();
+            }
         }
 
         return response('success', 200);
@@ -1876,46 +1989,48 @@ class TekilController extends ManagementController
     public function postRetrieveSmdexpenses(Request $request)
     {
         $smdemand = Smdemand::find($request->get("id"));
-        $numofsubmats = sizeof($smdemand->submaterial()->get());
         $expenses = $smdemand->smdexpense()->orderBy('delivery_date', 'DESC')->orderBy('created_at', 'DESC')->get();
         $response_arr = [
-            'submat_spent' => [],
             'smdexpense' => [],
             'contract_cost' => $smdemand->contract_cost,
             'total_spent' => 0.0];
-        $submat_spent = 0.0;
-        for ($i = 0; $i < $numofsubmats; $i++) {
-            array_push($response_arr["submat_spent"], $submat_spent);
-        }
         $i = -1;
-        $submat_checker = 0;
+        $submat_checker = [];
         $total_spent = 0.0;
+
         foreach ($expenses as $expense) {
-            $price = $smdemand->pricesmd()->ofSm($expense->submaterial->id)->beforeDD($expense->delivery_date)->price;
-            if ((int)$submat_checker != (int)$expense->submaterial->id) {
-                $submat_checker = $expense->submaterial->id;
-                $i++;
-                $submat_spent = 0.0;
+            if (count($smdemand->pricesmd()->ofSm($expense->submaterial->id)->first())) {
+                $price = $smdemand->pricesmd()->ofSm($expense->submaterial->id)->beforeDD($expense->delivery_date)->price;
+                $spent = (double)$expense->quantity * (double)$price;
+                $total_spent += $spent;
+                $my_arr = [
+                    'date' => CarbonHelper::getTurkishDate($expense->delivery_date),
+                    'quantity' => $expense->quantity,
+                    'bill' => $expense->bill,
+                    'detail' => $expense->detail,
+                    'spent' => $spent,
+                    'subname' => $expense->submaterial->name,
+                    'id' => $expense->id,
+                    'price' => $price,
+                    'subid' => $expense->submaterial->id,
+                ];
+
+                array_push($response_arr['smdexpense'], $my_arr);
             }
-            $submat_spent += (double)$expense->quantity;
-            $spent = (double)$expense->quantity * (double)$price;
-            $total_spent += $spent;
-            $my_arr = [
-                'date' => CarbonHelper::getTurkishDate($expense->delivery_date),
-                'quantity' => $expense->quantity,
-                'bill' => $expense->bill,
-                'detail' => $expense->detail,
-                'spent' => $spent,
-                'subname' => $expense->submaterial->name,
-                'id' => $expense->id,
-                'price' => $price,
-                'subid' => $expense->submaterial->id,
-            ];
-
-            $response_arr["submat_spent"][$i] = $submat_spent;
-            array_push($response_arr['smdexpense'], $my_arr);
-
         }
+        $submaterials = $smdemand->submaterial()->orderBy('id', 'ASC')->get();
+        $i = 0;
+        foreach ($submaterials as $sub) {
+            $submat_spent = 0.0;
+            if (!is_null($smdemand->smdexpense()->where('submaterial_id', '=', $sub->id)->first())) {
+                foreach ($smdemand->smdexpense()->where('submaterial_id', '=', $sub->id)->get() as $expense) {
+                    $submat_spent += (double)$expense->quantity;
+                }
+            }
+            $response_arr["submat_spent"][$i] = $submat_spent;
+            $i++;
+        }
+
         $response_arr['total_spent'] = $total_spent;
         return response($response_arr, 200);
     }
@@ -2067,17 +2182,15 @@ class TekilController extends ManagementController
             return view('tekil.stock', compact('site', 'modules'));
     }
 
-    public function getRetrieveStocks(Site $site)
+    public function getRetrieveStocks()
     {
         $sub_arr = [];
         foreach (Stock::all() as $sub) {
-            if ($site->stock()->where('stock_id', $sub->id)->get()->isEmpty()) {
-                array_push($sub_arr,
-                    [
-                        'id' => $sub->id,
-                        'text' => $sub->name,
-                    ]);
-            }
+            array_push($sub_arr,
+                [
+                    'id' => $sub->id,
+                    'text' => $sub->name,
+                ]);
         }
         return response()->json($sub_arr, 200);
     }
@@ -2123,7 +2236,10 @@ class TekilController extends ManagementController
             }
             if (!$over_request) {
                 $site->stock()->attach($stock, [
-                    'amount' => $request->quantity[$i]
+                    'amount' => $request->quantity[$i],
+                    'entry_date' => CarbonHelper::getMySQLDate($request->entry_date[$i]),
+                    'exit_date' => CarbonHelper::getMySQLDate($request->exit_date[$i]),
+                    'site_detail' => $request->site_detail[$i],
                 ]);
                 $site->save();
             } else {
@@ -2141,27 +2257,44 @@ class TekilController extends ManagementController
         return redirect()->back();
     }
 
-    public function postModifyStockAmount(Request $request, Site $site)
+    public function postModifyStockAmount(Request $request)
     {
-        $stock = $site->stock()->where('stock_id', $request->pk)->first();
+        $stock_table = DB::table('site_stock')->where('id', $request->pk)->first();
+        $stock = Stock::find($stock_table->stock_id);
         $left = $stock->total;
-        foreach (Site::all() as $st) {
-            if (!empty($st->stock()->find($stock->id))) {
-                $left -= $st->stock()->find($stock->id)->pivot->amount;
-            }
+        foreach (DB::table('site_stock')->where('stock_id', $stock->id)->get() as $st) {
+            $left -= $st->amount;
         }
+
         if ($left < $request->value) {
-            $max = $left + $stock->pivot->amount;
+            $max = $left + $stock_table->amount;
             return response("Demirbaş miktarı en fazla $max $stock->unit olabilir!", 500);
         }
-        $stock->pivot->amount = $request->value;
-        $stock->pivot->save();
+        DB::table('site_stock')->where('id', $request->pk)->update(['amount' => $request->value]);
         return response('success', 200);
     }
 
-    public function postDelSiteStock(Request $request, Site $site)
+    public function postModifyStockEntryDate(Request $request)
     {
-        $site->stock()->detach($request->id);
+        DB::table('site_stock')->where('id', $request->pk)->update(['entry_date' => $request->value]);
+        return response('success', 200);
+    }
+
+    public function postModifyStockExitDate(Request $request)
+    {
+        DB::table('site_stock')->where('id', $request->pk)->update(['exit_date' => $request->value]);
+        return response('success', 200);
+    }
+
+    public function postModifyStockSiteDetail(Request $request)
+    {
+        DB::table('site_stock')->where('id', $request->pk)->update(['site_detail' => $request->value]);
+        return response('success', 200);
+    }
+
+    public function postDelSiteStock(Request $request)
+    {
+        DB::table('site_stock')->where('id', $request->id)->delete();
         Session::flash('flash_message', 'Silme işlemi başarılı');
         return redirect()->back();
     }
@@ -2177,13 +2310,463 @@ class TekilController extends ManagementController
         return view('tekil.attachment', compact('site', 'modules'));
     }
 
+    public function getRetrievePhotos(Site $site)
+    {
+        $site_reports = $site->report()->with('photo')->get();
+        $resp_arr = [];
+        foreach ($site_reports as $site_report)
+            foreach ($site_report->photo as $site_photo)
+                if (count($site_photo->file)) {
+                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $site_photo->file()->first()->path);
+                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
+                    $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $site_photo->file()->first()->name;
+                    if (strpos($site_photo->file()->first()->name, 'pdf') !== false) {
+                        $image = URL::to('/') . "/img/pdf.jpg";
+                    } elseif (strpos($site_photo->file()->first()->name, 'doc') !== false) {
+                        $image = URL::to('/') . "/img/word.png";
+                    }
+                    $tags = '';
+                    $i = 0;
+                    foreach ($site_photo->file()->first()->tag as $tag) {
+                        $tags .= $tag->name;
+                        if ($i + 1 < count($site_photo->file()->first()->tag)) {
+                            $tags .= ', ';
+                        }
+                        $i++;
+                    }
+                    array_push($resp_arr, [
+                        'name' => $site_photo->file()->first()->name,
+                        'image' => $image,
+                        'tags' => $tags
+                    ]);
+                }
+
+        return response($resp_arr, 200);
+
+    }
+
+    public function getRetrieveReceipts(Site $site)
+    {
+        $site_reports = $site->report()->with('receipt')->get();
+        $resp_arr = [];
+        foreach ($site_reports as $site_report)
+            foreach ($site_report->receipt as $site_receipt)
+                if (count($site_receipt->file)) {
+                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $site_receipt->file()->first()->path);
+                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
+                    $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $site_receipt->file()->first()->name;
+                    if (strpos($site_receipt->file()->first()->name, 'pdf') !== false) {
+                        $image = URL::to('/') . "/img/pdf.jpg";
+                    } elseif (strpos($site_receipt->file()->first()->name, 'doc') !== false) {
+                        $image = URL::to('/') . "/img/word.png";
+                    }
+                    $tags = '';
+                    $i = 0;
+                    foreach ($site_receipt->file()->first()->tag as $tag) {
+                        $tags .= $tag->name;
+                        if ($i + 1 < count($site_receipt->file()->first()->tag)) {
+                            $tags .= ', ';
+                        }
+                        $i++;
+                    }
+                    array_push($resp_arr, [
+                        'name' => $site_receipt->file()->first()->name,
+                        'image' => $image,
+                        'tags' => $tags
+                    ]);
+                }
+
+        return response($resp_arr, 200);
+
+    }
+
     // End of Şantiye Ekleri
+
+    /**
+     * Start of Maliyet Modülü
+     */
+
+    public function getIcmal(Site $site, Module $modules)
+    {
+        return view('tekil.summary', compact('site', 'modules'));
+    }
+
+    public function getRetrieveSummary(Site $site)
+    {
+        $resp_arr = [];
+        $grand_total = 0.0;
+        for ($i = 1; $i < 5; $i++) {
+            $key = 'genel';
+            switch ($i) {
+                case 2:
+                    $key = 'sozlesme';
+                    break;
+                case 3:
+                    $key = 'sarf';
+                    break;
+                case 4:
+                    $key = 'insaat';
+                    break;
+                default:
+                    break;
+            }
+            $exp_sum = (double)$site->expenditure()->ofType($i)->sum('amount');
+            $grand_total += $exp_sum;
+            $resp_arr[$key] = $exp_sum;
+        }
+
+        $sub_payments = 0;
+        foreach ($site->subcontractor()->with('payment')->get() as $subcontractor) {
+            $sub_payments += (double)$subcontractor->payment()->sum('amount');
+        }
+
+        $grand_total += $sub_payments;
+        $resp_arr['taseron'] = $sub_payments;
+
+        $resp_arr['iscilik'] = $site->labor()->sum('amount');
+        $grand_total += $resp_arr['iscilik'];
+        $personnel_salary = 0;
+        foreach ($this->getSalary($site) as $salary) {
+            $personnel_salary += $salary;
+        }
+
+        $resp_arr['personel'] = $personnel_salary;
+        $grand_total += $resp_arr['personel'];
+        $resp_arr['total'] = $grand_total;
+
+//        calculate percentages
+        $resp_arr['genel_yuzde'] = $grand_total == 0 ? 0 : $resp_arr['genel'] * 100 / $grand_total;
+        $resp_arr['sozlesme_yuzde'] = $grand_total == 0 ? 0 : $resp_arr['sozlesme'] * 100 / $grand_total;
+        $resp_arr['sarf_yuzde'] = $grand_total == 0 ? 0 : $resp_arr['sarf'] * 100 / $grand_total;
+        $resp_arr['insaat_yuzde'] = $grand_total == 0 ? 0 : $resp_arr['insaat'] * 100 / $grand_total;
+        $resp_arr['taseron_yuzde'] = $grand_total == 0 ? 0 : $resp_arr['taseron'] * 100 / $grand_total;
+        $resp_arr['iscilik_yuzde'] = $grand_total == 0 ? 0 : $resp_arr['iscilik'] * 100 / $grand_total;
+        $resp_arr['personel_yuzde'] = $grand_total == 0 ? 0 : $resp_arr['personel'] * 100 / $grand_total;
+
+        $resp_arr['kdv1'] = $this->calcKDV($site, 1);
+        $resp_arr['kdv8'] = $this->calcKDV($site, 8);
+        $resp_arr['kdv18'] = $this->calcKDV($site, 18);
+
+        $resp_arr['grand'] = $grand_total + (double)$resp_arr['kdv1'] + (double)$resp_arr['kdv8'] + (double)$resp_arr['kdv18'];
+
+        return response($resp_arr, 200);
+    }
+
+    private function calcKDV($site, $kdv)
+    {
+        return (double)$site->expenditure()->where('kdv', '=', $kdv)->sum('grand_total') - (double)$site->expenditure()->where('kdv', '=', $kdv)->sum('amount');
+    }
+
+    private function getSalary($site)
+    {
+        $resp_arr = [];
+        $start_date = Carbon::createFromFormat('Y-m-d', $site->start_date);
+        $end_date = Carbon::createFromFormat('Y-m-d', $site->end_date);
+        $now = Carbon::now('Europe/Istanbul');
+        if ($now->lte($end_date)) {
+            $end_date = $now;
+        }
+//            $resp_arr['dates'] = [];
+
+        foreach ($site->employee()->get() as $personnel) {
+            $inc_date = $start_date->copy();
+            $inc_date->subMonth();
+            while ($end_date->gt($inc_date)) {
+                $inc_date->addMonth();
+//                array_push($resp_arr['dates'], $inc_date->toDateString());
+                if (count($personnel->salary()) && !($personnel->salary()->whereDate('since', '<', $inc_date->toDateString())->orderBy('since', 'DESC')->get()->isEmpty())) {
+                    array_push($resp_arr, $personnel->salary()->whereDate('since', '<', $inc_date->toDateString())->orderBy('since', 'DESC')->first()->amount);
+                } else array_push($resp_arr, 0);
+
+            }
+        }
+        return $resp_arr;
+    }
+
+    public function getGenelGiderler(Site $site, Module $modules)
+    {
+        $type = 1;
+        $title = 'Genel Giderler';
+        return view('tekil.expenditures', compact('site', 'modules', 'type', 'title'));
+    }
+
+    public function getSozlesmeGiderleri(Site $site, Module $modules)
+    {
+        $type = 2;
+        $title = 'Sözleşme Giderleri';
+        return view('tekil.expenditures', compact('site', 'modules', 'type', 'title'));
+    }
+
+    public function getMuhtelifSarfMalzeme(Site $site, Module $modules)
+    {
+        $type = 3;
+        $title = 'Sarf Malzeme Giderleri';
+        return view('tekil.expenditures', compact('site', 'modules', 'type', 'title'));
+    }
+
+    public function getInsaatMalzeme(Site $site, Module $modules)
+    {
+        $type = 4;
+        $title = 'İnşaat Malzeme Giderleri';
+        return view('tekil.expenditures', compact('site', 'modules', 'type', 'title'));
+    }
+
+    public function postRetrieveGeneralExpItems(Request $request)
+    {
+        return $this->getExpItems($request->type);
+    }
+
+    public function postRetrieveGeneralExp(Site $site, Request $request)
+    {
+        return $this->getExpenditures($site, $request->type);
+    }
+
+    public function postAddGeneralExp(Site $site, Request $request)
+    {
+        return $this->addExpenditure($site, $request);
+    }
+
+    public function postDelGeneralExp(Request $request)
+    {
+        Expenditure::find($request->id)->delete();
+        return response('success', 200);
+    }
+
+    public function postRetrieveMonthlyExp(Site $site, Request $request)
+    {
+        $expenditures = $site->expenditure()->ofType($request->type)->orderBy('exp_date', 'ASC')->get();
+        $current_date = '';
+        $previous_date = '';
+        $resp_arr = ['months' => [], 'items' => [], 'month_total' => []];
+        foreach ($expenditures as $expenditure) {
+            $current_date = Carbon::parse($expenditure->exp_date)->format('m.Y');
+            if ($current_date != $previous_date) {
+                array_push($resp_arr['months'], $current_date);
+                $previous_date = $current_date;
+            }
+        }
+
+        foreach (Expdetail::ofGroup($request->type)->get() as $expdet) {
+            $name = $expdet->name;
+            $expdet_arr = [];
+            $grand_total = 0;
+            for ($i = 0; $i < sizeof($resp_arr['months']); $i++) {
+                $date = explode('.', $resp_arr['months'][$i]);
+                $month = (int)$date[0];
+                $year = (int)$date[1];
+                $total = $site->expenditure()->ofType($request->type)->where('expdetail_id', '=', $expdet->id)
+                    ->whereMonth('exp_date', '=', $month)->whereYear('exp_date', '=', $year)->sum('grand_total');
+                $grand_total += $total;
+                array_push($expdet_arr, $total);
+            }
+            if ($grand_total > 0) {
+                array_push($resp_arr['items'], ['name' => $name,
+                    'total' => $expdet_arr,
+                    'item_total' => $grand_total]);
+            }
+        }
+        for ($i = 0; $i < sizeof($resp_arr['months']); $i++) {
+            $total = 0;
+            foreach ($resp_arr['items'] as $item) {
+                $total += (double)$item['total'][$i];
+            }
+            array_push($resp_arr['month_total'], $total);
+        }
+        return response($resp_arr, 200);
+    }
+
+    // Taşeron Hakedişleri
+    public function getTaseronHakedisleri(Site $site, Module $modules)
+    {
+        return view('tekil.subcontractor-allowances', compact('site', 'modules'));
+    }
+
+    public function getRetrieveSubcontractorAllowances(Site $site)
+    {
+        $subcontractors = $site->subcontractor()->with('subdetail')->get();
+        $resp_arr = [];
+        foreach ($subcontractors as $subcontractor) {
+            if (count($subcontractor->subdetail)) {
+                $my_arr = $this->subcontractorPayments($subcontractor->id);
+                unset($my_arr['payments']);
+                array_push($resp_arr, [
+                    'name' => $subcontractor->subdetail->name,
+                    'debt' => $my_arr['debt'],
+                    'claim' => $my_arr['claim'],
+                    'balance' => $my_arr['balance']
+                ]);
+            }
+        }
+        return response($resp_arr, 200);
+    }
+
+    // Şantiye İşçilik
+
+    public function getSantiyeIscilik(Site $site, Module $modules)
+    {
+        return view('tekil.labor', compact('site', 'modules'));
+    }
+
+    public function getRetrieveLaborExp(Site $site)
+    {
+        $resp_arr = $site->labor()->get()->toArray();
+        for ($i = 0; $i < sizeof($resp_arr); $i++) {
+            $resp_arr[$i]['lab_date'] = CarbonHelper::getTurkishDate($resp_arr[$i]['lab_date']);
+        }
+        return response($resp_arr, 200);
+    }
+
+    public function postAddLaborExp(Site $site, Request $request)
+    {
+        $labor_arr = $request->all();
+        $labor_arr['lab_date'] = CarbonHelper::getMySQLDate($request->lab_date);
+        $labor = Labor::create($labor_arr);
+        $labor->site()->associate($site);
+        $labor->save();
+
+        return response('success', 200);
+    }
+
+    public function postDelLabExp(Request $request)
+    {
+        Labor::find($request->id)->delete();
+        return response('success', 200);
+    }
+
+    // Personel Maaş
+    public function getSantiyePersonelMaas(Site $site, Module $modules)
+    {
+        return view('tekil.salary', compact('site', 'modules'));
+    }
+
+    public function postAddEmployee(Site $site, Request $request)
+    {
+        $site->employee()->detach();
+        foreach ($request->employee as $id) {
+            $employee = Personnel::find($id);
+            $site->employee()->attach($employee);
+        }
+
+        return response('success', 200);
+    }
+
+    public function getRetrieveSalaries(Site $site)
+    {
+        $resp_arr = ['dates' => [], 'salaries' => []];
+        $start_date = Carbon::createFromFormat('Y-m-d', $site->start_date);
+        $end_date = Carbon::createFromFormat('Y-m-d', $site->end_date);
+        $now = Carbon::now('Europe/Istanbul');
+        if ($now->lte($end_date)) {
+            $end_date = $now;
+        }
+        $i = 0;
+
+        foreach ($site->employee()->get() as $personnel) {
+            $my_arr = ['personnel' => $personnel->name, 'salary' =>[]];
+            $inc_date = $start_date->copy();
+            $inc_date->subMonth();
+            while ($end_date->gt($inc_date)) {
+                $inc_date->addMonth();
+                if($i == 0){
+                    $my_str = explode('-', $inc_date->toDateString());
+                    array_push($resp_arr['dates'], $my_str[1] . '.' . $my_str[0]);
+                }
+                if (count($personnel->salary()) && !($personnel->salary()->whereDate('since', '<', $inc_date->toDateString())->orderBy('since', 'DESC')->get()->isEmpty())) {
+                    array_push($my_arr['salary'], $personnel->salary()->whereDate('since', '<', $inc_date->toDateString())->orderBy('since', 'DESC')->first()->amount);
+                } else array_push($my_arr['salary'], 0);
+            }
+            array_push($resp_arr['salaries'], $my_arr);
+            $resp_arr['monthly_tot'] = [];
+            for($i = 0; $i<sizeof($resp_arr['dates']); $i++){
+                $tot = 0;
+                for($j = 0; $j<sizeof($resp_arr['salaries']); $j++){
+                    $tot += (double)$resp_arr['salaries'][$j]['salary'][$i];
+                }
+                array_push($resp_arr['monthly_tot'], $tot);
+            }
+            $i++;
+        }
+
+
+        return response($resp_arr, 200);
+    }
+
 
     /**
      *
      * PRIVATE FUNCTIONS
      *
      */
+    private function subcontractorPayments($subId)
+    {
+        $subcontractor = Subcontractor::find($subId);
+        $resp_arr = [];
+        $resp_arr['claim'] = TurkishChar::convertToTRcurrency((double)$subcontractor->price + (double)$subcontractor->additional_bid_cost);
+        $debt = 0;
+        $balance = 0.0 - (double)$resp_arr['claim'];
+        $payments = [];
+        foreach ($subcontractor->payment()->orderBy('payment_date', 'DESC')->get() as $payment) {
+            $balance += (double)$payment->amount;
+            $debt += (double)$payment->amount;
+            array_push($payments, [
+                'id' => $payment->id,
+                'date' => CarbonHelper::getTurkishDate($payment->payment_date),
+                'type' => $payment->name,
+                'method' => empty($payment->method) ? '-' : $payment->method,
+                'detail' => $payment->detail,
+                'balance' => TurkishChar::convertToTRcurrency($balance),
+                'debt' => TurkishChar::convertToTRcurrency((double)$payment->amount)
+            ]);
+        }
+        $resp_arr['payments'] = $payments;
+        $resp_arr['debt'] = TurkishChar::convertToTRcurrency($debt);
+        $resp_arr['balance'] = TurkishChar::convertToTRcurrency($balance);
+        return $resp_arr;
+    }
+
+
+    private function addExpenditure($site, $request)
+    {
+        $my_arr = $request->all();
+        $expdetail = Expdetail::find($request->eid);
+        unset($my_arr['eid']);
+        $my_arr['exp_date'] = CarbonHelper::getMySQLDate($request->exp_date);
+        $expenditure = Expenditure::create($my_arr);
+        $expenditure->grand_total = (($expenditure->kdv / 100) + 1.0) * $expenditure->amount;
+        $expenditure->site()->associate($site);
+        $expenditure->expdetail()->associate($expdetail);
+        $expenditure->save();
+        return response('success', 200);
+    }
+
+    private function getExpItems($group)
+    {
+        $my_arr = [];
+        foreach (Expdetail::where('group', '=', $group)->get() as $item) {
+            array_push($my_arr, [
+                'id' => $item->id,
+                'name' => $item->name
+            ]);
+        }
+        return response($my_arr, 200);
+    }
+
+    private function getExpenditures($site, $type)
+    {
+        $resp_arr = [];
+        foreach ($site->expenditure()->ofType($type)->get() as $exp) {
+            array_push($resp_arr, [
+                'id' => $exp->id,
+                'date' => CarbonHelper::getTurkishDate($exp->exp_date),
+                'type' => $exp->expdetail->name,
+                'expItem' => ['name' => $exp->expdetail->name, 'id' => $exp->expdetail->id],
+                'amount' => $exp->amount,
+                'kdv' => $exp->kdv,
+                'total' => ((double)($exp->kdv / 100) + 1.0) * $exp->amount
+            ]);
+        }
+        return $resp_arr;
+    }
 
 
     private function uploadFile($file, $directory = null)

@@ -31,6 +31,7 @@ Route::bind('module', function($slug){
 });
 
 Route::model('user', 'App\User');
+Route::model('group', 'App\Group');
 Route::model('smdemand', 'App\Smdemand');
 Route::model('demand', 'App\Demand');
 Route::model('personnel', 'App\Personnel');
@@ -79,5 +80,11 @@ Route::get('uploads/{directory}/{filename}', 'HomeController@getUploads');
 Route::get('/home', function(){
    return redirect('santiye');
 });
+Route::controller('ekle', 'EkleController');
+
+Route::get('guncelle/personel-duzenle/{personnel}', 'GuncelleController@getPersonelDuzenle');
+Route::get('guncelle/altyuklenici-duzenle/{subdetail}', 'GuncelleController@getAltyukleniciDuzenle');
+Route::controller('guncelle', 'GuncelleController');
 Route::controller('bilgilerim', 'ProfileController');
+Route::controller('common', 'CommonController');
 Route::controller('/', 'HomeController');

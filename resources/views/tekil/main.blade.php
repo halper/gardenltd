@@ -16,10 +16,10 @@
     $passed = str_replace("+", "", date_diff($start_date, $now)->format("%R%a"));
     $hakedis = $site->contract_worth;
     $total_allowance = 0.0;
-    foreach($site->allowance()->get() as $allowance){
+    foreach ($site->allowance()->get() as $allowance) {
         $total_allowance += $allowance->amount;
     }
-            $left_allowance = $hakedis-$total_allowance;
+    $left_allowance = $hakedis - $total_allowance;
 
 
     $java_func = <<<EOF
@@ -110,19 +110,7 @@ EOF;
             </div>
             <!-- /.info-box -->
         </div>
-        <div class="col-md-3 col-sm-6 col-xs-12">
-            <div class="info-box">
-                <span class="info-box-icon" style="background-color: #00a65a !important; color: #f9f9f9"><i
-                            class="ion ion-ios-people"></i></span>
 
-                <div class="info-box-content">
-                    <span class="info-box-header">İdare</span>
-                    <span class="info-box-detail">{{$site->management_name}}</span>
-                </div>
-                <!-- /.info-box-content -->
-            </div>
-            <!-- /.info-box -->
-        </div>
         <div class="col-md-3 col-sm-6 col-xs-12">
             <div class="info-box">
                 <span class="info-box-icon bg-yellow"><i class="ion ion-ios-person"></i></span>
@@ -135,13 +123,28 @@ EOF;
             </div>
             <!-- /.info-box -->
         </div>
+
         <div class="col-md-3 col-sm-6 col-xs-12">
             <div class="info-box">
-                <span class="info-box-icon bg-red"><i class="ion ion-home"></i></span>
+                <span class="info-box-icon" style="background-color: #00a65a !important; color: #f9f9f9"><i
+                            class="ion ion-ios-people"></i></span>
+
+                <div class="info-box-content">
+                    <span class="info-box-header">İdare</span>
+                    <span class="info-box-detail">{{empty($site->management_name) ? "Girilmemiş" : $site->management_name}}</span>
+                </div>
+                <!-- /.info-box-content -->
+            </div>
+            <!-- /.info-box -->
+        </div>
+
+        <div class="col-md-3 col-sm-6 col-xs-12">
+            <div class="info-box">
+                <span class="info-box-icon bg-red"><i class="ion ion-location"></i></span>
 
                 <div class="info-box-content">
                     <span class="info-box-header">Adres</span>
-                    <span class="info-box-detail">{{$site->address}}</span>
+                    <span class="info-box-detail">{{$site->address . " " . $site->city->name}}</span>
                 </div>
                 <!-- /.info-box-content -->
             </div>
@@ -152,7 +155,7 @@ EOF;
 
     <!-- CHARTS -->
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-3">
             <div class="box box-primary">
                 <div class="box-header">
                     <i class="fa fa-bar-chart-o"></i>
@@ -169,12 +172,13 @@ EOF;
 
                     </div>
                     <p>
-                        Geçen <strong>{{ $passed }} </strong> gün, kalan <strong>{{ $left }} </strong> gün.
+                        Geçen <strong>{{ $passed }} </strong> gün
+                        <br>Kalan <strong>{{ $left }} </strong> gün
                     </p>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-3">
             <div class="box box-primary">
                 <div class="box-header">
                     <i class="fa fa-bar-chart-o"></i>
@@ -191,9 +195,136 @@ EOF;
 
                     </div>
                     <p>
-                        Hakedişler: <strong><span class="inumber">{{$total_allowance}}</span> TL</strong> - Kalan: <strong><span class="inumber">{{$left_allowance}}</span> TL</strong>
+                        Hakedişler: <strong><span class="inumber">{{$total_allowance}}</span> TL</strong>
+                        <br>
+                        Kalan: <strong><span class="inumber">{{$left_allowance}}</span> TL</strong>
                     </p>
                 </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="row">
+
+                <div class="col-sm-12">
+                    <div class="info-box">
+                        <span class="info-box-icon" style="background-color: #00a65a !important; color: #f9f9f9"><i
+                                    class="ion ion-person-stalker"></i></span>
+
+                        <div class="info-box-content">
+                            <span class="info-box-header">İşveren</span>
+                            <span class="info-box-detail">{{$site->employer}}</span>
+                        </div>
+                        <!-- /.info-box-content -->
+                    </div>
+                    <!-- /.info-box -->
+                </div>
+
+                <div class="col-sm-12">
+                    <div class="info-box">
+                        <span class="info-box-icon" style="background-color: #00a65a !important; color: #f9f9f9"><i
+                                    class="ion ion-unlocked"></i></span>
+
+                        <div class="info-box-content">
+                            <span class="info-box-header">Ana Yüklenici</span>
+                            <span class="info-box-detail">{{$site->main_contractor}}</span>
+                        </div>
+                        <!-- /.info-box-content -->
+                    </div>
+                    <!-- /.info-box -->
+                </div>
+
+           <div class="col-sm-12">
+                    <div class="info-box">
+                        <span class="info-box-icon" style="background-color: #00a65a !important; color: #f9f9f9"><i
+                                    class="ion ion-settings"></i></span>
+
+                        <div class="info-box-content">
+                            <span class="info-box-header">Yapı Denetim</span>
+                            <span class="info-box-detail">{{$site->building_control}}</span>
+                        </div>
+                        <!-- /.info-box-content -->
+                    </div>
+                    <!-- /.info-box -->
+                </div>
+
+           <div class="col-sm-12">
+                    <div class="info-box">
+                        <span class="info-box-icon" style="background-color: #00a65a !important; color: #f9f9f9"><i
+                                    class="ion ion-alert-circled"></i></span>
+
+                        <div class="info-box-content">
+                            <span class="info-box-header">İSG</span>
+                            <span class="info-box-detail">{{$site->isg}}</span>
+                        </div>
+                        <!-- /.info-box-content -->
+                    </div>
+                    <!-- /.info-box -->
+                </div>
+
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="info-box">
+                        <span class="info-box-icon bg-red"><i class="ion ion-code-working"></i></span>
+
+                        <div class="info-box-content">
+                            <span class="info-box-header">Şantiye Kodu</span>
+                            <span class="info-box-detail">{{empty($site->code) ? "Belirtilmemiş" : $site->code}}</span>
+                        </div>
+                        <!-- /.info-box-content -->
+                    </div>
+                    <!-- /.info-box -->
+                </div>
+
+                <div class="col-sm-12">
+
+                    <div class="info-box">
+                        <span class="info-box-icon bg-red"><i class="ion ion-android-calendar"></i></span>
+
+                        <div class="info-box-content">
+                            <span class="info-box-header">İş</span>
+                            <span class="info-box-detail"><strong style="font-weight: 400">Başlangıç: </strong>{{\App\Library\CarbonHelper::getTurkishDate($site->start_date)}}</span>
+                            <span class="info-box-detail"><strong  style="font-weight: 400">Bitiş: </strong>{{\App\Library\CarbonHelper::getTurkishDate($site->end_date)}}</span>
+                        </div>
+                        <!-- /.info-box-content -->
+                    </div>
+                    <!-- /.info-box -->
+
+                </div>
+
+                <div class="col-sm-12">
+
+                    <div class="info-box">
+                        <span class="info-box-icon bg-red"><i class="ion ion-ios-calendar"></i></span>
+
+                        <div class="info-box-content">
+                            <span class="info-box-header">Sözleşme Tarihi</span>
+                            <span class="info-box-detail">{{\App\Library\CarbonHelper::getTurkishDate($site->contract_date)}}</span>
+                        </div>
+                        <!-- /.info-box-content -->
+                    </div>
+                    <!-- /.info-box -->
+                </div>
+
+                <div class="col-sm-12">
+
+                    <div class="info-box">
+                        <span class="info-box-icon bg-red"><i class="ion ion-ios-pricetags"></i></span>
+
+                        <div class="info-box-content">
+                            <span class="info-box-header">Kontrat</span>
+                            <span class="info-box-detail"><strong style="font-weight: 400">Bedeli: </strong><span class="inumber">{{$site->contract_worth}}</span> TL</span>
+                            <span class="info-box-detail"><strong style="font-weight: 400">İş Artış: </strong><span class="inumber">{{$site->extra_cost}}</span> TL</span>
+                        </div>
+                        <!-- /.info-box-content -->
+                    </div>
+                    <!-- /.info-box -->
+
+                </div>
+
             </div>
         </div>
     </div>

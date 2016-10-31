@@ -34,10 +34,10 @@
                                 <a href="<?=URL::to("/");?>/admin/ayarlar">Ayarlar</a>
                             </div>
                             <div class="col-xs-4 text-center">
-                                <a href="<?=URL::to("/");?>/admin/ekle">Ekle</a>
+                                <a href="<?=URL::to("/");?>/ekle">Ekle</a>
                             </div>
                             <div class="col-xs-4 text-center">
-                                <a href="<?=URL::to("/");?>/admin/guncelle">Güncelle</a>
+                                <a href="<?=URL::to("/");?>/guncelle">Güncelle</a>
                             </div>
                         </div>
                         <!-- /.row -->

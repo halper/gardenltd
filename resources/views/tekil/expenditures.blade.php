@@ -1,3 +1,16 @@
+<?php
+
+$user = Auth::user();
+
+$addr = explode("/", $_SERVER['REQUEST_URI']);
+$slug = $addr[sizeof($addr) - 1];
+$module = $modules->whereSlug($slug)->first();
+
+$post_permission = \App\Library\PermissionHelper::checkUserPostPermissionOnModule($user, $module);
+
+
+?>
+
 @extends('tekil.layout')
 
 @section('page-specific-js')
@@ -23,6 +36,7 @@
             $scope.expItemSelected = '';
             $scope.payments = [];
             $scope.paymentSelect = '';
+            $scope.explanation = '';
             $scope.showPayment = false;
             $scope.amount = '';
             $scope.total = 0;
@@ -76,9 +90,11 @@
                         eid: $scope.expItemSelected.id,
                         type: $scope.type,
                         amount: $scope.amount,
-                        kdv: $scope.paymentSelect
+                        kdv: $scope.paymentSelect,
+                        explanation: $scope.explanation
                     }).then(function (response) {
                         $scope.amount = '';
+                        $scope.explanation = '';
                         $scope.paymentSelect = '';
                         $scope.expItemSelected = '';
                         $scope.eid = '';
@@ -162,69 +178,88 @@
 
 
                     <div ng-app="puantajApp" ng-controller="PuantajController" id="angPuantaj">
-                        <p class="text-danger alert-danger" ng-show="subError"><%subError%></p>
+                        @if($post_permission)
+                            <p class="text-danger alert-danger" ng-show="subError"><%subError%></p>
 
-                        <div class="form-group">
-                            <div class="row">
-                                <div class="col-md-2">
-                                    <strong>Tarih</strong>
-                                </div>
-                                <div class="col-md-2">
-                                    <strong>KDV</strong>
-                                </div>
-                                <div class="col-md-6">
-                                    <strong>Gider Kalemi</strong>
-                                </div>
-                                <div class="col-md-2">
-                                    <strong>Fiyat</strong>
-                                </div>
-                            </div>
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-md-2">
-                                        <div class="input-group input-append date dateRangePicker" id="paymentDate">
-                                            <input type="text" class="form-control" name="payment_date"
-                                                   ng-model="date"/>
+                                        <strong>Tarih</strong>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <strong>KDV</strong>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Gider Kalemi</strong>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <strong>Fiyat</strong>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-md-2">
+                                            <div class="input-group input-append date dateRangePicker" id="paymentDate">
+                                                <input type="text" class="form-control" name="payment_date"
+                                                       ng-model="date"/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-2">
+                                            <select class="form-control"
+                                                    ng-model="paymentSelect">
+                                                <option value="" selected disabled>KDV Miktarı Seçiniz</option>
+                                                <option value="0">%0</option>
+                                                <option value="1">%1</option>
+                                                <option value="8">%8</option>
+                                                <option value="18">%18</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <select class="form-control"
+                                                    ng-options="expItem as expItem.name for expItem in expItems track by expItem.id"
+                                                    ng-model="expItemSelected"
+                                                    ng-change="drChange()">
+                                                <option value="" selected disabled>Gider Kalemi</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <input type="text" class="form-control number" name="price"
+                                                   ng-model="amount"
+                                                   placeholder="Fiyat"/>
                                         </div>
                                     </div>
+                                </div>
 
-                                    <div class="col-md-2">
-                                        <select class="form-control"
-                                                ng-model="paymentSelect">
-                                            <option value="" selected disabled>KDV Miktarı Seçiniz</option>
-                                            <option value="1">%1</option>
-                                            <option value="8">%8</option>
-                                            <option value="18">%18</option>
-                                        </select>
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-md-offset-1 col-md-1">
+                                            <strong>Açıklama: </strong>
+                                        </div>
+                                        <div class="col-md-10">
+                                            <input type="text" class="form-control" name="explanation"
+                                                   ng-model="explanation"
+                                                   placeholder="Açıklama"/>
+                                        </div>
+
+                                    </div>
                                     </div>
 
-                                    <div class="col-md-6">
-                                        <select class="form-control"
-                                                ng-options="expItem as expItem.name for expItem in expItems track by expItem.id"
-                                                ng-model="expItemSelected"
-                                                ng-change="drChange()">
-                                            <option value="" selected disabled>Gider Kalemi</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <input type="text" class="form-control number" name="price" ng-model="amount"
-                                               placeholder="Fiyat"/>
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-md-offset-2 col-md-8">
+                                            <button type="button" class="btn btn-primary btn-flat btn-block"
+                                                    ng-click="addPayment()">Güncelle
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <div class="row">
-                                    <div class="col-md-offset-2 col-md-8">
-                                        <button type="button" class="btn btn-primary btn-flat btn-block"
-                                                ng-click="addPayment()">Güncelle
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <br>
+                            <br>
+                        @endif
 
 
                         <div class="row">
@@ -260,10 +295,13 @@
                                         <th class="text-center">S.N</th>
                                         <th class="text-center">Tarih</th>
                                         <th class="text-center">Gider Kalemi</th>
+                                        <th class="text-center">Açıklama</th>
                                         <th class="text-center">Fiyat</th>
                                         <th class="text-center">KDV</th>
                                         <th class="text-center">Toplam</th>
-                                        <th class="text-center">Sil</th>
+                                        @if($post_permission)
+                                            <th class="text-center">Sil</th>
+                                        @endif
                                     </tr>
                                     </thead>
                                     <tbody>
@@ -271,11 +309,14 @@
                                         <td class="text-center"><%$index+1%></td>
                                         <td class="text-center"><%payment.date%></td>
                                         <td class="text-center"><%payment.type%></td>
+                                        <td class="text-center"><%payment.explanation%></td>
                                         <td class="text-center"><%payment.amount | numberFormatter%> TL</td>
                                         <td class="text-center">%<%payment.kdv%></td>
                                         <td class="text-right"><%payment.total|numberFormatter%> TL</td>
-                                        <td class="text-center"><a href="#!" ng-click="remove_field(payment)"><i
-                                                        class="fa fa-close"></i></a>
+                                        @if($post_permission)
+                                            <td class="text-center"><a href="#!" ng-click="remove_field(payment)"><i
+                                                            class="fa fa-close"></i></a></td>
+                                        @endif
                                     </tr>
                                     <tr class="bg-warning">
                                         <td></td>
@@ -283,9 +324,12 @@
                                         <td style="text-align: right"><strong>GENEL TOPLAM</strong></td>
                                         <td></td>
                                         <td></td>
-                                        <td style="text-align: left"><strong><%total | numberFormatter%>TL</strong>
-                                        </td>
                                         <td></td>
+                                        <td style="text-align: right"><strong><%total | numberFormatter%>TL</strong>
+                                        </td>
+                                        @if($post_permission)
+                                            <td></td>
+                                        @endif
                                     </tr>
                                     </tbody>
                                 </table>

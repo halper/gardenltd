@@ -207,7 +207,8 @@ body > .header {
 }
 
 .skin-blue .sidebar li:hover > a,
-.skin-blue .sidebar-menu > li.active > a {
+.skin-blue .sidebar-menu > li.active > a,
+li.treeview.active > ul > li.active > a{
     color: #fff;
     background: #1e282c;
     background-image: initial;

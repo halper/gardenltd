@@ -47,7 +47,7 @@ foreach ($management_depts->management() as $dept) {
 </div>
 
 <div class="form-group {{ $errors->has('staff_id') ? 'has-error' : '' }}">
-    <div class="row">
+    <div class="row" id="select-parent">
         <div class="col-sm-2">
             {!! Form::label('staff_id', 'İş Kolu:* ', ['class' => 'control-label']) !!}
         </div>
@@ -126,6 +126,7 @@ foreach ($management_depts->management() as $dept) {
     </div>
 </div>
 
+@if($can_add_employer_docs)
 <div class="form-group {{ $errors->has('contract') ? 'has-error' : '' }}">
     <div class="row">
         <div class="col-sm-2">
@@ -139,6 +140,7 @@ foreach ($management_depts->management() as $dept) {
 {!! Form::hidden('contract_date', '0000-00-00') !!}
 {!! Form::hidden('contract_start_date', '0000-00-00') !!}
 {!! Form::hidden('contract_end_date', '0000-00-00') !!}
+@endif
 
 <div class="form-group">
     <div class="row">

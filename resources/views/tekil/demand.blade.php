@@ -2,12 +2,47 @@
 use Carbon\Carbon;
 
 $today = Carbon::now()->toDateString();
-        if(Session::has('tab')){
-            $tab = Session::get('tab');
+if (Session::has('tab')) {
+    $tab = Session::get('tab');
+} else {
+    $tab = '';
+}
+
+
+$user = Auth::user();
+
+$addr = explode("/", $_SERVER['REQUEST_URI']);
+$slug = $addr[sizeof($addr) - 1];
+$module = $modules->whereSlug($slug)->first();
+
+$post_permission = \App\Library\PermissionHelper::checkUserPostPermissionOnModule($user, $module);
+
+$can_add_price = false;
+$can_add_payment_type = false;
+$can_delete = false;
+$can_confirm = false;
+
+
+if ($user->isAdmin()) {
+    $can_add_price = true;
+    $can_add_payment_type = true;
+    $can_delete = true;
+    $can_confirm = true;
+} else
+    foreach ($user->group()->get() as $group) {
+        if ($group->hasSpecialPermissionForSlug('malzeme-talep-formu-birim-fiyat')) {
+            $can_add_price = true;
         }
-        else{
-            $tab = '';
+        if ($group->hasSpecialPermissionForSlug('malzeme-talep-formu-odeme-sekli')) {
+            $can_add_payment_type = true;
         }
+        if ($group->hasSpecialPermissionForSlug('malzeme-talep-goruntule-sil')) {
+            $can_delete = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('malzeme-talep-goruntule-sevket')) {
+            $can_confirm = true;
+        }
+    }
 ?>
 
 @extends('tekil.layout')
@@ -82,26 +117,30 @@ $today = Carbon::now()->toDateString();
             <!-- Custom Tabs -->
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs">
-                    <li {{empty($tab) ? 'class=active' : ''}}><a href="#tab_5" data-toggle="tab">Talep Oluştur</a></li>
-                    <li {{$tab == 1 ? 'class=active' : ''}}><a href="#tab_1" data-toggle="tab">Talep Görüntüle</a></li>
+                    @if($post_permission)
+                        <li {{empty($tab) ? 'class=active' : ''}}><a href="#tab_5" data-toggle="tab">Talep Oluştur</a>
+                        </li>
+                    @endif
+                    <li {{($tab == 1 || !$post_permission) ? 'class=active' : ''}}><a href="#tab_1" data-toggle="tab">Talep
+                            Görüntüle</a></li>
 
                 </ul>
 
                 <!-- /.tab-content -->
                 <div class="tab-content">
 
+                    @if($post_permission)
+                        <div class="tab-pane {{empty($tab) ? 'active' : ''}}" id="tab_5">
+                            <h3>Yeni Talep</h3>
 
-                    <div class="tab-pane {{empty($tab) ? 'active' : ''}}" id="tab_5">
-                        <h3>Yeni Talep</h3>
+                            <p>Talebini yapacağınız malzemeleri aşağıdaki kutudan seçtikten sonra birim ve miktar
+                                belirteceğiniz
+                                ayrı bir tablo gelecek.</p>
+                            @include('tekil._new-demand')
+                        </div>
+                    @endif
 
-                        <p>Talebini yapacağınız malzemeleri aşağıdaki kutudan seçtikten sonra birim ve miktar
-                            belirteceğiniz
-                            ayrı bir tablo gelecek.</p>
-                        @include('tekil._new-demand')
-                    </div>
-
-
-                    <div class="tab-pane {{$tab == 1 ? 'active' : ''}}" id="tab_1">
+                    <div class="tab-pane {{($tab == 1 || !$post_permission) ? 'active' : ''}}" id="tab_1">
                         @include('tekil._view-demand')
                     </div>
 
@@ -138,6 +177,7 @@ $today = Carbon::now()->toDateString();
                             ]) !!}
                         @include('tekil._demand-mat-arr')
                         <br>
+
                         <div class="form-group">
                             <div class="row">
                                 <div class="col-sm-2">

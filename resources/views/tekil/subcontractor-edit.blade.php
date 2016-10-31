@@ -8,6 +8,50 @@ if (Session::has('tab')) {
 } else {
     $tab = '';
 }
+
+$user = Auth::user();
+$can_access_contract_info_tab = false;
+$can_access_fees_tab = false;
+$can_access_additional_docs_tab = false;
+$can_access_add_personnel_tab = false;
+$can_add_employer_docs = false;
+$can_edit_personnel = false;
+$can_delete_personnel = false;
+
+
+if ($user->isAdmin()) {
+
+    $can_access_contract_info_tab = true;
+    $can_access_fees_tab = true;
+    $can_access_additional_docs_tab = true;
+    $can_access_add_personnel_tab = true;
+    $can_add_employer_docs = true;
+    $can_edit_personnel = true;
+    $can_delete_personnel = true;
+} else
+    foreach ($user->group()->get() as $group) {
+        if ($group->hasSpecialPermissionForSlug('sozlesme-bilgileri')) {
+            $can_access_contract_info_tab = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('ucret-oranlari')) {
+            $can_access_fees_tab = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('ek-belgeler')) {
+            $can_access_additional_docs_tab = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('personel-ekle')) {
+            $can_access_add_personnel_tab = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('ise-giris-belgesi-ekle')) {
+            $can_add_employer_docs = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('personel-duzenle')) {
+            $can_edit_personnel = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('personel-sil')) {
+            $can_delete_personnel = true;
+        }
+    }
 ?>
 @extends('tekil.layout')
 
@@ -28,6 +72,7 @@ if (Session::has('tab')) {
     <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
     <script src="<?= URL::to('/'); ?>/js/lightbox.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/moment.min.js" type="text/javascript"></script>
+    <script src="<?= URL::to('/'); ?>/js/personnel.js" type="text/javascript"></script>
 
     <script>
         String.prototype.turkishToLower = function () {
@@ -145,42 +190,6 @@ if (Session::has('tab')) {
             });
         });
 
-        $("#add-personnel").on("click", function (e) {
-            e.preventDefault();
-            var tckInput = $('input[name=tck_no]');
-            var tck = tckInput.val();
-            if (tck.length != 11) {
-                tckInput.parent('div').parent().closest('div.row').append(
-                        '<div class="col-sm-4">' +
-                        '<span class="text-danger">TCK No giriniz!</span>' +
-                        '</div>'
-                );
-                tckInput.parent('div').parent().closest('div.row').addClass('has-error');
-                return;
-            }
-            var unique;
-            $.ajax({
-                type: 'POST',
-                url: '{{"/tekil/$site->slug/check-tck"}}',
-                data: {
-                    "tck_no": tck
-                }
-            }).success(function (response) {
-                unique = (response.indexOf('unique') > -1);
-                if (!unique) {
-                    tckInput.parent('div').parent().closest('div.row').append(
-                            '<div class="col-sm-4">' +
-                            '<span class="text-danger">TCK No sistemde kayıtlı!</span>' +
-                            '</div>'
-                    );
-                    tckInput.parent('div').parent().closest('div.row').addClass('has-error');
-                }
-                else {
-                    $('#subcontractorPersonnelForm').submit();
-                }
-            });
-
-        });
 
         function removeFiles(fid) {
             $.ajax({
@@ -240,173 +249,185 @@ if (Session::has('tab')) {
             <!-- Custom Tabs -->
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs">
-                    <li {{empty($tab) ? 'class=active' : ''}}><a href="#tab_1" data-toggle="tab">Alt Yüklenici Sözleşme Bilgileri</a></li>
+                    <li {{empty($tab) ? 'class=active' : ''}}><a href="#tab_1" data-toggle="tab">Alt Yüklenici Sözleşme
+                            Bilgileri</a></li>
                     <li><a href="#tab_2" data-toggle="tab">Ücretler ve Oranlar</a></li>
                     <li><a href="#tab_5" data-toggle="tab">Ek Belgeler</a></li>
-                    <li {{strpos($tab, 'insert') !== false ? 'class=active' : ''}}><a href="#tab_6" data-toggle="tab">Personel Ekle</a></li>
+                    <li {{strpos($tab, 'insert') !== false ? 'class=active' : ''}}><a href="#tab_6" data-toggle="tab">Personel
+                            Ekle</a></li>
                     <li><a href="#tab_7" data-toggle="tab">Personel Düzenle</a></li>
 
                 </ul>
                 <div class="tab-content">
-                    <!-- /.tab-pane -->
-                    <div class="tab-pane {{empty($tab) ? 'active' : ''}}" id="tab_1">
+                    @if($can_access_contract_info_tab)
+                        <div class="tab-pane {{empty($tab) ? 'active' : ''}}" id="tab_1">
 
-                        {!! Form::model($subcontractor, [
-                                                                        'url' => "/tekil/$site->slug/update-subcontractor",
-                                                                        'method' => 'POST',
-                                                                        'class' => 'form',
-                                                                        'id' => 'subcontractorEditForm',
-                                                                        'role' => 'form',
-                                                                        'files' => true
-                                                                        ])!!}
-                        {!! Form::hidden('sub-id', $subcontractor->id) !!}
-                        @include('tekil._subcontractor-form')
+                            {!! Form::model($subcontractor, [
+                                                                            'url' => "/tekil/$site->slug/update-subcontractor",
+                                                                            'method' => 'POST',
+                                                                            'class' => 'form',
+                                                                            'id' => 'subcontractorEditForm',
+                                                                            'role' => 'form',
+                                                                            'files' => true
+                                                                            ])!!}
+                            {!! Form::hidden('sub-id', $subcontractor->id) !!}
+                            @include('tekil._subcontractor-form')
 
-                        <div class="row">
-                            <div class="col-sm-2"><strong>Sözleşme: </strong></div>
-                            <div class="col-sm-10">
-                                <?php
-                                $my_path = '';
-                                $file_name = '';
+                            <div class="row">
+                                <div class="col-sm-2"><strong>Sözleşme: </strong></div>
+                                <div class="col-sm-10">
+                                    <?php
+                                    $my_path = '';
+                                    $file_name = '';
 
-                                if (!($subcontractor->contract()->get()->isEmpty()) && !($subcontractor->contract->file()->get()->isEmpty())) {
-                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $subcontractor->contract->file->path);
-                                    $file_name = $subcontractor->contract->file->name;
-                                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
-                                }
-                                ?>
-                                <a href="{{!empty($my_path) ? $my_path : ""}}">
-                                    {{!empty($file_name) ? $file_name : ""}}
-                                </a>
+                                    if (!($subcontractor->contract()->get()->isEmpty()) && !($subcontractor->contract->file()->get()->isEmpty())) {
+                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $subcontractor->contract->file->path);
+                                        $file_name = $subcontractor->contract->file->name;
+                                        $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
+                                    }
+                                    ?>
+                                    <a href="{{!empty($my_path) ? $my_path : ""}}">
+                                        {{!empty($file_name) ? $file_name : ""}}
+                                    </a>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="row">
-                            <div class="col-md-3 col-md-offset-4">
-                                <div class="form-group">
-                                    <button type="submit" class="btn btn-flat btn-primary btn-block">Sözleşme
-                                        Detaylarını
-                                        Kaydet
-                                    </button>
+                            <div class="row">
+                                <div class="col-md-3 col-md-offset-4">
+                                    <div class="form-group">
+                                        <button type="submit" class="btn btn-flat btn-primary btn-block">Sözleşme
+                                            Detaylarını
+                                            Kaydet
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {!! Form::close() !!}
+                        </div>
+                        {{--Tab pane--}}
+                        @endif
+
+                        @if($can_access_fees_tab)
+                                <!-- /.tab-pane -->
+                        <div class="tab-pane" id="tab_2">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    @include('tekil._subcontractor-fee-form')
                                 </div>
                             </div>
                         </div>
+                        @endif
 
-                        {!! Form::close() !!}
-                    </div>
-                    {{--Tab pane--}}
-
-
-                    <!-- /.tab-pane -->
-                    <div class="tab-pane" id="tab_2">
-                        <div class="row">
-                            <div class="col-xs-12">
-                                @include('tekil._subcontractor-fee-form')
+                        @if($can_access_additional_docs_tab)
+                                <!-- /.tab-pane -->
+                        <div class="tab-pane" id="tab_5">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    @include('tekil._subcontractor-files')
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    @endif
 
-                    <!-- /.tab-pane -->
-                    <div class="tab-pane" id="tab_5">
-                        <div class="row">
-                            <div class="col-xs-12">
-                                @include('tekil._subcontractor-files')
+                    @if($can_access_add_personnel_tab)
+                        <div class="tab-pane {{strpos($tab, 'insert') !== false ? 'active' : ''}}" id="tab_6">
+                            {!! Form::open([
+                                                                            'url' => "/tekil/$site->slug/add-subcontractor-personnel",
+                                                                            'method' => 'POST',
+                                                                            'class' => 'form',
+                                                                            'id' => 'personnelForm',
+                                                                            'role' => 'form',
+                                                                            'files' => true
+                                                                            ])!!}
+                            {!! Form::hidden('subcontractor_id', $subcontractor->id) !!}
+                            <div class="row">
+                                <div class="col-sm-12">
+
+                                    @include('landing._personnel-insert-form', ['wage_exists' => true])
+
+                                </div>
                             </div>
+                            {!! Form::close() !!}
                         </div>
-                    </div>
+                    @endif
 
-                    <div class="tab-pane {{strpos($tab, 'insert') !== false ? 'active' : ''}}" id="tab_6">
-                        {!! Form::open([
-                                                                        'url' => "/tekil/$site->slug/add-subcontractor-personnel",
-                                                                        'method' => 'POST',
-                                                                        'class' => 'form',
-                                                                        'id' => 'subcontractorPersonnelForm',
-                                                                        'role' => 'form',
-                                                                        'files' => true
-                                                                        ])!!}
-                        {!! Form::hidden('subcontractor_id', $subcontractor->id) !!}
-                        <div class="row">
-                            <div class="col-sm-12">
-
-                                @include('landing._personnel-insert-form', ['wage_exists' => true])
-
-                            </div>
-                        </div>
-                        {!! Form::close() !!}
-                    </div>
-
-                    <div class="tab-pane" id="tab_7">
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <table class="table table-striped">
-                                    <thead>
-                                    <tr>
-                                        <th>Adı-Soyadı</th>
-                                        <th>TCK No</th>
-                                        <th>Nüfus Cüzdanı</th>
-                                        <th>İşe Giriş Belgesi</th>
-                                        <th>Kullanıcı İşlemleri</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-
-                                    @foreach($personnel as $per)
+                    @if($can_edit_personnel)
+                        <div class="tab-pane" id="tab_7">
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <table class="table table-striped">
+                                        <thead>
                                         <tr>
-                                            <td>{{ \App\Library\TurkishChar::tr_camel($per->name) }}</td>
-                                            <td>{{ $per->tck_no }}</td>
-                                            <?php
-                                            $id_path = '';
-                                            $id_file_name = '';
-                                            $iddoc = '-';
-
-                                            if (count($per->iddoc) && count($per->iddoc->file()->get())) {
-                                                $id_path_arr = explode(DIRECTORY_SEPARATOR, $per->iddoc->file()->orderBy('created_at', 'DESC')->first()->path);
-                                                $id_file_name = $per->iddoc->file()->orderBy('created_at', 'DESC')->first()->name;
-                                                $id_path = "/uploads/" . $id_path_arr[sizeof($id_path_arr) - 1] . "/" . $id_file_name;
-                                                $iddoc = '<a href="' . $id_path . '">' . $id_file_name . '</a>';
-                                            }
-
-
-                                            $my_path = '';
-                                            $file_name = '';
-                                            $cont = '-';
-
-                                            if (count($per->contract) && count($per->contract->file()->get())) {
-
-                                                $my_path_arr = explode(DIRECTORY_SEPARATOR, $per->contract->file()->orderBy('created_at', 'DESC')->first()->path);
-                                                $file_name = $per->contract->file()->orderBy('created_at', 'DESC')->first()->name;
-
-                                                $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
-                                                $cont = '<a href="' . $my_path . '">' . $file_name . '</a>';
-                                            }
-                                            $exit_date = $per->contract()->get()->isEmpty() || (!($per->contract()->get()->isEmpty()) && (strpos($per->contract->exit_date, '0000-00-00') !== false)) ? null : \App\Library\CarbonHelper::getTurkishDate($per->contract->exit_date);
-                                            ?>
-
-                                            <td>{!! $iddoc!!}</td>
-                                            <td>{!! $cont !!}</td>
-
-                                            <td>
-                                                <div class="row">
-                                                    <div class="col-sm-3">
-                                                        <a href="{{"$subcontractor->id/personel-duzenle/$per->id"}}"
-                                                           class="btn btn-flat btn-warning btn-sm">Düzenle</a>
-                                                    </div>
-                                                    <div class="col-sm-2">
-                                                        <?php
-                                                        echo '<button type="button" class="btn btn-flat btn-danger btn-sm userDelBut" data-id="' . $per->id . '" data-name="' . $per->name . '" data-toggle="modal" data-target="#deleteUserConfirm">Sil</button>';
-                                                        ?>
-                                                    </div>
-                                                </div>
-
-                                            </td>
-
+                                            <th>Adı-Soyadı</th>
+                                            <th>TCK No</th>
+                                            <th>Nüfus Cüzdanı</th>
+                                            <th>İşe Giriş Belgesi</th>
+                                            <th>Kullanıcı İşlemleri</th>
                                         </tr>
-                                    @endforeach
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+
+                                        @foreach($personnel as $per)
+                                            <tr>
+                                                <td>{{ \App\Library\TurkishChar::tr_camel($per->name) }}</td>
+                                                <td>{{ $per->tck_no }}</td>
+                                                <?php
+                                                $id_path = '';
+                                                $id_file_name = '';
+                                                $iddoc = '-';
+
+                                                if (count($per->iddoc) && count($per->iddoc->file()->get())) {
+                                                    $id_path_arr = explode(DIRECTORY_SEPARATOR, $per->iddoc->file()->orderBy('created_at', 'DESC')->first()->path);
+                                                    $id_file_name = $per->iddoc->file()->orderBy('created_at', 'DESC')->first()->name;
+                                                    $id_path = "/uploads/" . $id_path_arr[sizeof($id_path_arr) - 1] . "/" . $id_file_name;
+                                                    $iddoc = '<a href="' . $id_path . '">' . $id_file_name . '</a>';
+                                                }
+
+
+                                                $my_path = '';
+                                                $file_name = '';
+                                                $cont = '-';
+
+                                                if (count($per->contract) && count($per->contract->file()->get())) {
+
+                                                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $per->contract->file()->orderBy('created_at', 'DESC')->first()->path);
+                                                    $file_name = $per->contract->file()->orderBy('created_at', 'DESC')->first()->name;
+
+                                                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
+                                                    $cont = '<a href="' . $my_path . '">' . $file_name . '</a>';
+                                                }
+                                                $exit_date = $per->contract()->get()->isEmpty() || (!($per->contract()->get()->isEmpty()) && (strpos($per->contract->exit_date, '0000-00-00') !== false)) ? null : \App\Library\CarbonHelper::getTurkishDate($per->contract->exit_date);
+                                                ?>
+
+                                                <td>{!! $iddoc!!}</td>
+                                                <td>{!! $cont !!}</td>
+
+                                                <td>
+                                                    <div class="row">
+                                                        <div class="col-sm-3">
+                                                            <a href="{{"$subcontractor->id/personel-duzenle/$per->id"}}"
+                                                               class="btn btn-flat btn-warning btn-sm">Düzenle</a>
+                                                        </div>
+                                                        @if($can_delete_personnel)
+                                                            <div class="col-sm-2">
+                                                                <?php
+                                                                echo '<button type="button" class="btn btn-flat btn-danger btn-sm userDelBut" data-id="' . $per->id . '" data-name="' . $per->name . '" data-toggle="modal" data-target="#deleteUserConfirm">Sil</button>';
+                                                                ?>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+
+                                                </td>
+
+                                            </tr>
+                                        @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    @endif
 
 
                 </div>

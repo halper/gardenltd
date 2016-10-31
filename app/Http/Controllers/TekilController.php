@@ -6,6 +6,7 @@ use App\Account;
 use App\Allowance;
 use App\Contract;
 use App\Demand;
+use App\Equipment;
 use App\Expdetail;
 use App\Expenditure;
 use App\Expense;
@@ -14,6 +15,7 @@ use App\Fee;
 use App\File;
 use App\Iddoc;
 use App\Inmaterial;
+use App\Instrument;
 use App\Labor;
 use App\Library\CarbonHelper;
 use App\Library\TurkishChar;
@@ -44,6 +46,7 @@ use App\Submaterial;
 use App\Swunit;
 use App\Tag;
 use App\Wage;
+use Auth;
 use Carbon\Carbon;
 use DB;
 use Illuminate\Http\Request;
@@ -57,7 +60,10 @@ use PhpParser\Node\Expr\AssignOp\Mod;
 class TekilController extends ManagementController
 {
     //
-
+    const SEKME_BIR = 1;
+    const SEKME_IKI = 2;
+    const SEKME_UC = 3;
+    const SEKME_DORT = 4;
 
     public function getIndex(Site $site, Module $modules)
     {
@@ -66,41 +72,42 @@ class TekilController extends ManagementController
 
     public function getGunlukRapor(Site $site, Module $modules, Request $request)
     {
-        $report = new Report;
 
-        if (empty($report->where('created_at', Carbon::now()->toDateString())->where('site_id', $site->id)->first())) {
-            $report->site_id = $site->id;
-            $report->save();
-            $pwunit = new Pwunit();
-            $staff = Staff::find(1);
-            $pwunit->staff()->associate($staff);
-            $pwunit->report()->associate($report);
-            $pwunit->save();
-            foreach ($site->equipment()->get() as $eq) {
-                $report->equipment()->attach($eq->id);
+            $report = new Report;
+
+            if (empty($report->where('created_at', Carbon::now()->toDateString())->where('site_id', $site->id)->first())) {
+                $report->site_id = $site->id;
+                $report->save();
+                $pwunit = new Pwunit();
+                $staff = Staff::find(1);
+                $pwunit->staff()->associate($staff);
+                $pwunit->report()->associate($report);
+                $pwunit->save();
+                foreach ($site->equipment()->get() as $eq) {
+                    $report->equipment()->attach($eq->id);
+                }
+            } else {
+                $report = $report->where('created_at', Carbon::now()->toDateString())->where('site_id', $site->id)->first();
             }
-        } else {
-            $report = $report->where('created_at', Carbon::now()->toDateString())->where('site_id', $site->id)->first();
-        }
 
-        if (session()->has('report')) {
-            $report = session()->get('report');
-        }
-        $yesterdays_report = $site->report()->where('created_at', Carbon::yesterday()->toDateString())->first();
-        if (!is_null($yesterdays_report) && is_null($yesterdays_report->weather)) {
-            $wt = new Weather(1, $site->city->name);
-            $yesterdays_report->weather = $wt->getDescription();
-            $yesterdays_report->temp_min = $wt->getMin();
-            $yesterdays_report->temp_max = $wt->getMax();
-            $yesterdays_report->wind = $wt->getWind();
-            $yesterdays_report->degree = $wt->getDirection();
-            $yesterdays_report->save();
-        }
+            if (session()->has('report')) {
+                $report = session()->get('report');
+            }
+            $yesterdays_report = $site->report()->where('created_at', Carbon::yesterday()->toDateString())->first();
+            if (!is_null($yesterdays_report) && is_null($yesterdays_report->weather)) {
+                $wt = new Weather(1, $site->city->name);
+                $yesterdays_report->weather = $wt->getDescription();
+                $yesterdays_report->temp_min = $wt->getMin();
+                $yesterdays_report->temp_max = $wt->getMax();
+                $yesterdays_report->wind = $wt->getWind();
+                $yesterdays_report->degree = $wt->getDirection();
+                $yesterdays_report->save();
+            }
 
-        $cookieVal = empty($request->cookie('viewCount')) ? 1 : (int)$request->cookie('viewCount') + 1;
-        $viewCount = $cookieVal;
-        $response = new Response(view('tekil/daily', compact('site', 'modules', 'report', 'viewCount')));
-        return $response->withCookie('viewCount', $cookieVal, 480);
+            $cookieVal = empty($request->cookie('viewCount')) ? 1 : (int)$request->cookie('viewCount') + 1;
+            $viewCount = $cookieVal;
+            $response = new Response(view('tekil.daily', compact('site', 'modules', 'report', 'viewCount')));
+            return $response->withCookie('viewCount', $cookieVal, 480);
     }
 
     public function postRetrieveReportDays(Request $request, Site $site)
@@ -657,7 +664,11 @@ class TekilController extends ManagementController
     {
         $report = Report::find($request->get("report_id"));
         $db_file = $this->uploadFile($request->file("file"));
-
+        $success = true;
+        if (is_int($db_file) && strpos('format', $db_file) !== false) {
+            Session::flash('flash_message_error', 'İzin verilmeyen dosya formatı. İlgili personel için dosyaları güncelleyin!');
+            $success = false;
+        }
         if ($db_file) {
             if ($request->get("type") == 0) {
                 $photo = Photo::create();
@@ -809,6 +820,7 @@ class TekilController extends ManagementController
         }
         $subcontractor->price = str_replace(",", ".", str_replace(".", "", $request->get('price')));
         $subcontractor->additional_bid_cost = str_replace(",", ".", str_replace(".", "", $request->get('additional_bid_cost')));
+        $subcontractor->kdv = $request->kdv;
         $subcontractor->save();
         if ($subcontractor->contract()->get()->isEmpty()) {
             $contract = Contract::firstOrCreate(['contract_date' => CarbonHelper::getMySQLDate($request->get('contract_date')),
@@ -915,7 +927,9 @@ class TekilController extends ManagementController
     {
         $subcontractor = Subcontractor::find($request->get('sub_id'));
         $db_file = $this->uploadFile($request->file("file"));
-
+        if (is_int($db_file) && strpos('format', $db_file) !== false) {
+            Session::flash('flash_message_error', 'İzin verilmeyen dosya formatı. İlgili personel için dosyaları güncelleyin!');
+        }
         if (!empty($db_file)) {
             $photo = Photo::create();
             $photo->file()->save($db_file);
@@ -941,8 +955,6 @@ class TekilController extends ManagementController
         $this->validate($request, [
             'tck_no' => 'required | size:11',
             'name' => 'required',
-            'contract' => 'required',
-            'iddoc' => 'required',
             'wage' => 'required',
             'staff_id' => 'required'
         ]);
@@ -951,25 +963,40 @@ class TekilController extends ManagementController
         if (!empty($request->get("iban"))) {
             $per_arr["iban"] = preg_replace("/\\s+/ ", "", $request->get("iban"));
         }
-        $personnel = Personnel::create($per_arr);
-        $wage = Wage::create([
+        $success = true;
+        $directory = public_path() . '/uploads/' . uniqid(rand(), true);
+        $personnel = new Personnel($per_arr);
+        $personnel->save();
+
+        if(!empty($request->file("contract"))) {
+            $contract_file = $this->uploadFile($request->file("contract"), $directory);
+            if (is_int($contract_file) && strpos('format', $contract_file) !== false) {
+                Session::flash('flash_message_error', 'İzin verilmeyen dosya formatı. İlgili personel için dosyaları güncelleyin!');
+                $success = false;
+            }
+            $contract = new Contract();
+            if (isset($request->exit_date)) {
+                $contract->exit_date = CarbonHelper::getMySQLDate($request->exit_date);
+            }
+            $contract->save();
+            $contract->file()->save($contract_file);
+            $personnel->contract()->save($contract);
+        }
+
+
+        $wage = new Wage([
             'wage' => $per_arr["wage"],
             'since' => Carbon::parse($personnel->created_at)->toDateString()]);
-        $wage->personnel()->associate($personnel);
         $wage->save();
-        $directory = public_path() . '/uploads/' . uniqid(rand(), true);
-        $contract_file = $this->uploadFile($request->file("contract"), $directory);
-        $contract = new Contract();
-        if (isset($request->exit_date)) {
-            $contract->exit_date = CarbonHelper::getMySQLDate($request->exit_date);
-        }
-        $contract->save();
-        $contract->file()->save($contract_file);
+        $personnel->wage()->save($wage);
 
         if (!empty($request->file("documents"))) {
             foreach ($request->file("documents") as $file) {
                 $db_file = $this->uploadFile($file, $directory);
-
+                if (is_int($db_file) && strpos('format', $db_file) !== false) {
+                    Session::flash('flash_message_error', 'İzin verilmeyen dosya formatı!');
+                    $success = false;
+                }
                 if ($db_file) {
                     $photo = Photo::create();
                     $photo->file()->save($db_file);
@@ -978,16 +1005,26 @@ class TekilController extends ManagementController
             }
         }
 
-        $id_file = $this->uploadFile($request->file("iddoc"), $directory);
-        $iddoc = new Iddoc();
-        $iddoc->save();
-        $iddoc->file()->save($id_file);
-        $personnel->iddoc()->save($iddoc);
-        $personnel->contract()->save($contract);
+        if(!empty($request->file("iddoc"))) {
+            $id_file = $this->uploadFile($request->file("iddoc"), $directory);
+            if (is_int($id_file) && strpos('format', $id_file) !== false) {
+                Session::flash('flash_message_error', 'İzin verilmeyen dosya formatı. İlgili personel için dosyaları güncelleyin!');
+                $success = false;
+            }
+            $iddoc = new Iddoc();
+            $iddoc->save();
+            $iddoc->file()->save($id_file);
+            $personnel->iddoc()->save($iddoc);
+        }
+
         $subcontractor = Subcontractor::find($request->get('subcontractor_id'));
         $subcontractor->personnel()->save($personnel);
-
-        Session::flash('flash_message', 'Personel eklendi');
+        if ($success)
+            Session::flash('flash_message', 'Personel eklendi');
+        else{
+            $personnel->forceDelete();
+            $wage->delete();
+        }
         return redirect()->back()->with(['tab' => 'insert']);
     }
 
@@ -995,22 +1032,7 @@ class TekilController extends ManagementController
 //  END OF TAŞERON CARİ HESAP PAGE
 
 
-    public function getIsMakineleri(Site $site, Module $modules)
-    {
-        return view('tekil/equipments', compact('site', 'modules'));
-    }
 
-    public function postEditEquipments(Site $site, Request $request)
-    {
-        $site->equipment()->detach();
-
-        foreach ($request->get("equipments") as $equipment) {
-            $site->equipment()->attach($equipment);
-        }
-
-        Session::flash('flash_message', "Şantiye iş makineleri güncellendi");
-        return redirect()->back();
-    }
 
 // START OF KASA PAGE
     public function getKasa(Site $site, Module $modules)
@@ -1074,16 +1096,6 @@ class TekilController extends ManagementController
     }
 
 //    END OF KASA PAGE
-
-    public function postCheckTck(Request $request)
-    {
-        if (is_null(Personnel::withTrashed()->where('tck_no', $request->get('tck_no'))->first())) {
-            return response()->json('unique', 200);
-        } else {
-            return response()->json('found!', 200);
-        }
-
-    }
 
 
 //    START OF PUANTAJ PAGE
@@ -1495,7 +1507,19 @@ class TekilController extends ManagementController
 
     public function getPersonelDuzenle(Site $site, Module $modules, Subcontractor $subcontractor, Personnel $personnel)
     {
-        if (!empty($site->subcontractor()->whereId($subcontractor->id)->first())) {
+        $user = Auth::user();
+        $can_edit_personnel = false;
+
+        if ($user->isAdmin()) {
+            $can_edit_personnel = true;
+        } else
+            foreach ($user->group()->get() as $group) {
+                if ($group->hasSpecialPermissionForSlug('personel-duzenle')) {
+                    $can_edit_personnel = true;
+                }
+            }
+
+        if ($can_edit_personnel || !empty($site->subcontractor()->whereId($subcontractor->id)->first())) {
             if (!empty($subcontractor->personnel()->whereId($personnel->id)->first()))
                 return view('tekil.personnel-edit', compact('personnel', 'site', 'modules'));
         }
@@ -1507,18 +1531,24 @@ class TekilController extends ManagementController
         $per_arr = $request->all();
 
         unset($per_arr["_token"]);
-        $per_wage = str_replace(",", ".", $request->get("wage"));
         unset($per_arr["wage"]);
         unset($per_arr["exit_date"]);
         unset($per_arr["id"]);
         unset($per_arr["iddoc"]);
         unset($per_arr["contract"]);
+        unset($per_arr["exp_date"]);
+        unset($per_arr["price"]);
         unset($per_arr["documents"]);
         if (!empty($request->get("iban"))) {
             $per_arr["iban"] = preg_replace("/\\s+/ ", "", $request->get("iban"));
         }
 
         $per = Personnel::find($request->get("id"));
+        if (empty($per->contract)) {
+            $contract = new Contract();
+            $contract->save();
+            $per->contract()->save($contract);
+        }
         if (isset($request->exit_date) && !empty($request->exit_date)) {
             $contract = $per->contract;
             $contract->exit_date = CarbonHelper::getMySQLDate($request->exit_date);
@@ -1528,15 +1558,15 @@ class TekilController extends ManagementController
             $per->$k = $v;
         }
         $per->save();
-        $wage = Wage::create([
-            'wage' => $per_wage,
-            'since' => Carbon::parse($per->updated_at)->toDateString()]);
-        $wage->personnel()->associate($per);
-        $wage->save();
 
+        $success = true;
         $directory = public_path() . '/uploads/' . uniqid(rand(), true);
-        if (!empty($request->file("contract"))) {
+        if ($request->hasFile("contract")) {
             $contract_file = $this->uploadFile($request->file("contract"), $directory);
+            if (is_int($contract_file) && strpos('format', $contract_file) !== false) {
+                Session::flash('flash_message_error', 'İzin verilmeyen dosya formatı. İlgili personel için dosyaları güncelleyin!');
+                $success = false;
+            }
             $contract = $per->contract;
             $contract->file()->save($contract_file);
         }
@@ -1545,7 +1575,10 @@ class TekilController extends ManagementController
             foreach ($request->file("documents") as $file) {
 
                 $db_file = $this->uploadFile($file, $directory);
-
+                if (is_int($db_file) && strpos('format', $db_file) !== false) {
+                    Session::flash('flash_message_error', 'İzin verilmeyen dosya formatı. İlgili personel için dosyaları güncelleyin!');
+                    $success = false;
+                }
                 if ($db_file) {
                     $photo = Photo::create();
                     $photo->file()->save($db_file);
@@ -1557,7 +1590,10 @@ class TekilController extends ManagementController
         if ($request->hasFile("iddoc")) {
             $id_file = $request->file('iddoc');
             $db_file = $this->uploadFile($id_file, $directory);
-
+            if (is_int($db_file) && strpos('format', $db_file) !== false) {
+                Session::flash('flash_message_error', 'İzin verilmeyen dosya formatı. İlgili personel için dosyaları güncelleyin!');
+                $success = false;
+            }
             if ($db_file) {
                 if (!empty($per->iddoc()->first())) {
                     $iddoc = $per->iddoc()->first();
@@ -1570,8 +1606,8 @@ class TekilController extends ManagementController
             }
 
         }
-
-        Session::flash('flash_message', 'Personel güncellendi');
+        if ($success)
+            Session::flash('flash_message', 'Personel güncellendi');
         return redirect()->back();
 
     }
@@ -2443,6 +2479,7 @@ class TekilController extends ManagementController
         $resp_arr['iscilik_yuzde'] = $grand_total == 0 ? 0 : $resp_arr['iscilik'] * 100 / $grand_total;
         $resp_arr['personel_yuzde'] = $grand_total == 0 ? 0 : $resp_arr['personel'] * 100 / $grand_total;
 
+        $resp_arr['kdv0'] = $this->calcKDV($site, 0);
         $resp_arr['kdv1'] = $this->calcKDV($site, 1);
         $resp_arr['kdv8'] = $this->calcKDV($site, 8);
         $resp_arr['kdv18'] = $this->calcKDV($site, 18);
@@ -2662,12 +2699,12 @@ class TekilController extends ManagementController
         $i = 0;
 
         foreach ($site->employee()->get() as $personnel) {
-            $my_arr = ['personnel' => $personnel->name, 'salary' =>[]];
+            $my_arr = ['personnel' => $personnel->name, 'salary' => []];
             $inc_date = $start_date->copy();
             $inc_date->subMonth();
             while ($end_date->gt($inc_date)) {
                 $inc_date->addMonth();
-                if($i == 0){
+                if ($i == 0) {
                     $my_str = explode('-', $inc_date->toDateString());
                     array_push($resp_arr['dates'], $my_str[1] . '.' . $my_str[0]);
                 }
@@ -2677,9 +2714,9 @@ class TekilController extends ManagementController
             }
             array_push($resp_arr['salaries'], $my_arr);
             $resp_arr['monthly_tot'] = [];
-            for($i = 0; $i<sizeof($resp_arr['dates']); $i++){
+            for ($i = 0; $i < sizeof($resp_arr['dates']); $i++) {
                 $tot = 0;
-                for($j = 0; $j<sizeof($resp_arr['salaries']); $j++){
+                for ($j = 0; $j < sizeof($resp_arr['salaries']); $j++) {
                     $tot += (double)$resp_arr['salaries'][$j]['salary'][$i];
                 }
                 array_push($resp_arr['monthly_tot'], $tot);
@@ -2690,6 +2727,83 @@ class TekilController extends ManagementController
 
         return response($resp_arr, 200);
     }
+
+    // İŞ MAKİNELERİ SAYFASI
+
+    public function getIsMakineleri(Site $site, Module $modules)
+    {
+        return view('tekil.equipments', compact('site', 'modules'));
+    }
+
+    public function getRetrieveSiteEquipments(Site $site)
+    {
+        $equipments = $site->equipment()->get();
+
+        return response($equipments->toArray(), 200);
+    }
+
+    public function getRetrieveInstruments(Site $site)
+    {
+        $resp_arr = [];
+
+        foreach($site->instrument()->get() as $instrument){
+            array_push($resp_arr, [
+               'date' => CarbonHelper::getTurkishDate($instrument->followup_date),
+                'firm' => $instrument->firm,
+                'id' => $instrument->id,
+                'name' => $instrument->equipment->name,
+                'eid' => $instrument->equipment->id,
+                'plate' => $instrument->plate,
+                'fuel_stat' => $instrument->fuel_stat,
+                'fuel' => $instrument->fuel,
+                'work' => $instrument->work,
+                'unit' => $instrument->unit,
+                'fee' => $instrument->fee,
+                'total' => $instrument->total,
+                'detail' => $instrument->detail
+            ]);
+        }
+
+        return response($resp_arr, 200);
+    }
+
+    public function postAddInstrument(Site $site, Request $request)
+    {
+        $equipment = Equipment::find($request->eid);
+        $instrument_arr = $request->all();
+        unset($instrument_arr['eid']);
+        $instrument_arr['fee'] = (double) str_replace(',', '.', $request->fee);
+        $instrument_arr['work'] = (double) str_replace(',', '.', $request->work);
+        $instrument_arr['followup_date'] = CarbonHelper::getMySQLDate($request->followup_date);
+        $instrument_arr['total'] = $instrument_arr['fee'] * $instrument_arr['work'];
+        $instrument = new Instrument($instrument_arr);
+        $instrument->equipment()->associate($equipment);
+        $instrument->site()->associate($site);
+        $instrument->save();
+        return response('success', 200);
+    }
+
+    public function postDelInstrument(Request $request)
+    {
+        $instrument = Instrument::find($request->id);
+        $instrument->delete();
+
+        return response('success', 200);
+    }
+
+    public function postEditEquipments(Site $site, Request $request)
+    {
+        $site->equipment()->detach();
+
+        foreach ($request->get("equipments") as $equipment) {
+            $site->equipment()->attach($equipment);
+        }
+
+        Session::flash('flash_message', "Şantiye iş makineleri güncellendi");
+        return redirect()->back()->with('tab', self::SEKME_IKI);
+    }
+
+    // END OF İŞ MAKİNELERİ
 
 
     /**
@@ -2742,7 +2856,7 @@ class TekilController extends ManagementController
     private function getExpItems($group)
     {
         $my_arr = [];
-        foreach (Expdetail::where('group', '=', $group)->get() as $item) {
+        foreach (Expdetail::where('group', '=', $group)->orderBy('name', 'ASC')->get() as $item) {
             array_push($my_arr, [
                 'id' => $item->id,
                 'name' => $item->name
@@ -2759,6 +2873,7 @@ class TekilController extends ManagementController
                 'id' => $exp->id,
                 'date' => CarbonHelper::getTurkishDate($exp->exp_date),
                 'type' => $exp->expdetail->name,
+                'explanation' => $exp->explanation,
                 'expItem' => ['name' => $exp->expdetail->name, 'id' => $exp->expdetail->id],
                 'amount' => $exp->amount,
                 'kdv' => $exp->kdv,
@@ -2776,12 +2891,16 @@ class TekilController extends ManagementController
         }
         $filename = $file->getClientOriginalName();
 
-        if ($file->move($directory, $filename))
+        $mime = $file->getMimeType();
+        $UPLOADABLE_FILE_TYPES = ['application/pdf', 'image/png', 'image/jpeg'];
+        if (in_array($mime, $UPLOADABLE_FILE_TYPES)) {
+            if ($file->move($directory, $filename))
 
-            return File::create([
-                "name" => $filename,
-                "path" => $directory
-            ]);
+                return File::create([
+                    "name" => $filename,
+                    "path" => $directory
+                ]);
+        }
 
         return null;
     }

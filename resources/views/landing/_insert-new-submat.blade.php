@@ -3,7 +3,7 @@
 <div class="row">
     <div class="col-sm-12">
         {!! Form::open([
-        'url' => "/admin/add-submaterial",
+        'url' => "/ekle/add-submaterial",
                             'method' => 'POST',
                             'class' => 'form',
                             'id' => 'submaterialInsertForm',

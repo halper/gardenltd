@@ -20,7 +20,7 @@
     </h2>
 
     {!! Form::open([
-    'url' => "/admin/modify-subcontractor",
+    'url' => "/guncelle/modify-subcontractor",
     'method' => 'POST',
     'class' => 'form',
     'id' => 'subcontractorModifyForm',

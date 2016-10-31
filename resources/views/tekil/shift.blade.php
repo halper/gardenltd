@@ -4,6 +4,16 @@ use App\Library\TurkishChar;
 use Carbon\Carbon;
 
 $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
+$user = Auth::user();
+$can_filter = false;
+if ($user->isAdmin()) {
+    $can_filter = true;
+} else
+    foreach ($user->group()->get() as $group) {
+        if ($group->hasSpecialPermissionForSlug('puantaj-filtrele')) {
+            $can_filter = true;
+        }
+    }
 ?>
 @extends('tekil.layout')
 
@@ -92,15 +102,15 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                 });
                 return result;
             };
-        }).filter('color', function(){
-            return function(data){
-                if(data.indexOf('-') > -1 ||
-                data.indexOf('Yİ') > -1 ||
-                data.indexOf('Gİ') > -1 ||
-                data.indexOf('Hİ') > -1 ||
-                data.indexOf('Üİ') > -1 ||
-                data.indexOf('R') > -1
-                ){
+        }).filter('color', function () {
+            return function (data) {
+                if (data.indexOf('-') > -1 ||
+                        data.indexOf('Yİ') > -1 ||
+                        data.indexOf('Gİ') > -1 ||
+                        data.indexOf('Hİ') > -1 ||
+                        data.indexOf('Üİ') > -1 ||
+                        data.indexOf('R') > -1
+                ) {
                     return 'red';
                 }
                 else {
@@ -189,13 +199,15 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                     </table>
 
                 </div>
-                <div class="col-xs-12 col-sm-4 col-md-2" style="min-width: 260px">
-                    <div id="reportrange"
-                         style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
-                        <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
-                        <span class="text-center"></span>
+                @if($can_filter)
+                    <div class="col-xs-12 col-sm-4 col-md-2" style="min-width: 260px">
+                        <div id="reportrange"
+                             style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
+                            <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
+                            <span class="text-center"></span>
+                        </div>
                     </div>
-                </div>
+                @endif
                 <input type="hidden" name="start-date" ng-model="startDate">
                 <input type="hidden" name="end-date" ng-model="endDate">
             </div>
@@ -219,6 +231,7 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                                     <table class="table table-responsive table-extra-condensed dark-bordered table-striped">
                                         <thead>
                                         <tr style="font-size: smaller">
+
                                             <th class="puantaj" id="searchField">
                                                 <div class="input-group">
                                                     <input type="text" style="width: 100%"
@@ -230,6 +243,7 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
 
                                                 </div>
                                             </th>
+
                                             <th ng-repeat="day in days track by $index" class="text-center rotate"
                                                 ng-class="weekends[$index] == 1 && 'garden-orange'"><% day %>
                                             </th>
@@ -246,7 +260,7 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                                                 class="text-center"
                                                 style="font-size: 11px"
                                                 ng-class="weekends[$index] == 1 && 'garden-orange'"
-                                                ><%
+                                            ><%
                                                 type |
                                                 uppercase
                                                 %>

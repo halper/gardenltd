@@ -7,6 +7,30 @@ foreach (\App\Manufacturing::all() as $manufacture) {
     $manufacturing_options .= "'<option value=\"$manufacture->id\">" . TurkishChar::tr_up($manufacture->name) . "</option>'+\n";
 }
 
+$user = Auth::user();
+
+$addr = explode("/", $_SERVER['REQUEST_URI']);
+$slug = $addr[sizeof($addr) - 1];
+$module = $modules->whereSlug($slug)->first();
+
+$post_permission = \App\Library\PermissionHelper::checkUserPostPermissionOnModule($user, $module);
+
+$can_delete_subcontractor = false;
+$can_edit_subcontractor = false;
+
+
+if ($user->isAdmin()) {
+    $can_delete_subcontractor = true;
+    $can_edit_subcontractor = true;
+} else
+    foreach ($user->group()->get() as $group) {
+        if ($group->hasSpecialPermissionForSlug('alt-yuklenici-sil')) {
+            $can_delete_subcontractor = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('alt-yuklenici-duzenle')) {
+            $can_edit_subcontractor = true;
+        }
+    }
 ?>
 
 
@@ -68,8 +92,9 @@ foreach (\App\Manufacturing::all() as $manufacture) {
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs">
                     <li class="active"><a href="#tab_1" data-toggle="tab">Alt Yüklenici Bilgileri Düzenle</a></li>
-                    <li><a href="#tab_3" data-toggle="tab">Alt Yüklenici Ekle</a></li>
-
+                    @if($post_permission)
+                        <li><a href="#tab_3" data-toggle="tab">Alt Yüklenici Ekle</a></li>
+                    @endif
                 </ul>
                 <div class="tab-content">
 
@@ -85,68 +110,75 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                                         <th>Sözleşme Başlangıç</th>
                                         <th>Sözleşme Bitiş</th>
                                         <th>Sözleşme Dosyası</th>
-                                        <th>İşlemler</th>
+                                        @if($post_permission || $can_delete_subcontractor || $can_edit_subcontractor)
+                                            <th>İşlemler</th>
+                                        @endif
                                     </tr>
                                     </thead>
                                     <tbody>
 
                                     @foreach($site->subcontractor()->get() as $sub)
                                         @if(count($sub->subdetail))
-                                        <?php
+                                            <?php
 
-                                        $contract_entry_exists = false;
+                                            $contract_entry_exists = false;
 
-                                        if (count($sub->contract()->get()))
-                                            $contract_entry_exists = true;
-                                        ?>
-                                        <tr>
-                                            <td>{{ $sub->subdetail->name}}</td>
+                                            if (count($sub->contract()->get()))
+                                                $contract_entry_exists = true;
+                                            ?>
+                                            <tr>
+                                                <td>{{ $sub->subdetail->name}}</td>
 
-                                            @if($contract_entry_exists)
-                                                <td>{{(strpos($sub->contract->contract_date,"0000-00-00") !== false) ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->contract_date) }}</td>
+                                                @if($contract_entry_exists)
+                                                    <td>{{(strpos($sub->contract->contract_date,"0000-00-00") !== false) ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->contract_date) }}</td>
 
-                                                <td>
-                                                    {{strpos($sub->contract->contract_start_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->contract_start_date)}}
-                                                </td>
-                                                <td>{{strpos($sub->contract->contract_end_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->contract_end_date)}}</td>
-                                                <td>
-                                                    <?php
-                                                    $my_path = '';
-                                                    $file_name = '';
-
-
-                                                    if ($contract_entry_exists && !($sub->contract->file()->get()->isEmpty())) {
-                                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $sub->contract->file->path);
-                                                        $file_name = $sub->contract->file->name;
-                                                        $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
-                                                    }
-                                                    ?>
-                                                    <a href="{{!empty($my_path) ? $my_path : ""}}">
-                                                        {{!empty($file_name) ? $file_name : ""}}
-                                                    </a></td>
-                                            @else
-                                                <td>Girilmedi</td>
-                                                <td>Girilmedi</td>
-                                                <td>Girilmedi</td>
-                                                <td>Girilmedi</td>
-                                            @endif
-                                            <td>
-
-                                                <div class="row">
-                                                    <div class="col-sm-3">
-                                                        <a href="{{"alt-yuklenici-duzenle/$sub->id"}}"
-                                                           class="btn btn-flat btn-warning btn-sm">Düzenle</a>
-                                                    </div>
-                                                    <div class="col-sm-2 col-sm-offset-1">
+                                                    <td>
+                                                        {{strpos($sub->contract->contract_start_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->contract_start_date)}}
+                                                    </td>
+                                                    <td>{{strpos($sub->contract->contract_end_date,"0000-00-00") !== false ? "Girilmedi" : \App\Library\CarbonHelper::getTurkishDate($sub->contract->contract_end_date)}}</td>
+                                                    <td>
                                                         <?php
-                                                        echo '<button type="button" class="btn btn-flat btn-danger btn-sm subcontractorDelBut" data-id="' . $sub->id . '" data-name="' . $sub->subdetail->name . '" data-toggle="modal" data-target="#deleteSubcontractorConfirm">Sil</button>';
+                                                        $my_path = '';
+                                                        $file_name = '';
+
+
+                                                        if ($contract_entry_exists && !($sub->contract->file()->get()->isEmpty())) {
+                                                            $my_path_arr = explode(DIRECTORY_SEPARATOR, $sub->contract->file->path);
+                                                            $file_name = $sub->contract->file->name;
+                                                            $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1] . "/" . $file_name;
+                                                        }
                                                         ?>
-                                                    </div>
-                                                </div>
+                                                        <a href="{{!empty($my_path) ? $my_path : ""}}">
+                                                            {{!empty($file_name) ? $file_name : ""}}
+                                                        </a></td>
+                                                @else
+                                                    <td>Girilmedi</td>
+                                                    <td>Girilmedi</td>
+                                                    <td>Girilmedi</td>
+                                                    <td>Girilmedi</td>
+                                                @endif
+                                                @if($post_permission || $can_delete_subcontractor || $can_edit_subcontractor)
+                                                    <td>
+                                                        <div class="row">
+                                                            @if($can_edit_subcontractor)
+                                                                <div class="col-sm-3">
+                                                                    <a href="{{"alt-yuklenici-duzenle/$sub->id"}}"
+                                                                       class="btn btn-flat btn-warning btn-sm">Düzenle</a>
+                                                                </div>
+                                                            @endif
+                                                            @if($can_delete_subcontractor)
+                                                                <div class="col-sm-2 col-sm-offset-1">
+                                                                    <?php
+                                                                    echo '<button type="button" class="btn btn-flat btn-danger btn-sm subcontractorDelBut" data-id="' . $sub->id . '" data-name="' . $sub->subdetail->name . '" data-toggle="modal" data-target="#deleteSubcontractorConfirm">Sil</button>';
+                                                                    ?>
+                                                                </div>
+                                                            @endif
+                                                        </div>
 
-                                            </td>
+                                                    </td>
+                                                @endif
 
-                                        </tr>
+                                            </tr>
                                         @endif
                                     @endforeach
                                     </tbody>
@@ -155,65 +187,68 @@ foreach (\App\Manufacturing::all() as $manufacture) {
                         </div>
                     </div>
                     <!-- /.tab-pane -->
-                    <div class="tab-pane" id="tab_3">
-                        <div class="row">
-                            <div class="col-sm-12">
 
-                                <div class="row">
-                                    {!! Form::open([
-                                                    'url' => "/tekil/$site->slug/add-subcontractor",
-                                                    'method' => 'POST',
-                                                    'class' => 'form form-horizontal',
-                                                    'id' => 'subcontractorInsertForm',
-                                                    'role' => 'form',
-                                                    ])!!}
+                    @if($post_permission)
+                        <div class="tab-pane" id="tab_3">
+                            <div class="row">
+                                <div class="col-sm-12">
+
+                                    <div class="row">
+                                        {!! Form::open([
+                                                        'url' => "/tekil/$site->slug/add-subcontractor",
+                                                        'method' => 'POST',
+                                                        'class' => 'form form-horizontal',
+                                                        'id' => 'subcontractorInsertForm',
+                                                        'role' => 'form',
+                                                        ])!!}
 
 
-                                    @foreach(\App\Subdetail::all() as $subcontractor)
+                                        @foreach(\App\Subdetail::all() as $subcontractor)
 
-                                        @if(!is_null($site->subcontractor()->onlyTrashed()->where('subdetail_id', $subcontractor->id)->first()))
-                                            <div class="col-md-4 col-xs-6">
-                                                <label class="checkbox-inline">
-                                                    {!! Form::checkbox('subcontractors[]', $site->subcontractor()->onlyTrashed()->where('subdetail_id', $subcontractor->id)->first()->id, null,
-                                                    [
-                                                    'id'=>$site->subcontractor()->onlyTrashed()->where('subdetail_id', $subcontractor->id)->first()->id
-                                                    ])
-                                                    !!}{{ $subcontractor->name}}</label>
+                                            @if(!is_null($site->subcontractor()->onlyTrashed()->where('subdetail_id', $subcontractor->id)->first()))
+                                                <div class="col-md-4 col-xs-6">
+                                                    <label class="checkbox-inline">
+                                                        {!! Form::checkbox('subcontractors[]', $site->subcontractor()->onlyTrashed()->where('subdetail_id', $subcontractor->id)->first()->id, null,
+                                                        [
+                                                        'id'=>$site->subcontractor()->onlyTrashed()->where('subdetail_id', $subcontractor->id)->first()->id
+                                                        ])
+                                                        !!}{{ $subcontractor->name}}</label>
+                                                </div>
+
+                                            @elseif(!$site->hasSubcontractor($subcontractor->id))
+                                                <div class="col-md-4 col-xs-6">
+                                                    <label class="checkbox-inline">
+                                                        {!! Form::checkbox('subcontractors[]', $subcontractor->id, $site->hasSubcontractor($subcontractor->id),
+                                                        [
+                                                        'id'=>$subcontractor->id
+                                                        ])
+                                                        !!}{{ $subcontractor->name}}</label>
+                                                </div>
+                                            @endif
+
+                                        @endforeach
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-xs-12 col-md-4 col-md-offset-3">
+                                            <div class="form-group">
+                                                <br>
+                                                <br>
+                                                <button type="submit" class="btn btn-primary btn-flat btn-block">
+                                                    Güncelle
+                                                </button>
                                             </div>
-
-                                        @elseif(!$site->hasSubcontractor($subcontractor->id))
-                                            <div class="col-md-4 col-xs-6">
-                                                <label class="checkbox-inline">
-                                                    {!! Form::checkbox('subcontractors[]', $subcontractor->id, $site->hasSubcontractor($subcontractor->id),
-                                                    [
-                                                    'id'=>$subcontractor->id
-                                                    ])
-                                                    !!}{{ $subcontractor->name}}</label>
-                                            </div>
-                                        @endif
-
-                                    @endforeach
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-xs-12 col-md-4 col-md-offset-3">
-                                        <div class="form-group">
-                                            <br>
-                                            <br>
-                                            <button type="submit" class="btn btn-primary btn-flat btn-block">
-                                                Güncelle
-                                            </button>
                                         </div>
                                     </div>
+
+                                    {!! Form::close() !!}
                                 </div>
-
-                                {!! Form::close() !!}
                             </div>
+
+
                         </div>
-
-
-                    </div>
-                    <!-- /.tab-content -->
+                        <!-- /.tab-content -->
+                    @endif
                 </div>
                 <!-- nav-tabs-custom -->
             </div>

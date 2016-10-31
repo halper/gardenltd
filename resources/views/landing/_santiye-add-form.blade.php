@@ -8,14 +8,14 @@ foreach (\App\City::all() as $city) {
     else
         $city_options .= "<option value=\"$city->id\">" . \App\Library\TurkishChar::tr_up($city->name) . "</option>";
 }
-$job_name = isset($santiye) ? null : $site->job_name;
-$code = isset($santiye) ? null : $site->code;
-$management_name = isset($santiye) ? null : $site->management_name;
-$employer = isset($santiye) ? null : $site->employer;
-$start_date = isset($santiye) ? null : \App\Library\CarbonHelper::getTurkishDate($site->start_date);
-$contract_date = isset($santiye) ? null : \App\Library\CarbonHelper::getTurkishDate($site->contract_date);
-$end_date = isset($santiye) ? null : \App\Library\CarbonHelper::getTurkishDate($site->end_date);
-$address = isset($santiye) ? null : $site->address;
+$job_name = !isset($site) ? null : $site->job_name;
+$code = !isset($site) ? null : $site->code;
+$management_name = !isset($site) ? null : $site->management_name;
+$employer = !isset($site) ? null : $site->employer;
+$start_date = !isset($site) ? null : \App\Library\CarbonHelper::getTurkishDate($site->start_date);
+$contract_date = !isset($site) ? null : \App\Library\CarbonHelper::getTurkishDate($site->contract_date);
+$end_date = !isset($site) ? null : \App\Library\CarbonHelper::getTurkishDate($site->end_date);
+$address = !isset($site) ? null : $site->address;
 $isg = null;
 if (isset($site) && !empty($site->isg))
     $isg = $site->isg;
@@ -26,9 +26,9 @@ $extra_cost = null;
 if (isset($site) && !empty($site->extra_cost))
     $extra_cost = \App\Library\TurkishChar::convertToTRcurrency($site->extra_cost);
 
-$site_chief = isset($santiye) ? null : $site->site_chief;
-$main_contractor = isset($santiye) ? null : $site->main_contractor;
-$building_control = isset($santiye) ? null : $site->building_control;
+$site_chief = !isset($site) ? null : $site->site_chief;
+$main_contractor = !isset($site) ? null : $site->main_contractor;
+$building_control = !isset($site) ? null : $site->building_control;
 ?>
 
 <div class="form-group {{ $errors->has('job_name') ? 'has-error' : '' }}">

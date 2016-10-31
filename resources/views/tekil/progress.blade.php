@@ -4,6 +4,16 @@ use App\Library\TurkishChar;
 use Carbon\Carbon;
 
 $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
+$user = Auth::user();
+$can_filter = false;
+if ($user->isAdmin()) {
+    $can_filter = true;
+} else
+    foreach ($user->group()->get() as $group) {
+        if ($group->hasSpecialPermissionForSlug('is-ilerleme-filtrele')) {
+            $can_filter = true;
+        }
+    }
 ?>
 @extends('tekil.layout')
 @section('page-specific-css')
@@ -141,15 +151,18 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
 
 @section('content')
     <div ng-app="puantajApp" ng-controller="PuantajController" id="angPuantaj">
+
         <div class="form-group">
             <div class="row">
-                <div class="col-xs-12 col-sm-4 col-md-2" style="min-width: 260px">
-                    <div id="reportrange" class="pull-right"
-                         style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
-                        <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
-                        <span class="text-center"></span>
+                @if($can_filter)
+                    <div class="col-xs-12 col-sm-4 col-md-2" style="min-width: 260px">
+                        <div id="reportrange" class="pull-right"
+                             style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
+                            <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
+                            <span class="text-center"></span>
+                        </div>
                     </div>
-                </div>
+                @endif
                 <input type="hidden" name="start-date" ng-model="startDate">
                 <input type="hidden" name="end-date" ng-model="endDate">
             </div>

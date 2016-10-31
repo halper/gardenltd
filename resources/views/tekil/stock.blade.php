@@ -1,10 +1,20 @@
 <?php
 use Carbon\Carbon;
 
+
 $today = Carbon::now()->toDateString();
+
+
+$user = Auth::user();
+
+$addr = explode("/", $_SERVER['REQUEST_URI']);
+$slug = $addr[sizeof($addr) - 1];
+$module = $modules->whereSlug($slug)->first();
+
+$post_permission = \App\Library\PermissionHelper::checkUserPostPermissionOnModule($user, $module);
 ?>
 
-@extends('tekil/layout')
+@extends('tekil.layout')
 
 @section('page-specific-css')
     <link href="<?= URL::to('/'); ?>/css/select2.min.css" rel="stylesheet"/>
@@ -102,23 +112,28 @@ $today = Carbon::now()->toDateString();
             <!-- Custom Tabs -->
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs">
-                    <li class="active"><a href="#tab_5" data-toggle="tab">Demirbaş Kayıt</a></li>
-                    <li><a href="#tab_1" data-toggle="tab">Demirbaş Listele</a></li>
+                    @if($post_permission)
+                        <li class="active"><a href="#tab_5" data-toggle="tab">Demirbaş Kayıt</a></li>
+                    @endif
+                    <li class="{{!$post_permission ? "active" : ""}}"><a href="#tab_1" data-toggle="tab">Demirbaş
+                            Listele</a></li>
 
                 </ul>
 
                 <!-- /.tab-content -->
                 <div class="tab-content">
 
+                    @if($post_permission)
+                        <div class="tab-pane active" id="tab_5">
+                            @include('tekil._new-stock')
+                        </div>
+                    @endif
 
-                    <div class="tab-pane active" id="tab_5">
 
-                        @include('tekil._new-stock')
-                    </div>
-
-
-                    <div class="tab-pane" id="tab_1">
+                    <div class="tab-pane {{!$post_permission ? "active" : ""}}" id="tab_1">
                         @include('tekil._view-stock')
+
+
                     </div>
 
 

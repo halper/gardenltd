@@ -5,9 +5,6 @@
 <!-- Bootstrap -->
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js" type="text/javascript"></script>
 
-<!-- iCheck -->
-<!--<script src="<?= URL::to('/'); ?>/vendor/iCheck/icheck.min.js" type="text/javascript"></script>--}}-->
-
 <!-- AdminLTE App -->
 <script src="<?= URL::to('/'); ?>/js/manager.js" type="text/javascript"></script>
 <script src="<?= URL::to('/'); ?>/js/jquery.number.js" type="text/javascript"></script>

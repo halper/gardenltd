@@ -13,8 +13,8 @@ use App\Permission;
 use App\Site;
 
 class User extends Model implements AuthenticatableContract,
-                                    AuthorizableContract,
-                                    CanResetPasswordContract
+    AuthorizableContract,
+    CanResetPasswordContract
 {
     use Authenticatable, Authorizable, CanResetPassword;
 
@@ -44,6 +44,11 @@ class User extends Model implements AuthenticatableContract,
         return $this->belongsToMany('App\Site')->withTimestamps();
     }
 
+    public function group()
+    {
+        return $this->belongsToMany('App\Group')->withTimestamps();
+    }
+
     public function permission()
     {
         return $this->belongsToMany('App\Permission')->withPivot('module_id')->join('modules', 'module_id', '=', 'modules.id');
@@ -55,16 +60,19 @@ class User extends Model implements AuthenticatableContract,
         return $this->permission()->where('permission', '>=', '999')->count() >= 1;
     }
 
-    public function canViewAllSites(){
+    public function canViewAllSites()
+    {
         return $this->site()->where('sites.id', '99999')->count() >= 1;
     }
 
-    public function hasSite($site_id){
-        return ! is_null($this->site()->where('site_id', $site_id)->first());
+    public function hasSite($site_id)
+    {
+        return !is_null($this->site()->where('site_id', $site_id)->first());
     }
 
-    public function hasPermissionOnModule($permission, $module){
-        return ! is_null($this->permission()->where('permission_id', $permission)->where('module_id', $module)->first());
+    public function hasPermissionOnModule($permission, $module)
+    {
+        return !is_null($this->permission()->where('permission_id', $permission)->where('module_id', $module)->first());
     }
 
     public function hasAnyPermissionOnModule($module)

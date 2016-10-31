@@ -5,6 +5,7 @@ use Cviebrock\EloquentSluggable\SluggableInterface;
 use Cviebrock\EloquentSluggable\SluggableTrait;
 use Illuminate\Database\Eloquent\Model as Eloquent;
 use App\User;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Operation
@@ -13,6 +14,7 @@ use App\User;
 class Site extends Eloquent implements SluggableInterface
 {
     use SluggableTrait;
+    use SoftDeletes;
 
     protected $sluggable = [
         'build_from' => 'job_name',
@@ -26,9 +28,16 @@ class Site extends Eloquent implements SluggableInterface
         'end_date', 'address', 'site_chief', 'employer', 'building_control',
         'isg', 'contract_worth'];
 
+    protected $dates = ['deleted_at'];
+
     public function user()
     {
         return $this->belongsToMany('App\User')->withTimestamps();
+    }
+
+    public function group()
+    {
+        return $this->belongsToMany('App\Group')->withTimestamps();
     }
 
     public function report()
@@ -59,6 +68,11 @@ class Site extends Eloquent implements SluggableInterface
     public function subcontractor()
     {
         return $this->hasMany('App\Subcontractor');
+    }
+
+    public function scopeProductionSites($query)
+    {
+        return $query->where('id', '>', '1');
     }
 
     public static function getSites()
@@ -139,5 +153,10 @@ class Site extends Eloquent implements SluggableInterface
     public function labor()
     {
         return $this->hasMany('App\Labor');
+    }
+
+    public function instrument()
+    {
+        return $this->hasMany('App\Instrument');
     }
 }

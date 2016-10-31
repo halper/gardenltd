@@ -1,12 +1,33 @@
 <?php
 use App\Site;
 
-
+$can_create_site = false;
+$can_edit_site = false;
 if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
-    $sites = Site::getSites();
+    $santiyeler = Site::getSites();
 } else {
-    $sites = Auth::user()->site()->get();
+    $santiyeler = Auth::user()->site()->get();
+    foreach (Auth::user()->group()->get() as $user_group) {
+        foreach ($user_group->site()->get() as $group_site) {
+            $santiyeler->push($group_site);
+
+        }
+    }
+
+    foreach (Auth::user()->group()->get() as $group) {
+        if ($group->hasSpecialPermissionForSlug('santiye-ekle')) {
+            $can_create_site = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('santiye-duzenle')) {
+            $can_edit_site = true;
+        }
+    }
 }
+
+
+
+
+
 
 ?>
 
@@ -23,6 +44,43 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
     <script src="<?= URL::to('/'); ?>/js/angular/js/xeditable.min.js" type="text/javascript"></script>
 
     <script>
+        if ($('.has-error')[0]) {
+            $('#addNewSite').modal('show');
+        }
+
+        $('#siteInsertForm').on('submit', function (e) {
+            var helper = $('p.helper');
+            helper.removeClass('text-danger');
+            helper.text();
+            var citySelect = $('select[name="city_id"]');
+            citySelect.parent().parent().parent().removeClass('has-error');
+            if (citySelect.val() == null) {
+                citySelect.parent().parent().parent().addClass('has-error');
+                helper.addClass('text-danger');
+                helper.text('İlgili alanları doldurunuz!');
+                e.preventDefault();
+
+            }
+
+        });
+        $(document).on("click", ".siteDelBut", function (e) {
+
+            e.preventDefault();
+            var mySiteId = $(this).data('id');
+            var mySiteName = $(this).data('name');
+            var myForm = $('.modal-footer #siteDeleteForm');
+            var myP = $('.modal-body .siteDel');
+            myP.html("<em>" + mySiteName + "</em> şantiyesini silmek istediğinizden emin misiniz?" +
+                    "<p>NOT: <span>SİLME İŞLEMİ GERİ DÖNDÜRÜLEMEZ!</span></p>");
+            $('<input>').attr({
+                type: 'hidden',
+                name: 'siteDeleteIn',
+                value: mySiteId
+            }).appendTo(myForm);
+            $('#deleteSiteConfirm').modal('show');
+        });
+
+
         $.fn.editable.defaults.mode = 'popup';
         String.prototype.turkishToLower = function () {
             var string = this;
@@ -114,7 +172,6 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
             });
         });
 
-        $('.number').number(true, 2, ',', '.');
     </script>
 @stop
 
@@ -126,7 +183,7 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
             <a href="#" class="close" data-dismiss="alert">&times;</a>
         </div>
     @endif
-    @if(isset($sites) && count($sites) > 0)
+    @if(isset($santiyeler) && count($santiyeler) > 0)
 
         <div class="callout callout-info">
             <h4>Şantiyeler sayfası</h4>
@@ -148,7 +205,7 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
         </div>
     @endif
 
-    @if(Auth::user()->isAdmin())
+    @if(Auth::user()->isAdmin() || $can_create_site)
         <div class="col-md-4">
             <a href="#" data-toggle="modal" data-target="#addNewSite">
                 <div class="info-box bg-green">
@@ -167,16 +224,17 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
 
 
 
-    @if(isset($sites))
-        @foreach($sites as $site)
+    @if(isset($santiyeler))
+        @foreach($santiyeler as $santiye)
             <?php
-            $start_date = date_create($site->start_date);
+            $start_date = date_create($santiye->start_date);
             $now = date_create();
-            $end_date = date_create($site->end_date);
+            $end_date = date_create($santiye->end_date);
             $left = str_replace("+", "", date_diff($now, $end_date)->format("%R%a"));
             $total = str_replace("+", "", date_diff($start_date, $end_date)->format("%R%a"));
             $passed = str_replace("+", "", date_diff($start_date, $now)->format("%R%a"));
             $total_per = floor((int)$passed * 100 / (int)$total);
+            $total_per = $total_per >= 100 ? 100 : $total_per;
 
             ?>
 
@@ -188,22 +246,24 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
                         @if(Auth::user()->isAdmin())
 
                             <a style="padding: 0 5px" href="#" class="close siteDelBut" data-toggle="modal"
-                               data-id="{{$site->id}}" data-name="{{ $site->job_name}}"
+                               data-id="{{$santiye->id}}" data-name="{{ $santiye->job_name}}"
                                data-target="#deleteSiteConfirm"><i
                                         class="fa fa-trash-o"></i></a>
-                            <a class="close" href="/santiye-duzenle/{{$site->slug}}"><i class="fa fa-pencil"></i></a>
+                        @endif
+                        @if(Auth::user()->isAdmin() || $can_edit_site)
+                            <a class="close" href="/santiye-duzenle/{{$santiye->slug}}"><i class="fa fa-pencil"></i></a>
 
 
                         @endif
-                        <span class="info-box-text">{{$site->job_name}}</span>
-                        <span class="info-box-number">{{"Kalan süre: $left gün"}}</span>
+                        <span class="info-box-text">{{$santiye->job_name}}</span>
+                        <span class="info-box-number">{{"Kalan süre: " . ($left < 0 ? 0 : $left) ." gün"}}</span>
 
                         <div class="progress">
                             <div class="progress-bar" {!!
                             "style=\"width: $total_per%\"" !!}>
                             </div>
                         </div>
-                        <a href={{ "tekil/$site->slug" }} class="details">
+                        <a href={{ "tekil/$santiye->slug" }} class="details">
 
                   <span class="progress-description">
                     Şantiye detayları için tıklayınız
@@ -334,6 +394,7 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
                     'id' => 'siteInsertForm',
                     'role' => 'form'
                     ])!!}
+                    <p class="helper"></p>
                     @include('landing._santiye-add-form', ['santiye' => 'true'])
 
 
@@ -379,31 +440,3 @@ if (Auth::user()->isAdmin() || Auth::user()->canViewAllSites()) {
     </div>
 @stop
 
-@section('page-specific-js')
-    <script>
-        if ($('.has-error')[0]) {
-            $('#addNewSite').modal('show');
-
-        }
-
-
-        $(document).on("click", ".siteDelBut", function (e) {
-
-            e.preventDefault();
-            var mySiteId = $(this).data('id');
-            var mySiteName = $(this).data('name');
-            var myForm = $('.modal-footer #siteDeleteForm');
-            var myP = $('.modal-body .siteDel');
-            myP.html("<em>" + mySiteName + "</em> şantiyesini silmek istediğinizden emin misiniz?" +
-                    "<p>NOT: <span>SİLME İŞLEMİ GERİ DÖNDÜRÜLEMEZ!</span></p>");
-            $('<input>').attr({
-                type: 'hidden',
-                name: 'siteDeleteIn',
-                value: mySiteId
-            }).appendTo(myForm);
-            $('#deleteSiteConfirm').modal('show');
-        });
-
-
-    </script>
-@stop

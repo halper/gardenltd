@@ -2,6 +2,14 @@
 
 use Carbon\Carbon;
 $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
+
+$user = Auth::user();
+
+$addr = explode("/", $_SERVER['REQUEST_URI']);
+$slug = $addr[sizeof($addr) - 1];
+$module = $modules->whereSlug($slug)->first();
+
+$post_permission = \App\Library\PermissionHelper::checkUserPostPermissionOnModule($user, $module);
 ?>
 
 @extends('tekil.layout')
@@ -109,43 +117,45 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
             <div class="col-md-12">
                 <h4>Yeni Hakediş Ekle</h4>
 
-                <div class="row">
-                    <div class="col-md-2">
-                        <input type="text" class="form-control"
-                               name="no" ng-model="no"
-                               value=""
-                               placeholder="Hakediş No"/>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="input-group input-append date " id="dateRangePicker">
-                            <input type="text" class="form-control" name="exp_date" ng-model="date"/>
+                @if($post_permission)
+                    <div class="row">
+                        <div class="col-md-2">
+                            <input type="text" class="form-control"
+                                   name="no" ng-model="no"
+                                   value=""
+                                   placeholder="Hakediş No"/>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="input-group input-append date " id="dateRangePicker">
+                                <input type="text" class="form-control" name="exp_date" ng-model="date"/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-2">
-                        <input type="text" class="form-control number"
-                               name="amount" ng-model="amount"
-                               value=""
-                               placeholder="Hakediş Bedeli"/>
-                    </div>
-                    <div class="col-md-4">
-                        <input type="text" class="form-control"
-                               name="detail" ng-model="detail"
-                               value=""
-                               placeholder="Hakediş açıklaması"/>
-                    </div>
-
-
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <button type="button" ng-click="addExpense()"
-                                    class="btn btn-primary btn-flat btn-block btn-sm">Kaydet
-                            </button>
+                        <div class="col-md-2">
+                            <input type="text" class="form-control number"
+                                   name="amount" ng-model="amount"
+                                   value=""
+                                   placeholder="Hakediş Bedeli"/>
                         </div>
-                    </div>
+                        <div class="col-md-4">
+                            <input type="text" class="form-control"
+                                   name="detail" ng-model="detail"
+                                   value=""
+                                   placeholder="Hakediş açıklaması"/>
+                        </div>
 
-                </div>
+
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <button type="button" ng-click="addExpense()"
+                                        class="btn btn-primary btn-flat btn-block btn-sm">Kaydet
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -171,7 +181,9 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                                             <th class="text-center">TARİH</th>
                                             <th>AÇIKLAMA</th>
                                             <th class="text-right">TUTAR</th>
-                                            <th class="text-center">SİL</th>
+                                            @if($post_permission)
+                                                <th class="text-center">SİL</th>
+                                            @endif
                                         </tr>
                                         </thead>
                                         <tbody>
@@ -181,8 +193,10 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                                             <td class="text-center"><% st.date%></td>
                                             <td><%st.detail%></td>
                                             <td class="text-right"><%st.amount | numberFormatter%> TL</td>
-                                            <td class="text-center"><a href="#" ng-click="remove_field(st)"><i
-                                                            class="fa fa-close"></i></a></td>
+                                            @if($post_permission)
+                                                <td class="text-center"><a href="#" ng-click="remove_field(st)"><i
+                                                                class="fa fa-close"></i></a></td>
+                                            @endif
                                         </tr>
                                         <tr class="bg-warning">
                                             <td></td>

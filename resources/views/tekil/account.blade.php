@@ -1,9 +1,36 @@
 <?php
 $account = $site->account()->get()->isEmpty() ? null : $site->account;
 
-use App\Library\CarbonHelper;use Carbon\Carbon;
+use App\Library\CarbonHelper;
+use Carbon\Carbon;
 
 $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
+
+
+$user = Auth::user();
+
+$addr = explode("/", $_SERVER['REQUEST_URI']);
+$slug = $addr[sizeof($addr) - 1];
+$module = $modules->whereSlug($slug)->first();
+
+$post_permission = \App\Library\PermissionHelper::checkUserPostPermissionOnModule($user, $module);
+
+$can_delete = false;
+$can_create_record = false;
+
+
+if ($user->isAdmin()) {
+    $can_delete = true;
+    $can_create_record = true;
+} else
+    foreach ($user->group()->get() as $group) {
+        if ($group->hasSpecialPermissionForSlug('harcama-sil')) {
+            $can_delete = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('harcama-kaydi-olustur')) {
+            $can_create_record = true;
+        }
+    }
 
 ?>
 
@@ -311,64 +338,66 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
             </div>
         </div>
         <div ng-app="accApp" ng-controller="AccountController" id="angAccount">
-            <div class="row">
-                <div class="col-md-12">
-                    <h4>Yeni Harcama Kaydı Oluştur</h4>
+            @if($post_permission || $can_create_record)
+                <div class="row">
+                    <div class="col-md-12">
+                        <h4>Yeni Harcama Kaydı Oluştur</h4>
 
-                    <div class="row">
-                        <div class="col-md-2">
-                            <div class="input-group input-append date " id="dateRangePicker">
-                                <input type="text" class="form-control" name="exp_date" ng-model="date"/>
+                        <div class="row">
+                            <div class="col-md-2">
+                                <div class="input-group input-append date " id="dateRangePicker">
+                                    <input type="text" class="form-control" name="exp_date" ng-model="date"/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
+                                </div>
                             </div>
+
+                            <div class="col-md-4">
+                                <input type="text" class="form-control"
+                                       name="definition" ng-model="definition"
+                                       value=""
+                                       placeholder="Harcama açıklaması"/>
+                            </div>
+                            <div class="col-md-2">
+                                <input type="text" class="form-control"
+                                       name="buyer" ng-model="buyer"
+                                       value=""
+                                       placeholder="Harcamayı Yapan"/>
+                            </div>
+                            <div class="col-md-2">
+                                <select name="type" ng-model="type" class="form-control">
+                                    <option value="" disabled selected>Ödeme Şekli</option>
+                                    <option value="0">Nakit</option>
+                                    <option value="1">Kredi Kartı</option>
+
+                                </select>
+                            </div>
+                            <div class="col-md-1">
+                                <input type="text" class="form-control number"
+                                       name="income" ng-model="income"
+                                       value="0"
+                                       placeholder="Gelir"/>
+                            </div>
+                            <div class="col-md-1">
+                                <input type="text" class="form-control number"
+                                       name="expense" ng-model="expense"
+                                       value="0"
+                                       placeholder="Gider"/>
+                            </div>
+
                         </div>
 
-                        <div class="col-md-4">
-                            <input type="text" class="form-control"
-                                   name="definition" ng-model="definition"
-                                   value=""
-                                   placeholder="Harcama açıklaması"/>
-                        </div>
-                        <div class="col-md-2">
-                            <input type="text" class="form-control"
-                                   name="buyer" ng-model="buyer"
-                                   value=""
-                                   placeholder="Harcamayı Yapan"/>
-                        </div>
-                        <div class="col-md-2">
-                            <select name="type" ng-model="type" class="form-control">
-                                <option value="" disabled selected>Ödeme Şekli</option>
-                                <option value="0">Nakit</option>
-                                <option value="1">Kredi Kartı</option>
-
-                            </select>
-                        </div>
-                        <div class="col-md-1">
-                            <input type="text" class="form-control number"
-                                   name="income" ng-model="income"
-                                   value="0"
-                                   placeholder="Gelir"/>
-                        </div>
-                        <div class="col-md-1">
-                            <input type="text" class="form-control number"
-                                   name="expense" ng-model="expense"
-                                   value="0"
-                                   placeholder="Gider"/>
-                        </div>
-
-                    </div>
-
-                    <div class="row">
-                        <div class="col-xs-12 col-md-4 col-md-offset-4">
-                            <br>
-                            <button type="button" ng-click="addExpense()"
-                                    class="btn btn-primary btn-flat btn-block">Kaydet
-                            </button>
+                        <div class="row">
+                            <div class="col-xs-12 col-md-4 col-md-offset-4">
+                                <br>
+                                <button type="button" ng-click="addExpense()"
+                                        class="btn btn-primary btn-flat btn-block">Kaydet
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            @endif
             <div class="row">
                 <div class="col-md-4">
                     <a href="#" ng-click="show = '1'">Kredi kartı harcamalarını göster</a>
@@ -457,7 +486,9 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                                     GİDER
                                 </th>
                                 <th id="account">KASA</th>
-                                <th id="del">SİL</th>
+                                @if($post_permission || $can_delete)
+                                    <th id="del">SİL</th>
+                                @endif
                             </tr>
                             </thead>
                             <tbody>
@@ -468,9 +499,13 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                                 <td><strong>GENEL TOPLAM:</strong></td>
                                 <td></td>
                                 <td></td>
-                                <td style="text-align: right"><% expenses | sumOfValue:'income' | numberFormatter %>TL</td>
-                                <td style="text-align: right"><% expenses | sumOfValue:'expense' | numberFormatter %>TL</td>
-                                <td style="text-align: right"><% (expenses | sumOfValue:'income') - (expenses | sumOfValue:'expense') |
+                                <td style="text-align: right"><% expenses | sumOfValue:'income' | numberFormatter %>TL
+                                </td>
+                                <td style="text-align: right"><% expenses | sumOfValue:'expense' | numberFormatter
+                                    %>TL
+                                </td>
+                                <td style="text-align: right"><% (expenses | sumOfValue:'income') - (expenses |
+                                    sumOfValue:'expense') |
                                     numberFormatter %>TL
                                 </td>
                                 <td></td>
@@ -483,14 +518,21 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                                 <td ng-show="showMe(expense.type)"><% expense.type == 0 ? 'Nakit' : 'Kredi Kartı (' +
                                     expense.card_owner + ')' %>
                                 </td>
-                                <td style="text-align: right" ng-show="showMe(expense.type)"><% expense.income | numberFormatter%>TL</td>
-                                <td style="text-align: right" ng-show="showMe(expense.type)"><% expense.expense | numberFormatter%>TL</td>
-                                <td style="text-align: right" ng-show="showMe(expense.type)"><% show=='both' ? (sorted | subTotal:$index+1 |
+                                <td style="text-align: right" ng-show="showMe(expense.type)"><% expense.income |
+                                    numberFormatter%>TL
+                                </td>
+                                <td style="text-align: right" ng-show="showMe(expense.type)"><% expense.expense |
+                                    numberFormatter%>TL
+                                </td>
+                                <td style="text-align: right" ng-show="showMe(expense.type)"><% show=='both' ? (sorted |
+                                    subTotal:$index+1 |
                                     numberFormatter) : ''
                                     %>TL
                                 </td>
-                                <td ng-show="showMe(expense.type)"><a href="#" ng-click="remove_field(expense)"><i
-                                                class="fa fa-close"></i></a></td>
+                                @if($post_permission || $can_delete)
+                                    <td ng-show="showMe(expense.type)"><a href="#" ng-click="remove_field(expense)"><i
+                                                    class="fa fa-close"></i></a></td>
+                                @endif
 
                             </tr>
                             <tr class="bg-warning" ng-show="show!='both'">
@@ -500,9 +542,14 @@ $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
                                 </td>
                                 <td></td>
                                 <td></td>
-                                <td style="text-align: right"><% expenses | filTotal:show:'income' | numberFormatter %>TL</td>
-                                <td style="text-align: right"><% expenses | filTotal:show:'expense' | numberFormatter%>TL</td>
-                                <td style="text-align: right"><% ((expenses | filTotal:show:'income') - ( expenses | filTotal:show:'expense')) |
+                                <td style="text-align: right"><% expenses | filTotal:show:'income' | numberFormatter
+                                    %>TL
+                                </td>
+                                <td style="text-align: right"><% expenses | filTotal:show:'expense' |
+                                    numberFormatter%>TL
+                                </td>
+                                <td style="text-align: right"><% ((expenses | filTotal:show:'income') - ( expenses |
+                                    filTotal:show:'expense')) |
                                     numberFormatter %>
                                     TL
                                 </td>

@@ -5,8 +5,12 @@
             <th> Malzeme</th>
             <th> Birim</th>
             <th class="text-right"> Miktar</th>
-            <th class="text-right"> Birim Fiyat</th>
-            <th > Ödeme Şekli</th>
+            @if($can_add_price)
+                <th class="text-right"> Birim Fiyat</th>
+            @endif
+            @if($can_add_payment_type)
+                <th> Ödeme Şekli</th>
+            @endif
         </tr>
         </thead>
         <tbody>
@@ -34,6 +38,7 @@
                         <span></span>
                     </div>
                 </td>
+                @if($can_add_price)
                 <td>
                     <div class="form-group">
                         {!! Form::input('text', 'price[]', null, ['class' =>
@@ -42,6 +47,8 @@
                         <span></span>
                     </div>
                 </td>
+                @endif
+                @if($can_add_payment_type)
                 <td>
                     <div class="form-group">
                         {!! Form::input('text', 'payment_type[]', null, ['class' =>
@@ -50,6 +57,7 @@
                         <span></span>
                     </div>
                 </td>
+                    @endif
             </tr>
         @endforeach
         </tbody>

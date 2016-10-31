@@ -9,6 +9,10 @@ foreach ($expanding_arr as $expander) {
         if (Auth::User()->hasAnyPermissionOnModule($expanding->id) || Auth::User()->isAdmin()) {
             array_push($expandable_arr, $expanding);
         }
+        foreach (Auth::user()->group()->get() as $user_group) {
+            if($user_group->hasAnyPermissionOnModule($expanding->id) && !in_array($expanding, $expandable_arr))
+                array_push($expandable_arr, $expanding);
+        }
     }
     if (sizeof($expandable_arr) > 0) {
         array_push($exp_mod_arr, [
@@ -16,6 +20,24 @@ foreach ($expanding_arr as $expander) {
                 'modules' => $expandable_arr
         ]);
     }
+}
+$exp_slugs = [];
+foreach ($expandable_arr as $exp) {
+    array_push($exp_slugs, $exp->slug);
+}
+
+$user_modules = collect();
+if (!Auth::user()->isAdmin()) {
+    foreach ($modules->getModules() as $module) {
+        if(Auth::User()->hasAnyPermissionOnModule($module->id))
+            $user_modules->push($module);
+        foreach (Auth::user()->group()->get() as $user_group) {
+            if($user_group->hasAnyPermissionOnModule($module->id) && !$user_modules->contains($module))
+                $user_modules->push($module);
+        }
+    }
+} else {
+    $user_modules = $modules->getModules();
 }
 
 ?>
@@ -69,8 +91,31 @@ foreach ($expanding_arr as $expander) {
             <!-- sidebar menu: : style can be found in sidebar.less -->
             <ul class="sidebar-menu">
                 <li class="header"><a href="/tekil/{{$site->slug}}">{{TurkishChar::tr_up($site->job_name)}}</a></li>
-                @foreach($modules->getModules() as $module)
-                    @if(Auth::User()->hasAnyPermissionOnModule($module->id) || Auth::User()->isAdmin())
+                @if(sizeof($exp_mod_arr)>0)
+                    <?php
+                    $addr = explode("/", $_SERVER['REQUEST_URI']);
+                    $module_name = $addr[sizeof($addr) - 1];
+                    ?>
+                    @foreach($exp_mod_arr as $exp)
+
+                        <li class="treeview {{in_array($module_name, $exp_slugs) ? "active" : ""}}">
+                            <a href="#" class="menu">
+                                <i class="fa fa-dashboard"></i> <span>{{$exp['name']}}</span> <i
+                                        class="fa fa-angle-left pull-right"></i>
+                            </a>
+                            <ul class="treeview-menu">
+                                @foreach($exp['modules'] as $mod)
+                                    <li {!! strpos($mod->slug, $module_name) !==false ? "class=active" : "" !!}><a
+                                                href="/tekil/{{$site->slug."/".$mod->slug}}" class="menu"><i
+                                                    class="fa fa-circle-o"></i> {{$mod->name}}</a></li>
+                                @endforeach
+                            </ul>
+                        </li>
+
+                    @endforeach
+                @endif
+                @foreach($user_modules as $module)
+
                         <?php
                         $addr = explode("/", $_SERVER['REQUEST_URI']);
                         $module_name = $addr[sizeof($addr) - 1];
@@ -82,29 +127,15 @@ foreach ($expanding_arr as $expander) {
                         $i_icon .= $module->icon
                         ?>
 
-                        <li {!! strpos($module_name, $module->slug) !==false ? "class='active'" : "" !!}><a
+                        <li {!! strcmp($module_name, $module->slug) == 0 ? "class='active'" : "" !!}><a
                                     href="/tekil/{{$site->slug."/".$module->slug}}" class="menu">
                                 {!! empty($module->icon) ? "" : ("<i class=\"$i_icon\"></i>")!!}
                                 {{ $module->name}}
                             </a></li>
-                    @endif
+
 
                 @endforeach
-                @if(sizeof($exp_mod_arr)>0)
-                    <li class="treeview">
-                        @foreach($exp_mod_arr as $exp)
-                            <a href="#"  class="menu">
-                                <i class="fa fa-dashboard"></i> <span>{{$exp['name']}}</span> <i
-                                        class="fa fa-angle-left pull-right"></i>
-                            </a>
-                        <ul class="treeview-menu">
-                            @foreach($exp['modules'] as $mod)
-                                <li><a href="/tekil/{{$site->slug."/".$mod->slug}}"  class="menu"><i class="fa fa-circle-o"></i> {{$mod->name}}</a></li>
-                            @endforeach
-                        </ul>
-                        @endforeach
-                    </li>
-                @endif
+
 
             </ul>
 

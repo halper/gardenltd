@@ -1,3 +1,15 @@
+<?php
+
+$user = Auth::user();
+
+$addr = explode("/", $_SERVER['REQUEST_URI']);
+$slug = $addr[sizeof($addr) - 1];
+$module = $modules->whereSlug($slug)->first();
+
+$post_permission = \App\Library\PermissionHelper::checkUserPostPermissionOnModule($user, $module);
+
+?>
+
 @extends('tekil.layout')
 
 @section('page-specific-js')
@@ -131,54 +143,56 @@
 
 
                     <div ng-app="puantajApp" ng-controller="PuantajController" id="angPuantaj">
-                        <p class="text-danger alert-danger" ng-show="subError"><%subError%></p>
+                        @if($post_permission)
+                            <p class="text-danger alert-danger" ng-show="subError"><%subError%></p>
 
-                        <div class="form-group">
-                            <div class="row">
-                                <div class="col-md-2">
-                                    <strong>Tarih</strong>
-                                </div>
-                                <div class="col-md-8">
-                                    <strong>Açıklama</strong>
-                                </div>
-                                <div class="col-md-2">
-                                    <strong>Harcama</strong>
-                                </div>
-                            </div>
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-md-2">
-                                        <div class="input-group input-append date dateRangePicker" id="paymentDate">
-                                            <input type="text" class="form-control" name="payment_date"
-                                                   ng-model="date"/>
+                                        <strong>Tarih</strong>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <strong>Açıklama</strong>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <strong>Harcama</strong>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-md-2">
+                                            <div class="input-group input-append date dateRangePicker" id="paymentDate">
+                                                <input type="text" class="form-control" name="payment_date"
+                                                       ng-model="date"/>
                                         <span class="input-group-addon add-on"><span
                                                     class="glyphicon glyphicon-calendar"></span></span>
+                                            </div>
+                                        </div>
+
+
+                                        <div class="col-md-8">
+                                            <input type="text" class="form-control" name="detail"
+                                                   ng-model="detail" placeholder="Harcama açıklaması"/>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <input type="text" class="form-control number" name="amount"
+                                                   ng-model="amount"
+                                                   placeholder="Harcama"/>
                                         </div>
                                     </div>
-
-
-                                    <div class="col-md-8">
-                                        <input type="text" class="form-control" name="detail"
-                                               ng-model="detail" placeholder="Harcama açıklaması"/>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <input type="text" class="form-control number" name="amount" ng-model="amount"
-                                               placeholder="Harcama"/>
+                                </div>
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-md-offset-2 col-md-8">
+                                            <button type="button" class="btn btn-primary btn-flat btn-block"
+                                                    ng-click="addPayment()">Güncelle
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <div class="row">
-                                    <div class="col-md-offset-2 col-md-8">
-                                        <button type="button" class="btn btn-primary btn-flat btn-block"
-                                                ng-click="addPayment()">Güncelle
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <br>
-
+                            <br>
+                        @endif
 
                         <div class="form-group">
                             <div class="row">
@@ -204,7 +218,9 @@
                                         <th class="text-center">Tarih</th>
                                         <th class="text-left">Açıklama</th>
                                         <th class="text-right">Harcama</th>
-                                        <th class="text-center">Sil</th>
+                                        @if($post_permission)
+                                            <th class="text-center">Sil</th>
+                                        @endif
                                     </tr>
                                     </thead>
                                     <tbody>
@@ -213,8 +229,10 @@
                                         <td class="text-center"><%expenditure.lab_date%></td>
                                         <td class="text-left"><%expenditure.detail%></td>
                                         <td class="text-right"><%expenditure.amount | numberFormatter%>TL</td>
-                                        <td class="text-center"><a href="#!" ng-click="remove_field(expenditure)"><i
-                                                        class="fa fa-close"></i></a>
+                                        @if($post_permission)
+                                            <td class="text-center"><a href="#!" ng-click="remove_field(expenditure)"><i
+                                                            class="fa fa-close"></i></a></td>
+                                        @endif
                                     </tr>
                                     <tr class="bg-warning">
                                         <td></td>
@@ -222,7 +240,9 @@
                                         <td class="text-center"><strong>GENEL TOPLAM</strong></td>
                                         <td class="text-right"><strong><%total | numberFormatter%>TL</strong>
                                         </td>
-                                        <td></td>
+                                        @if($post_permission)
+                                            <td></td>
+                                        @endif
                                     </tr>
                                     </tbody>
                                 </table>

@@ -14,6 +14,19 @@ foreach ($management_depts->management() as $dept) {
 }
 $wage = $personnel->wage()->get()->isEmpty() ? null : \App\Library\TurkishChar::convertToTRcurrency($personnel->wage()->orderBy('since', 'DESC')->first()->wage);
 $exit_date = $personnel->contract()->get()->isEmpty() || (!($personnel->contract()->get()->isEmpty()) && (strpos($personnel->contract->exit_date, '0000-00-00') !== false)) ? null : \App\Library\CarbonHelper::getTurkishDate($personnel->contract->exit_date);
+
+$user = Auth::user();
+$can_add_employer_docs = false;
+
+if ($user->isAdmin()) {
+    $can_add_employer_docs = true;
+
+} else
+    foreach ($user->group()->get() as $group) {
+        if ($group->hasSpecialPermissionForSlug('ise-giris-belgesi-ekle')) {
+            $can_add_employer_docs = true;
+        }
+    }
 ?>
 
 @section('page-specific-css')
@@ -191,7 +204,7 @@ $exit_date = $personnel->contract()->get()->isEmpty() || (!($personnel->contract
     <div class="form-group {{ $errors->has('staff_id') ? 'has-error' : '' }}">
         <div class="row">
             <div class="col-sm-2">
-                {!! Form::label('staff_id', 'İş Kolu: ', ['class' => 'control-label']) !!}
+                {!! Form::label('staff_id', 'İş Kolu:* ', ['class' => 'control-label']) !!}
             </div>
             <div class="col-sm-6">
                 <select name="staff_id" class="staff-select form-control">
@@ -254,7 +267,7 @@ $exit_date = $personnel->contract()->get()->isEmpty() || (!($personnel->contract
         </div>
     </div>
 
-    @if(count($personnel->iddoc))
+    @if($can_add_employer_docs)
         <div class="form-group {{ $errors->has('contract') ? 'has-error' : '' }}">
             <div class="row">
                 <div class="col-sm-2">
@@ -307,27 +320,29 @@ $exit_date = $personnel->contract()->get()->isEmpty() || (!($personnel->contract
                 </div>
             </div>
             @foreach($personnel->photo as $photo)
-                <?php
-                $my_path_arr = explode(DIRECTORY_SEPARATOR, $photo->file->path);
-                $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-                if (strpos($photo->file->name, 'pdf') !== false) {
-                    $image = URL::to('/') . "/img/pdf.jpg";
-                } elseif (strpos($photo->file->name, 'doc') !== false) {
-                    $image = URL::to('/') . "/img/word.png";
-                } else {
-                    $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $photo->file->name;
-                }
-                ?>
+                @foreach($photo->file as $file)
+                    <?php
+                    $my_path_arr = explode(DIRECTORY_SEPARATOR, $file->path);
+                    $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
+                    if (strpos($file->name, 'pdf') !== false) {
+                        $image = URL::to('/') . "/img/pdf.jpg";
+                    } elseif (strpos($file->name, 'doc') !== false) {
+                        $image = URL::to('/') . "/img/word.png";
+                    } else {
+                        $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $file->name;
+                    }
+                    ?>
 
-                <a id="lb-link-{{$photo->id}}" href="{{$image}}"
-                   data-toggle="lightbox" data-gallery="personnel-photos"
-                   data-title="{{$photo->file->name}}"
-                   data-footer="<a data-dismiss='modal' class='remove-files' href='#' onclick='removeFiles({{$photo->id}})'>Dosyayı Sil<a/>"
-                   class="col-sm-4">
-                    <img src="{{$image}}" class="img-responsive" style="height: 45px">
-                    {{$photo->file->name}}
-                </a>
+                    <a id="lb-link-{{$photo->id}}" href="{{$image}}"
+                       data-toggle="lightbox" data-gallery="personnel-photos"
+                       data-title="{{$file->name}}"
+                       data-footer="<a data-dismiss='modal' class='remove-files' href='#' onclick='removeFiles({{$photo->id}})'>Dosyayı Sil<a/>"
+                       class="col-sm-4">
+                        <img src="{{$image}}" class="img-responsive" style="height: 45px">
+                        {{$file->name}}
+                    </a>
 
+                @endforeach
             @endforeach
         </div>
     @endif

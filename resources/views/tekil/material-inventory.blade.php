@@ -2,6 +2,37 @@
 use Carbon\Carbon;
 
 $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
+
+
+$user = Auth::user();
+
+$addr = explode("/", $_SERVER['REQUEST_URI']);
+$slug = $addr[sizeof($addr) - 1];
+$module = $modules->whereSlug($slug)->first();
+
+$post_permission = \App\Library\PermissionHelper::checkUserPostPermissionOnModule($user, $module);
+
+$can_request_demand = false;
+$can_view_demand = false;
+$can_update_demand = false;
+
+
+if ($user->isAdmin()) {
+    $can_request_demand = true;
+    $can_view_demand = true;
+    $can_update_demand = true;
+} else
+    foreach ($user->group()->get() as $group) {
+        if ($group->hasSpecialPermissionForSlug('baglantili-malzeme-talep-olustur')) {
+            $can_request_demand = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('baglantili-malzeme-talep-goruntule')) {
+            $can_view_demand = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('baglantili-malzeme-talep-guncelle')) {
+            $can_update_demand = true;
+        }
+    }
 ?>
 
 @extends('tekil/layout')
@@ -323,28 +354,37 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
             <!-- Custom Tabs -->
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs">
-                    <li class="active"><a href="#tab_5" data-toggle="tab">Talep Oluştur</a></li>
-                    <li><a href="#tab_1" data-toggle="tab">Talep Görüntüle</a></li>
-                    <li><a href="#tab_2" data-toggle="tab">Talep Güncelle</a></li>
+                    @if($post_permission || $can_request_demand)
+                        <li class="active"><a href="#tab_5" data-toggle="tab">Talep Oluştur</a></li>
+                    @endif
+                    <li class="{{!($post_permission && $can_request_demand) ? "active" : ""}}"><a href="#tab_1" data-toggle="tab">Talep
+                            Görüntüle</a></li>
+                    @if($post_permission || $can_update_demand)
+                        <li><a href="#tab_2" data-toggle="tab">Talep Güncelle</a></li>
+                    @endif
 
                 </ul>
 
                 <!-- /.tab-content -->
                 <div class="tab-content">
 
+                    @if($post_permission || $can_request_demand)
+                        <div class="tab-pane active" id="tab_5">
+                            @include('tekil._new-followup')
+                        </div>
+                    @endif
 
-                    <div class="tab-pane active" id="tab_5">
-                        @include('tekil._new-followup')
-                    </div>
-
-
-                    <div class="tab-pane" id="tab_1">
+                    @if($can_view_demand)
+                    <div class="tab-pane {{!($post_permission && $can_request_demand) ? "active" : ""}}" id="tab_1">
                         @include('tekil._view-followup')
                     </div>
+                        @endif
 
-                    <div class="tab-pane" id="tab_2">
-                        @include('tekil._update-followup')
-                    </div>
+                    @if($post_permission || $can_update_demand)
+                        <div class="tab-pane" id="tab_2">
+                            @include('tekil._update-followup')
+                        </div>
+                    @endif
 
 
                 </div>

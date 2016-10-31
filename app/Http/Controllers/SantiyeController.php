@@ -9,6 +9,7 @@ use App\Library\TurkishChar;
 use App\Site;
 use App\Stock;
 use App\User;
+use Auth;
 use Illuminate\Http\Request;
 use App\Http\Requests;
 use Illuminate\Support\Facades\Session;
@@ -17,7 +18,7 @@ class SantiyeController extends ManagementController
 {
     public function getIndex()
     {
-        return view("landing/santiye");
+        return view("landing.santiye");
     }
 
     public function postAdd(Request $request)
@@ -174,10 +175,16 @@ class SantiyeController extends ManagementController
 
     public function editSite(Site $site)
     {
-        if (!\Auth::user()->isAdmin()) {
-            return redirect('/santiye');
+        $can_edit = false;
+        foreach(Auth::user()->group()->get() as $group){
+            if ($group->hasSpecialPermissionForSlug('santiye-duzenle')) {
+                $can_edit = true;
+            }
         }
-        return view('landing.edit-site', compact('site'));
+        if (Auth::user()->isAdmin() || $can_edit) {
+            return view('landing.edit-site', compact('site'));
+        }
+        return redirect('/santiye');
     }
 
     public function getSites()

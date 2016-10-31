@@ -36,7 +36,18 @@ class Access
     {
         $tmp = explode("/",$request->url());
         $site_slug = $tmp[4];
-        if(!$this->auth->user()->hasSite(Site::slugToId($site_slug)) && !$this->auth->user()->isAdmin()){
+        $site_id = Site::slugToId($site_slug);
+        $user = $this->auth->user();
+        $group_permission = false;
+        foreach($user->group()->get() as $user_group){
+            if($user_group->hasSite($site_id)){
+                $group_permission = true;
+                break;
+            }
+        }
+        if(!$user->hasSite($site_id) &&
+            !$group_permission &&
+            !$user->isAdmin()){
             return new RedirectResponse(url('/'));
         }
         return $next($request);

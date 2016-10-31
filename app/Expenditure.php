@@ -13,7 +13,7 @@ class Expenditure extends Model
      * 3-> Sarf
      * 4-> İnşaat Malzeme
      */
-    protected $fillable = ['exp_date', 'amount', 'kdv', 'type', 'grand_total'];
+    protected $fillable = ['exp_date', 'amount', 'kdv', 'type', 'grand_total', 'explanation'];
 
     public function site()
     {

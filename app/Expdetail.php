@@ -3,9 +3,11 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Expdetail extends Model
 {
+    use SoftDeletes;
     /*
      * Groups:
      * 1-> Genel
@@ -15,6 +17,7 @@ class Expdetail extends Model
      */
 
     protected $fillable = ['name', 'group'];
+    protected $dates = ['deleted_at'];
 
     public function expenditure()
     {

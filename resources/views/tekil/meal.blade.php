@@ -4,6 +4,23 @@ use App\Library\CarbonHelper;use Carbon\Carbon;
 $today = CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
 $mealcost = is_null($site->mealcost()->first()) ? null : $site->mealcost()->orderBy('since', 'DESC')->first();
 
+$user = Auth::user();
+
+$addr = explode("/", $_SERVER['REQUEST_URI']);
+$slug = $addr[sizeof($addr) - 1];
+$module = $modules->whereSlug($slug)->first();
+
+$post_permission = \App\Library\PermissionHelper::checkUserPostPermissionOnModule($user, $module);
+
+$can_filter = false;
+if ($user->isAdmin()) {
+    $can_filter = true;
+} else
+    foreach ($user->group()->get() as $group) {
+        if ($group->hasSpecialPermissionForSlug('yemek-filtrele')) {
+            $can_filter = true;
+        }
+    }
 ?>
 
 @extends('tekil.layout')
@@ -195,19 +212,23 @@ $mealcost = is_null($site->mealcost()->first()) ? null : $site->mealcost()->orde
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs">
                     <li class="active"><a href="#meal-table" data-toggle="tab">Tablo</a></li>
-                    <li><a href="#meal-cost" data-toggle="tab">Ücretler</a></li>
-                    <li class="pull-right">
-                        <div style="min-width: 40px">
-                            <div id="reportrange" class="pull-right"
-                                 style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
-                                <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
-                                <span class="text-center"></span> <b style="margin-left: 24px;"
-                                                                     class="caret"></b>
+                    @if($post_permission)
+                        <li><a href="#meal-cost" data-toggle="tab">Ücretler</a></li>
+                    @endif
+                    @if($can_filter)
+                        <li class="pull-right">
+                            <div style="min-width: 40px">
+                                <div id="reportrange" class="pull-right"
+                                     style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
+                                    <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
+                                    <span class="text-center"></span> <b style="margin-left: 24px;"
+                                                                         class="caret"></b>
+                                </div>
+                                <input type="hidden" name="start-date" ng-model="startDate">
+                                <input type="hidden" name="end-date" ng-model="endDate">
                             </div>
-                            <input type="hidden" name="start-date" ng-model="startDate">
-                            <input type="hidden" name="end-date" ng-model="endDate">
-                        </div>
-                    </li>
+                        </li>
+                    @endif
                 </ul>
                 <div class="tab-content" ng-app="puantajApp">
 
@@ -286,7 +307,8 @@ $mealcost = is_null($site->mealcost()->first()) ? null : $site->mealcost()->orde
                         </div>
                     </div>
 
-                    <!-- /.tab-pane -->
+                    @if($post_permission)
+                            <!-- /.tab-pane -->
                     <div class="tab-pane" id="meal-cost" ng-controller="MealcostController">
                         <div class="row">
                             <div class="col-xs-12">
@@ -378,6 +400,7 @@ $mealcost = is_null($site->mealcost()->first()) ? null : $site->mealcost()->orde
                             </div>
                         </div>
                     </div>
+                    @endif
                 </div>
             </div>
         </div>

@@ -18,8 +18,14 @@ foreach (\App\Manufacturing::all() as $manufacture) {
         <div class="col-sm-2">
             {!! Form::label('price', 'Sözleşme Bedeli: ', ['class' => 'control-label']) !!}
         </div>
-        <div class="col-sm-10">
+        <div class="col-sm-5">
             {!! Form::text('price', str_replace(".", ",", $subcontractor->price), ['class' => 'form-control number', 'placeholder' => 'Sözleşme Bedelini Giriniz(TL)', 'step' => 'any']) !!}
+        </div>
+    <div class="col-sm-1 col-sm-offset-1">
+            {!! Form::label('kdv', 'KDV (%): ', ['class' => 'control-label']) !!}
+        </div>
+        <div class="col-sm-3">
+            {!! Form::text('kdv', $subcontractor->kdv, ['class' => 'form-control', 'placeholder' => 'Sözleşme Bedeli İçin KDV Giriniz']) !!}
         </div>
     </div>
 

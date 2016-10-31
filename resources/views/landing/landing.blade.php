@@ -81,11 +81,17 @@
 
             <!-- Main content -->
             <section class="content">
-                @if(Session::has('flash_message'))
+                @if(Session::has('flash_message') || Session::has('flash_message_important') || Session::has('flash_message_error'))
 
-                    <div class="alert alert-success fade in alert-box {{ Session::has('flash_message_important') ? 'alert-important' : '' }}">
-                        @if(Session::has('flash_message_important'))
+                    <div class="alert {{ Session::has('flash_message_error') ? 'alert-danger ' : 'alert-success ' }} fade in alert-box {{ Session::has('flash_message_important') ? 'alert-important' : '' }}">
+                        @if(Session::has('flash_message_important') || Session::has('flash_message_error'))
                             <a href="#" class="close" data-dismiss="alert">&times;</a>
+                            @if(Session::has('flash_message_error'))
+                                {!! Session::get('flash_message_error') !!}
+                            @endif
+                            @if(Session::has('flash_message_important'))
+                                {!! Session::get('flash_message_important') !!}
+                            @endif
                         @endif
                         {!! Session::get('flash_message') !!}
                     </div>
@@ -105,11 +111,40 @@
 <!-- ./wrapper -->
 
 
-@include('base.js')
+<!-- jQuery 2.0.2 -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
+<!-- jQuery UI 1.10.3 -->
+<script src="<?= URL::to('/'); ?>/js/jquery-ui-1.10.3.min.js" type="text/javascript"></script>
+<!-- Bootstrap -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js" type="text/javascript"></script>
         <!-- SlimScroll -->
 <script src="<?= URL::to('/');?>/js/slimScroll/jquery.slimscroll.min.js"></script>
 <!-- FastClick -->
 <script src="<?= URL::to('/');?>/js/fastclick/fastclick.min.js"></script>
+<script src="<?= URL::to('/');?>/js/app.min.js"></script>
+<script src="<?= URL::to('/'); ?>/js/jquery.number.js" type="text/javascript"></script>
+
+<script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
+<script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
+<script>
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+    $('div.alert-success').not('.alert-important').delay(5000).slideUp(300);
+    $('p.alert-success').not('.alert-important').delay(7500).slideUp(300);
+
+    $('.number').number(true, 2, ',', '.');
+    $('span.inumber').each(function () {
+        var $text = $(this).text();
+        $(this).text($.number($text, 2, ',', '.'));
+    });
+    $('.dateRangePicker').datepicker({
+        language: 'tr',
+        autoclose: true
+    });
+</script>
 
 @yield('page-specific-js')
 

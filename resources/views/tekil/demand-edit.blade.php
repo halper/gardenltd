@@ -3,6 +3,25 @@ use Carbon\Carbon;
 
 
 $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString());
+
+$user = Auth::user();
+
+$can_add_price = false;
+$can_add_payment_type = false;
+
+
+if ($user->isAdmin()) {
+    $can_add_price = true;
+    $can_add_payment_type = true;
+} else
+    foreach ($user->group()->get() as $group) {
+        if ($group->hasSpecialPermissionForSlug('malzeme-talep-formu-birim-fiyat')) {
+            $can_add_price = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('malzeme-talep-formu-odeme-sekli')) {
+            $can_add_payment_type = true;
+        }
+    }
 ?>
 
 @section('page-specific-css')
@@ -94,8 +113,12 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                         <th> Malzeme</th>
                         <th> Birim</th>
                         <th class="text-right"> Miktar</th>
-                        <th class="text-right"> Birim Fiyat</th>
-                        <th> Ödeme Şekli</th>
+                        @if($can_add_price)
+                            <th class="text-right"> Birim Fiyat</th>
+                        @endif
+                        @if($can_add_payment_type)
+                            <th> Ödeme Şekli</th>
+                        @endif
                         <th class="text-center"> Malzeme Çıkar</th>
                     </tr>
                     </thead>
@@ -124,6 +147,7 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                                     <span></span>
                                 </div>
                             </td>
+                            @if($can_add_price)
                             <td>
                                 <div class="form-group">
                                     {!! Form::input('text', 'price[]', \App\Library\TurkishChar::convertToTRcurrency($mat->pivot->price), ['class' =>
@@ -132,6 +156,8 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                                     <span></span>
                                 </div>
                             </td>
+                            @endif
+                            @if($can_add_payment_type)
                             <td>
                                 <div class="form-group">
                                     {!! Form::input('text', 'payment_type[]', $mat->pivot->payment_type, ['class' =>
@@ -140,6 +166,7 @@ $today = \App\Library\CarbonHelper::getTurkishDate(Carbon::now()->toDateString()
                                     <span></span>
                                 </div>
                             </td>
+                            @endif
                             <td class="text-center">
                                 <a href="#" class="btn btn-flat btn-danger btn-approve">Malzemeyi Çıkar</a>
 

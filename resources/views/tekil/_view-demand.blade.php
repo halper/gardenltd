@@ -13,7 +13,9 @@
                 <th>Bağlantı Yapılan Firma</th>
                 <th>Açıklama</th>
                 <th>Temin Tarihi</th>
-                <th>İşlemler</th>
+                @if($post_permission)
+                    <th>İşlemler</th>
+                @endif
             </tr>
             </thead>
             <tbody>
@@ -40,64 +42,70 @@
                     <td>
                         {{\App\Library\CarbonHelper::getTurkishDate($demand->demand_date)}}
                     </td>
+                    @if($post_permission)
+                        <td>
+                            @if($demand->hasDelivered())
+                                Temin edildi
+                            @elseif($demand->approval_status == 0)
+                                <div class="row">
 
-                    <td>
-                        @if($demand->hasDelivered())
-                            Temin edildi
-                        @elseif($demand->approval_status == 0)
-                            <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="row">
+                                            <div class="col-sm-4">
+                                                <a class="btn btn-flat btn-warning btn-sm"
+                                                   href="{{url("/tekil/$site->slug/talep-duzenle/$demand->id")}}">
+                                                    Düzenle
+                                                </a>
+                                            </div>
 
-                                <div class="col-sm-12">
-                                    <div class="row">
-                                        <div class="col-sm-4">
-                                            <a class="btn btn-flat btn-warning btn-sm"
-                                               href="{{url("/tekil/$site->slug/talep-duzenle/$demand->id")}}">
-                                                Düzenle
-                                            </a>
-                                        </div>
-                                        <div class="col-sm-4">
-                                            <a class="btn btn-flat btn-primary btn-sm"
-                                               href="{{url("/tekil/$site->slug/talep-sevket/$demand->id")}}">
-                                                Sevket
-                                            </a>
-                                        </div>
-                                        <div class="col-sm-4">
-                                            <button type="button"
-                                                    class="btn btn-flat btn-danger btn-sm subDelBut"
-                                                    data-id="{{$demand->id}}"
-                                                    data-name="{{\App\Library\CarbonHelper::getTurkishDate($demand->demand_date)}}"
-                                                    data-toggle="modal" data-target="#deleteSubcontractorConfirm">
-                                                Sil
-                                            </button>
+                                            @if($can_confirm)
+                                            <div class="col-sm-4">
+                                                <a class="btn btn-flat btn-primary btn-sm"
+                                                   href="{{url("/tekil/$site->slug/talep-sevket/$demand->id")}}">
+                                                    Sevket
+                                                </a>
+                                            </div>
+                                            @endif
+                                            @if($can_delete)
+                                            <div class="col-sm-4">
+                                                <button type="button"
+                                                        class="btn btn-flat btn-danger btn-sm subDelBut"
+                                                        data-id="{{$demand->id}}"
+                                                        data-name="{{\App\Library\CarbonHelper::getTurkishDate($demand->demand_date)}}"
+                                                        data-toggle="modal" data-target="#deleteSubcontractorConfirm">
+                                                    Sil
+                                                </button>
 
+                                            </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        @elseif($demand->approval_status > 0)
-                            <?php
-                            $demand_status = '';
-                            switch ($demand->approval_status) {
-                                case 1:
-                                    $demand_status = 'PM onayında';
-                                    break;
-                                case 2:
-                                    $demand_status = 'Merkez onayında';
-                                    break;
-                                case 3:
-                                    $demand_status = 'Onaylandı';
-                                    break;
-                                case 4:
-                                    $demand_status = 'Reddedildi: ' . $demand->rejection->reason;
-                                    break;
-                            }
+                            @elseif($demand->approval_status > 0)
+                                <?php
+                                $demand_status = '';
+                                switch ($demand->approval_status) {
+                                    case 1:
+                                        $demand_status = 'PM onayında';
+                                        break;
+                                    case 2:
+                                        $demand_status = 'Merkez onayında';
+                                        break;
+                                    case 3:
+                                        $demand_status = 'Onaylandı';
+                                        break;
+                                    case 4:
+                                        $demand_status = 'Reddedildi: ' . $demand->rejection->reason;
+                                        break;
+                                }
 
-                            ?>
-                            {{$demand_status}}
-                        @endif
+                                ?>
+                                {{$demand_status}}
+                            @endif
 
 
-                    </td>
+                        </td>
+                    @endif
 
                 </tr>
             @endforeach

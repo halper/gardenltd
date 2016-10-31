@@ -132,7 +132,7 @@ use App\Site;
                                         <input type="checkbox" id="modules-master" name="modules-master">
                                         Tüm izinleri seç</label></tr>
 
-                                @foreach(App\Module::getModules() as $module)
+                                @foreach(App\Module::getAllModules() as $module)
                                     <tr>
                                         <td>
                                             <label class="checkbox-inline">

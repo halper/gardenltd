@@ -7,9 +7,10 @@ if (Session::has('tab')) {
 }
 ?>
 
-@extends('landing/landing')
+@extends('landing.landing')
 
 @section('page-specific-css')
+    <link href="<?= URL::to('/'); ?>/css/bootstrap-editable.css" rel="stylesheet"/>
     <link href="<?= URL::to('/'); ?>/css/daterangepicker.css" rel="stylesheet"/>
 @endsection
 
@@ -17,7 +18,10 @@ if (Session::has('tab')) {
     <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
     <script src="<?= URL::to('/'); ?>/js/moment.min.js" type="text/javascript"></script>
     <script src="<?= URL::to('/'); ?>/js/daterangepicker.js" type="text/javascript"></script>
+    <script src="<?= URL::to('/'); ?>/js/bootstrap-editable.min.js" type="text/javascript"></script>
     <script>
+        $.fn.editable.defaults.mode = 'inline';
+
         $(document).on("click", ".userDelBut", function (e) {
 
             e.preventDefault();
@@ -220,6 +224,9 @@ if (Session::has('tab')) {
         });
 
         $(document).ready(function () {
+            $('.inline-edit').editable({
+                validate: true
+            });
             angular.element('#angPuantaj').scope().init();
             function cb(start, end) {
                 angular.element('#angReport').scope().setDates(start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
@@ -263,6 +270,7 @@ if (Session::has('tab')) {
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs">
                     <li {{empty($tab) ? 'class=active' : ''}}><a href="#tab_5" data-toggle="tab">Kullanıcı</a></li>
+                    <li {{$tab == 4 ? 'class=active' : ''}}><a href="#tab_4" data-toggle="tab">Grup</a></li>
                     <li {{$tab == 1 ? 'class=active' : ''}}><a href="#tab_1" data-toggle="tab">Talep</a></li>
                     <li {{$tab == 2 ? 'class=active' : ''}}><a href="#tab_2" data-toggle="tab">Kasa</a></li>
                     <li {{$tab == 3 ? 'class=active' : ''}}><a href="#tab_3" data-toggle="tab">Rapor</a></li>
@@ -275,6 +283,10 @@ if (Session::has('tab')) {
 
                     <div class="tab-pane {{empty($tab) ? 'active' : ''}}" id="tab_5">
                         @include('landing._ayarlar-users')
+                    </div>
+
+                    <div class="tab-pane {{$tab == 4 ? 'active' : ''}}" id="tab_4">
+                        @include('landing._ayarlar-group')
                     </div>
 
                     <div class="tab-pane {{$tab == 1 ? 'active' : ''}}" id="tab_1">
@@ -336,7 +348,7 @@ if (Session::has('tab')) {
                     {!! Form::model($users, [
                     'url' => '/admin/add-user',
                     'method' => 'POST',
-                    'class' => 'form .form-horizontal',
+                    'class' => 'form',
                     'id' => 'userInsertForm',
                     'role' => 'form'
                     ]) !!}
@@ -347,6 +359,47 @@ if (Session::has('tab')) {
                 <div class="modal-footer">
 
                     <button type="submit" class="btn btn-flat btn-primary">Kullanıcı ekle</button>
+                    <button type="button" class="btn btn-flat btn-default" data-dismiss="modal">İptal</button>
+                    {!! Form::close() !!}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="insertGroup" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Yeni Grup Ekle</h4>
+                </div>
+                <div class="modal-body">
+                    {!! Form::open([
+                    'url' => '/admin/add-group',
+                    'method' => 'POST',
+                    'class' => 'form',
+                    'id' => 'groupInsertForm',
+                    'role' => 'form'
+                    ]) !!}
+
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <label for="name" class="control-label">Grup adı: </label>
+                        </div>
+                        <div class="col-sm-8">
+                            <input class="form-control" placeholder="Grup adı giriniz" name="name" type="text"
+                                   id="group-name">
+                        </div>
+
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+
+                    <button type="submit" class="btn btn-flat btn-primary">Grup ekle</button>
                     <button type="button" class="btn btn-flat btn-default" data-dismiss="modal">İptal</button>
                     {!! Form::close() !!}
                 </div>

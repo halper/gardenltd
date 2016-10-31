@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Session;
 $my_weather = new Weather(0, $site->city->name);
 $weather_symbol = '';
 
-
+$site_ended = false;
+if (Carbon::parse($site->end_date) < Carbon::parse($report->created_at))
+    $site_ended = true;
 
 if (session()->has("data")) {
     $report_date = session('data')["date"];
@@ -243,8 +245,89 @@ if ($viewCount == 1 && !is_null($yesterdays_report) && !is_null($yesterdays_repo
     $notes = $yesterdays_report->notes;
 }
 
+
+$user = Auth::user();
+
+$addr = explode("/", $_SERVER['REQUEST_URI']);
+$slug = $addr[sizeof($addr) - 1];
+$module = $modules->whereSlug($slug)->first();
+
+$post_permission = \App\Library\PermissionHelper::checkUserPostPermissionOnModule($user, $module);
+
+$can_edit_management_table = false;
+$can_edit_employer_table = false;
+$can_edit_subcontractors_table = false;
+$can_edit_equipment_table = false;
+$can_edit_work_table = false;
+$can_edit_inmaterial_table = false;
+$can_edit_outmaterial_table = false;
+$can_edit_overtimes_table = false;
+$can_edit_notes = false;
+$can_edit_attachments = false;
+$can_edit_view = false;
+
+if ($user->isAdmin()) {
+    $can_edit_management_table = true;
+    $can_edit_employer_table = true;
+    $can_edit_subcontractors_table = true;
+    $can_edit_equipment_table = true;
+    $can_edit_work_table = true;
+    $can_edit_inmaterial_table = true;
+    $can_edit_outmaterial_table = true;
+    $can_edit_overtimes_table = true;
+    $can_edit_notes = true;
+    $can_edit_attachments = true;
+    $can_edit_view = true;
+} else {
+    foreach ($user->group()->get() as $group) {
+        if ($group->hasSpecialPermissionForSlug('yonetim-denetim-personel-tablosu')) {
+            $can_edit_management_table = true;
+        }
+
+        if ($group->hasSpecialPermissionForSlug('garden-yonetim-personel-tablosu')) {
+            $can_edit_employer_table = true;
+        }
+
+        if ($group->hasSpecialPermissionForSlug('alt-yukleniciler-personel-tablosu')) {
+            $can_edit_subcontractors_table = true;
+        }
+
+        if ($group->hasSpecialPermissionForSlug('ekipman-tablosu')) {
+            $can_edit_equipment_table = true;
+        }
+
+        if ($group->hasSpecialPermissionForSlug('yapilan-isler-tablosu')) {
+            $can_edit_work_table = true;
+        }
+
+        if ($group->hasSpecialPermissionForSlug('gelen-malzemeler-tablosu')) {
+            $can_edit_inmaterial_table = true;
+        }
+
+        if ($group->hasSpecialPermissionForSlug('giden-malzemeler-tablosu')) {
+            $can_edit_outmaterial_table = true;
+        }
+
+        if ($group->hasSpecialPermissionForSlug('puantaj-ve-yemek-tablosu')) {
+            $can_edit_overtimes_table = true;
+        }
+
+        if ($group->hasSpecialPermissionForSlug('ertesi-gun-notlari')) {
+            $can_edit_notes = true;
+        }
+
+        if ($group->hasSpecialPermissionForSlug('rapor-ekleri')) {
+            $can_edit_attachments = true;
+        }
+
+        if ($group->hasSpecialPermissionForSlug('rapor-form-gorunumu')) {
+            $can_edit_view = true;
+        }
+    }
+}
+
 ?>
-@extends('tekil/layout')
+@extends('tekil.layout')
 
 @section('page-specific-css')
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.min.css"/>
@@ -286,6 +369,7 @@ var puantajApp = angular.module('dailyApp', [], function ($interpolateProvider) 
                 }).controller('swController', function ($scope, $http) {
                     $scope.sws = [];
                     $scope.message = '';
+                    $scope.error = '';
                     $scope.swUnit = '';
                     $scope.swQuantity = '';
                     $scope.swPlanned = '';
@@ -338,25 +422,32 @@ var puantajApp = angular.module('dailyApp', [], function ($interpolateProvider) 
 
                     $scope.addSwunit = function () {
                         $scope.message = '';
-                        $http.post("{{url("/tekil/$site->slug/save-work-done")}}", {
-                            rid: "{{$report->id}}",
-                            subid: $scope.swSelected.id,
-                            quantity: $scope.swQuantity,
-                            unit: $scope.swUnit,
-                            planned: $scope.swPlanned,
-                            done: $scope.swDone,
-                            works_done: $scope.swWorkDone
-                        }).
-                        then(function (response) {
-                            $scope.message = 'Kayıt başarılı';
-                            $scope.getSw();
-                            $scope.swUnit = '';
-                            $scope.swQuantity = '';
-                            $scope.swPlanned = '';
-                            $scope.swDone = '';
-                            $scope.swWorkDone = '';
-                            $scope.swSelected = '';
-                        });
+                        $scope.error = '';
+                        if ($scope.swSelected != '') {
+
+                            $http.post("{{url("/tekil/$site->slug/save-work-done")}}", {
+                                rid: "{{$report->id}}",
+                                subid: $scope.swSelected.id,
+                                quantity: $scope.swQuantity,
+                                unit: $scope.swUnit,
+                                planned: $scope.swPlanned,
+                                done: $scope.swDone,
+                                works_done: $scope.swWorkDone
+                            }).
+                            then(function (response) {
+                                $scope.message = 'Kayıt başarılı';
+                                $scope.getSw();
+                                $scope.swUnit = '';
+                                $scope.swQuantity = '';
+                                $scope.swPlanned = '';
+                                $scope.swDone = '';
+                                $scope.swWorkDone = '';
+                                $scope.swSelected = '';
+                            });
+                        }
+                        else {
+                            $scope.error = 'Alt yüklenici ekleyiniz!';
+                        }
                     };
                     $scope.addPwunit = function () {
                         $scope.message = '';
@@ -1059,14 +1150,15 @@ EOT;
                 getReportDays(e);
             });
 
-
-            var leftDays = '{{$left}}';
+                    @if(!$site_ended)
+                                var leftDays = '{{$left}}';
             var leftWarning = '{{$day_warning}}';
             leftDays = parseInt(leftDays);
             leftWarning = parseInt(leftWarning);
             if (leftDays < leftWarning) {
                 $('#leftDaysModal').modal("show");
             }
+            @endif
 
             $("#dateRangePicker").datepicker().on('changeDate', function (ev) {
 
@@ -1108,7 +1200,7 @@ EOT;
         $total_management += $report->isg_staff;
     ?>
     <div ng-app="dailyApp">
-        @if(!$locked)
+        @if(!$locked && !$site_ended)
             <div class="row">
                 <div class="col-xs-12 col-md-12">
                     <div class="box box-{{$left < $day_warning ? "danger" : "primary"}} box-solid">
@@ -1192,23 +1284,25 @@ EOT;
                                         <td>{{ !is_null($report->weather) ? $report->wind :$my_weather->getWind()}}
                                             m/s
                                         </td>
-                                        <td><strong>ÇALIŞMA:</strong></td>
-                                        <td>
+                                        @if($post_permission && !$site_ended)
+                                            <td><strong>ÇALIŞMA:</strong></td>
+                                            <td>
 
-                                            {!! Form::open([
-                                'url' => "/tekil/$site->slug/select-is-working",
-                                'method' => 'POST',
-                                'class' => 'form',
-                                'id' => 'selectIsWorkingForm',
-                                'role' => 'form'
-                                ]) !!}
-                                            {!! Form::hidden('report_id', $report->id) !!}
-                                            <label class="radio-inline"><input type="radio" name="is_working"
-                                                                               value="1" {{$report->is_working == 1 ? "checked" : ""}}>Var</label>
-                                            <label class="radio-inline"><input type="radio" name="is_working"
-                                                                               value="0" {{$report->is_working == 0 ? "checked" : ""}}>Yok</label>
-                                            {!! Form::close() !!}
-                                        </td>
+                                                {!! Form::open([
+                                    'url' => "/tekil/$site->slug/select-is-working",
+                                    'method' => 'POST',
+                                    'class' => 'form',
+                                    'id' => 'selectIsWorkingForm',
+                                    'role' => 'form'
+                                    ]) !!}
+                                                {!! Form::hidden('report_id', $report->id) !!}
+                                                <label class="radio-inline"><input type="radio" name="is_working"
+                                                                                   value="1" {{$report->is_working == 1 ? "checked" : ""}}>Var</label>
+                                                <label class="radio-inline"><input type="radio" name="is_working"
+                                                                                   value="0" {{$report->is_working == 0 ? "checked" : ""}}>Yok</label>
+                                                {!! Form::close() !!}
+                                            </td>
+                                        @endif
                                     </tr>
 
                                     </tbody>
@@ -1224,516 +1318,850 @@ EOT;
 
 
             {{--lock check buradan başlayacak--}}
+            @if($post_permission)
+                <div class="row">
+                    <div class="col-xs-12 col-md-7">
 
 
-            <div class="row">
-                {{--Yönetim Denetim Personel tablosu--}}
-                <div class="col-xs-12 col-md-7">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="box box-success box-solid">
-                                <div class="box-header with-border">
-                                    <h3 class="box-title">Yönetim/Denetim Personel Tablosu</h3>
+                        {{--Yönetim Denetim Personel tablosu--}}
+                        @if($can_edit_management_table)
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="box box-success box-solid">
+                                        <div class="box-header with-border">
+                                            <h3 class="box-title">Yönetim/Denetim Personel Tablosu</h3>
 
-                                    <div class="box-tools pull-right">
-                                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                                    class="fa fa-minus"></i>
-                                        </button>
-                                    </div>
-                                    <!-- /.box-tools -->
-                                </div>
-                                <!-- /.box-header -->
-                                <div class="box-body">
-
-
-                                    <div class="row">
-                                        <div class="text-center">
-                                            <div class="col-sm-8 text-center">
-                                                <span><strong>PERSONEL </strong></span>
-                                            </div>
-                                            <div class="col-sm-2 col-sm-offset-2 text-center">
-                                                <span><strong>SAYISI</strong></span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {!! Form::model($report, [
-                                    'url' => "/tekil/$site->slug/add-management-staffs",
-                                    'method' => 'POST',
-                                    'class' => 'form',
-                                    'id' => 'managementStaffInsertForm',
-                                    'role' => 'form'
-                                    ]) !!}
-                                    {!! Form::hidden('report_id', $report->id) !!}
-
-                                    @if($report->management_staff > 0)
-                                        <div class="row" id="div-management_staff">
-                                            <div class="form-group">
-                                                <div class="col-sm-1"><a href="#"
-                                                                         class="mainStaffDelete"
-                                                                         data-column="management_staff"><i
-                                                                class="fa fa-close"></i></a></div>
-                                                <div class="col-sm-7">
-                                                    <label for="main-staff-quantity[]" class="control-label">İdare
-                                                        ({{$site->management_name}})</label>
-                                                    {!! Form::hidden('main-staffs[]', '0') !!}
-                                                </div>
-
-                                                <div class="col-sm-2 col-sm-offset-2">
-
-                                                    {!! Form::number('main-staff-quantity[]', $report->management_staff, ['class' => 'form-control', 'step' => '1'])  !!}
-
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    @if($report->employer_staff>0)
-                                        <div class="row" id="div-employer_staff">
-                                            <div class="form-group">
-                                                <div class="col-sm-1"><a href="#"
-                                                                         class="mainStaffDelete"
-                                                                         data-column="employer_staff"><i
-                                                                class="fa fa-close"></i></a></div>
-                                                <div class="col-sm-7">
-                                                    <label for="main-staff-quantity" class="control-label">İşveren
-                                                        ({{$site->employer}}
-                                                        )</label>
-                                                    {!! Form::hidden('main-staffs[]', '1') !!}
-                                                </div>
-
-                                                <div class="col-sm-2 col-sm-offset-2">
-                                                    {!! Form::number('main-staff-quantity[]', $report->employer_staff, ['class' => 'form-control', 'step' => '1'])  !!}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    @if($report->building_control_staff>0)
-                                        <div class="row" id="div-building_control_staff">
-                                            <div class="form-group">
-                                                <div class="col-sm-1"><a href="#"
-                                                                         class="mainStaffDelete"
-                                                                         data-column="building_control_staff"><i
-                                                                class="fa fa-close"></i></a></div>
-                                                <div class="col-sm-7">
-                                                    <label for="main-staff-quantity[]" class="control-label">Yapı
-                                                        Denetim
-                                                        ({{$site->building_control}}
-                                                        )</label>
-                                                    {!! Form::hidden('main-staffs[]', '2') !!}
-                                                </div>
-
-                                                <div class="col-sm-2 col-sm-offset-2">
-                                                    {!! Form::number('main-staff-quantity[]', $report->building_control_staff, ['class' => 'form-control', 'step' => '1'])  !!}
-
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-                                    @if($report->isg_staff>0)
-                                        <div class="row" id="div-isg_staff">
-                                            <div class="form-group">
-                                                <div class="col-sm-1"><a href="#"
-                                                                         class="mainStaffDelete"
-                                                                         data-column="isg_staff"><i
-                                                                class="fa fa-close"></i></a></div>
-                                                <div class="col-sm-7">
-                                                    <label for="main-staff-quantity[]" class="control-label">İSG
-                                                        ({{$site->isg}}
-                                                        )</label>
-                                                    {!! Form::hidden('main-staffs[]', '3') !!}
-                                                </div>
-
-                                                <div class="col-sm-2 col-sm-offset-2">
-                                                    {!! Form::number('main-staff-quantity[]', $report->isg_staff, ['class' => 'form-control', 'step' => '1'])  !!}
-
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-                                    <div class="row">
-                                        <div class="col-sm-8">
-                                            <div class="form-group">
-                                                <select name="main-staffs[]"
-                                                        class="js-example-data-array form-control">
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-2 col-sm-offset-2">
-
-                                            <input type="number" step="1" class="form-control"
-                                                   name="main-staff-quantity[]"/>
-                                        </div>
-                                    </div>
-
-                                    <div id="main-staff-insert">
-
-                                    </div>
-                                    @if($total_management>0)
-                                        <div class="row">
-                                            <div class="col-sm-10" style="text-align:right">
-                                                <span><strong>TOPLAM: </strong></span>
-                                            </div>
-                                            <div class="col-sm-2 text-center">
-                                                {{$total_management}}
-                                            </div>
-                                        </div>
-                                    @endif
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <div class="form-group pull-right">
-                                                <a href="#" class="btn btn-primary btn-flat add-main-staff-row">
-                                                    Personel Ekle
-                                                </a>
-                                                <button type="submit" class="btn btn-success btn-flat">
-                                                    Kaydet
+                                            <div class="box-tools pull-right">
+                                                <button type="button" class="btn btn-box-tool"
+                                                        data-widget="collapse"><i
+                                                            class="fa fa-minus"></i>
                                                 </button>
                                             </div>
+                                            <!-- /.box-tools -->
                                         </div>
-
-                                    </div>
-                                    {!! Form::close() !!}
-
-
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{--End of Personel icmal table--}}
+                                        <!-- /.box-header -->
+                                        <div class="box-body">
 
 
-                    {{--Main contractor table--}}
-
-                    <?php
-                    $main_contractor_total = 0;
-                    $number_of_col = 12;
-                    foreach ($report->staff()->get() as $staff) {
-                        $main_contractor_total += $staff->pivot->quantity;
-                    }
-                    ?>
-
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="box box-success box-solid">
-                                <div class="box-header with-border">
-                                    <h3 class="box-title">{{$site->main_contractor}}
-                                        <small style="color: #f0f0f0;">(Ana Yüklenici)</small>
-                                        Personel Tablosu
-                                    </h3>
-
-                                    <div class="box-tools pull-right">
-                                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                                    class="fa fa-minus"></i>
-                                        </button>
-                                    </div>
-                                    <!-- /.box-tools -->
-                                </div>
-                                <!-- /.box-header -->
-                                <div class="box-body">
-                                    {{$site->main_contractor}} için personel giriniz.
-                                    <br>
-
-                                    <div class="row">
-                                        <div class="text-center">
-                                            <div class="col-sm-12">
-                                                <span><strong>PERSONEL</strong></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {!! Form::open([
-                                    'url' => "/tekil/$site->slug/save-staff",
-                                    'method' => 'POST',
-                                    'class' => 'form',
-                                    'id' => 'staffInsertForm',
-                                    'role' => 'form'
-                                    ]) !!}
-                                    {!! Form::hidden('report_id', $report->id) !!}
-                                    <div id="staff-insert">
-
-                                        @if(sizeof($site_report_personnel)>0)
                                             <div class="row">
-                                                <div class="col-sm-1"></div>
-                                                <div class="col-sm-3"><span style="font-style: italic">TCK No</span>
-                                                </div>
-                                                <div class="col-sm-5"><span style="font-style: italic">Ad Soyad</span>
-                                                </div>
-                                                <div class="col-sm-3"><span style="font-style: italic">İş Kolu</span>
-                                                </div>
-                                            </div>
-                                        @endif
-                                        @for($i = 0; $i < sizeof($site_report_personnel); $i++)
-                                            <?php
-                                            $per = $site_report_personnel[$i];
-                                            $report_person = Personnel::withTrashed()->find($per);
-                                            ?>
-                                            <div class="row" id="div-staffid{{$report_person->id}}">
-                                                <div class="col-sm-1"><a href="#"><i
-                                                                class="fa fa-close staff-detach"
-                                                                data-personnel="{{$report_person->id}}"></i></a></div>
-                                                <div class="col-sm-3">
-                                                <span>
-                                                    {{$report_person->tck_no}}
-                                                </span>
-                                                </div>
-                                                <div class="col-sm-5">
-                                                <span>
-                                                    {{\App\Library\TurkishChar::tr_camel($report_person->name)}}
-                                                </span>
-                                                </div>
-                                                <div class="col-sm-3">
-                                                <span>
-                                                    {{\App\Library\TurkishChar::tr_up($report_person->staff->staff)}}
-                                                </span>
-                                                    {!! Form::hidden('staffs[]', $report_person->id) !!}
-                                                </div>
-
-                                            </div>
-                                        @endfor
-
-                                        <div class="row">
-                                            <div class="col-sm-12">
-                                                <div class="form-group">
-                                                    <select name="staffs[]"
-                                                            class="js-example-basic-multiple form-control" multiple>
-                                                        {!! $main_per_options !!}
-                                                    </select>
+                                                <div class="text-center">
+                                                    <div class="col-sm-8 text-center">
+                                                        <span><strong>PERSONEL </strong></span>
+                                                    </div>
+                                                    <div class="col-sm-2 col-sm-offset-2 text-center">
+                                                        <span><strong>SAYISI</strong></span>
+                                                    </div>
                                                 </div>
                                             </div>
 
+                                            {!! Form::model($report, [
+                                            'url' => "/tekil/$site->slug/add-management-staffs",
+                                            'method' => 'POST',
+                                            'class' => 'form',
+                                            'id' => 'managementStaffInsertForm',
+                                            'role' => 'form'
+                                            ]) !!}
+                                            {!! Form::hidden('report_id', $report->id) !!}
+
+                                            @if($report->management_staff > 0)
+                                                <div class="row" id="div-management_staff">
+                                                    <div class="form-group">
+                                                        <div class="col-sm-1"><a href="#"
+                                                                                 class="mainStaffDelete"
+                                                                                 data-column="management_staff"><i
+                                                                        class="fa fa-close"></i></a></div>
+                                                        <div class="col-sm-7">
+                                                            <label for="main-staff-quantity[]"
+                                                                   class="control-label">İdare
+                                                                ({{$site->management_name}})</label>
+                                                            {!! Form::hidden('main-staffs[]', '0') !!}
+                                                        </div>
+
+                                                        <div class="col-sm-2 col-sm-offset-2">
+
+                                                            {!! Form::number('main-staff-quantity[]', $report->management_staff, ['class' => 'form-control', 'step' => '1'])  !!}
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endif
+
+                                            @if($report->employer_staff>0)
+                                                <div class="row" id="div-employer_staff">
+                                                    <div class="form-group">
+                                                        <div class="col-sm-1"><a href="#"
+                                                                                 class="mainStaffDelete"
+                                                                                 data-column="employer_staff"><i
+                                                                        class="fa fa-close"></i></a></div>
+                                                        <div class="col-sm-7">
+                                                            <label for="main-staff-quantity" class="control-label">İşveren
+                                                                ({{$site->employer}}
+                                                                )</label>
+                                                            {!! Form::hidden('main-staffs[]', '1') !!}
+                                                        </div>
+
+                                                        <div class="col-sm-2 col-sm-offset-2">
+                                                            {!! Form::number('main-staff-quantity[]', $report->employer_staff, ['class' => 'form-control', 'step' => '1'])  !!}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endif
+
+                                            @if($report->building_control_staff>0)
+                                                <div class="row" id="div-building_control_staff">
+                                                    <div class="form-group">
+                                                        <div class="col-sm-1"><a href="#"
+                                                                                 class="mainStaffDelete"
+                                                                                 data-column="building_control_staff"><i
+                                                                        class="fa fa-close"></i></a></div>
+                                                        <div class="col-sm-7">
+                                                            <label for="main-staff-quantity[]"
+                                                                   class="control-label">Yapı
+                                                                Denetim
+                                                                ({{$site->building_control}}
+                                                                )</label>
+                                                            {!! Form::hidden('main-staffs[]', '2') !!}
+                                                        </div>
+
+                                                        <div class="col-sm-2 col-sm-offset-2">
+                                                            {!! Form::number('main-staff-quantity[]', $report->building_control_staff, ['class' => 'form-control', 'step' => '1'])  !!}
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endif
+                                            @if($report->isg_staff>0)
+                                                <div class="row" id="div-isg_staff">
+                                                    <div class="form-group">
+                                                        <div class="col-sm-1"><a href="#"
+                                                                                 class="mainStaffDelete"
+                                                                                 data-column="isg_staff"><i
+                                                                        class="fa fa-close"></i></a></div>
+                                                        <div class="col-sm-7">
+                                                            <label for="main-staff-quantity[]"
+                                                                   class="control-label">İSG
+                                                                ({{$site->isg}}
+                                                                )</label>
+                                                            {!! Form::hidden('main-staffs[]', '3') !!}
+                                                        </div>
+
+                                                        <div class="col-sm-2 col-sm-offset-2">
+                                                            {!! Form::number('main-staff-quantity[]', $report->isg_staff, ['class' => 'form-control', 'step' => '1'])  !!}
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endif
+                                            <div class="row">
+                                                <div class="col-sm-8">
+                                                    <div class="form-group">
+                                                        <select name="main-staffs[]"
+                                                                class="js-example-data-array form-control">
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-sm-2 col-sm-offset-2">
+
+                                                    <input type="number" step="1" class="form-control"
+                                                           name="main-staff-quantity[]"/>
+                                                </div>
+                                            </div>
+
+                                            <div id="main-staff-insert">
+
+                                            </div>
+                                            @if($total_management>0)
+                                                <div class="row">
+                                                    <div class="col-sm-10" style="text-align:right">
+                                                        <span><strong>TOPLAM: </strong></span>
+                                                    </div>
+                                                    <div class="col-sm-2 text-center">
+                                                        {{$total_management}}
+                                                    </div>
+                                                </div>
+                                            @endif
+                                            <div class="row">
+                                                <div class="col-sm-12">
+                                                    <div class="form-group pull-right">
+                                                        <a href="#"
+                                                           class="btn btn-primary btn-flat add-main-staff-row">
+                                                            Personel Ekle
+                                                        </a>
+                                                        <button type="submit" class="btn btn-success btn-flat">
+                                                            Kaydet
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                            {!! Form::close() !!}
                                         </div>
                                     </div>
-
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <div class="form-group pull-right">
-                                                <button type="submit" class="btn btn-success btn-flat ">
-                                                    Kaydet
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                    {!! Form::close() !!}
-
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                            {{--End of Yönetim/Denetim--}}
+                        @endif
 
 
-                    {{--End of Main contractor table--}}
+                        @if($can_edit_employer_table)
+                            {{--Main contractor table--}}
+                            <?php
+                            $main_contractor_total = 0;
+                            $number_of_col = 12;
+                            foreach ($report->staff()->get() as $staff) {
+                                $main_contractor_total += $staff->pivot->quantity;
+                            }
+                            ?>
 
-                    {{--Subcontractors table--}}
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="box box-success box-solid">
+                                        <div class="box-header with-border">
+                                            <h3 class="box-title">{{$site->main_contractor}}
+                                                <small style="color: #f0f0f0;">(Ana Yüklenici)</small>
+                                                Personel Tablosu
+                                            </h3>
 
-                    <div class="row" id="subcontractor_staff">
-                        <div class="col-md-12">
-                            <div class="box box-success box-solid">
-                                <div class="box-header with-border">
-                                    <h3 class="box-title">Alt Yükleniciler Personel Tablosu
-                                    </h3>
-
-                                    <div class="box-tools pull-right">
-                                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                                    class="fa fa-minus"></i>
-                                        </button>
-                                    </div>
-                                    <!-- /.box-tools -->
-                                </div>
-                                <!-- /.box-header -->
-                                <div class="box-body">
-                                    <div class="row">
-                                        <div class="text-center">
-                                            <div class="col-sm-12">
-                                                <span><strong>PERSONEL</strong></span>
+                                            <div class="box-tools pull-right">
+                                                <button type="button" class="btn btn-box-tool"
+                                                        data-widget="collapse"><i
+                                                            class="fa fa-minus"></i>
+                                                </button>
                                             </div>
+                                            <!-- /.box-tools -->
                                         </div>
-                                    </div>
-                                    @if(sizeof($report_subcontractors)>0)
-                                        <div class="row">
-                                            <div class="col-sm-1"></div>
-                                            <div class="col-sm-3"><span style="font-style: italic">TCK No</span></div>
-                                            <div class="col-sm-3"><span style="font-style: italic">Ad Soyad</span></div>
-                                            <div class="col-sm-2"><span style="font-style: italic">İş Kolu</span></div>
-                                            <div class="col-sm-3"><span style="font-style: italic">Alt Yüklenici</span>
-                                            </div>
-                                        </div>
-                                    @endif
-                                    @for($i = 0; $i < sizeof($report_subcontractor_arr); $i++)
-                                        @foreach($subcontractor_report_personnel[$i] as $id)
-                                            <?php
-                                            $report_person = Personnel::find($id);
-                                            $sub = \App\Subcontractor::find($report_subcontractor_arr[$i]);
-                                            ?>
-                                            <div class="row" id="div-staffid{{$report_person->id}}">
-                                                <div class="col-sm-1"><a href="#"><i
-                                                                class="fa fa-close substaff-detach"
-                                                                data-personnel="{{$report_person->id}}"
-                                                                data-subcontractor="{{$report_subcontractors[$i]->id}}"></i></a>
+                                        <!-- /.box-header -->
+                                        <div class="box-body">
+                                            {{$site->main_contractor}} için personel giriniz.
+                                            <br>
+
+                                            <div class="row">
+                                                <div class="text-center">
+                                                    <div class="col-sm-12">
+                                                        <span><strong>PERSONEL</strong></span>
+                                                    </div>
                                                 </div>
-                                                <div class="col-sm-3">
+                                            </div>
+                                            {!! Form::open([
+                                            'url' => "/tekil/$site->slug/save-staff",
+                                            'method' => 'POST',
+                                            'class' => 'form',
+                                            'id' => 'staffInsertForm',
+                                            'role' => 'form'
+                                            ]) !!}
+                                            {!! Form::hidden('report_id', $report->id) !!}
+                                            <div id="staff-insert">
+
+                                                @if(sizeof($site_report_personnel)>0)
+                                                    <div class="row">
+                                                        <div class="col-sm-1"></div>
+                                                        <div class="col-sm-3"><span
+                                                                    style="font-style: italic">TCK No</span>
+                                                        </div>
+                                                        <div class="col-sm-5"><span
+                                                                    style="font-style: italic">Ad Soyad</span>
+                                                        </div>
+                                                        <div class="col-sm-3"><span
+                                                                    style="font-style: italic">İş Kolu</span>
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                                @for($i = 0; $i < sizeof($site_report_personnel); $i++)
+                                                    <?php
+                                                    $per = $site_report_personnel[$i];
+                                                    $report_person = Personnel::withTrashed()->find($per);
+                                                    ?>
+                                                    <div class="row" id="div-staffid{{$report_person->id}}">
+                                                        <div class="col-sm-1"><a href="#"><i
+                                                                        class="fa fa-close staff-detach"
+                                                                        data-personnel="{{$report_person->id}}"></i></a>
+                                                        </div>
+                                                        <div class="col-sm-3">
                                                 <span>
                                                     {{$report_person->tck_no}}
                                                 </span>
-                                                </div>
-                                                <div class="col-sm-3">
+                                                        </div>
+                                                        <div class="col-sm-5">
                                                 <span>
                                                     {{\App\Library\TurkishChar::tr_camel($report_person->name)}}
                                                 </span>
-                                                </div>
-                                                <div class="col-sm-2">
+                                                        </div>
+                                                        <div class="col-sm-3">
                                                 <span>
                                                     {{\App\Library\TurkishChar::tr_up($report_person->staff->staff)}}
                                                 </span>
-                                                    {!! Form::hidden('substaffs[]', $report_person->id) !!}
+                                                            {!! Form::hidden('staffs[]', $report_person->id) !!}
+                                                        </div>
+
+                                                    </div>
+                                                @endfor
+
+                                                <div class="row">
+                                                    <div class="col-sm-12">
+                                                        <div class="form-group">
+                                                            <select name="staffs[]"
+                                                                    class="js-example-basic-multiple form-control"
+                                                                    multiple>
+                                                                {!! $main_per_options !!}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+
                                                 </div>
-                                                <div class="col-sm-3">
+                                            </div>
+
+                                            <div class="row">
+                                                <div class="col-sm-12">
+                                                    <div class="form-group pull-right">
+                                                        <button type="submit" class="btn btn-success btn-flat ">
+                                                            Kaydet
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                            {!! Form::close() !!}
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {{--End of Main contractor table--}}
+                        @endif
+
+
+                        @if($can_edit_subcontractors_table)
+                            {{--Subcontractors table--}}
+
+                            <div class="row" id="subcontractor_staff">
+                                <div class="col-md-12">
+                                    <div class="box box-success box-solid">
+                                        <div class="box-header with-border">
+                                            <h3 class="box-title">Alt Yükleniciler Personel Tablosu
+                                            </h3>
+
+                                            <div class="box-tools pull-right">
+                                                <button type="button" class="btn btn-box-tool"
+                                                        data-widget="collapse"><i
+                                                            class="fa fa-minus"></i>
+                                                </button>
+                                            </div>
+                                            <!-- /.box-tools -->
+                                        </div>
+                                        <!-- /.box-header -->
+                                        <div class="box-body">
+                                            <div class="row">
+                                                <div class="text-center">
+                                                    <div class="col-sm-12">
+                                                        <span><strong>PERSONEL</strong></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @if(sizeof($report_subcontractors)>0)
+                                                <div class="row">
+                                                    <div class="col-sm-1"></div>
+                                                    <div class="col-sm-3"><span
+                                                                style="font-style: italic">TCK No</span>
+                                                    </div>
+                                                    <div class="col-sm-3"><span
+                                                                style="font-style: italic">Ad Soyad</span>
+                                                    </div>
+                                                    <div class="col-sm-2"><span
+                                                                style="font-style: italic">İş Kolu</span>
+                                                    </div>
+                                                    <div class="col-sm-3"><span
+                                                                style="font-style: italic">Alt Yüklenici</span>
+                                                    </div>
+                                                </div>
+                                            @endif
+                                            @for($i = 0; $i < sizeof($report_subcontractor_arr); $i++)
+                                                @foreach($subcontractor_report_personnel[$i] as $id)
+                                                    <?php
+                                                    $report_person = Personnel::find($id);
+                                                    $sub = \App\Subcontractor::find($report_subcontractor_arr[$i]);
+                                                    ?>
+                                                    <div class="row" id="div-staffid{{$report_person->id}}">
+                                                        <div class="col-sm-1"><a href="#"><i
+                                                                        class="fa fa-close substaff-detach"
+                                                                        data-personnel="{{$report_person->id}}"
+                                                                        data-subcontractor="{{$report_subcontractors[$i]->id}}"></i></a>
+                                                        </div>
+                                                        <div class="col-sm-3">
+                                                <span>
+                                                    {{$report_person->tck_no}}
+                                                </span>
+                                                        </div>
+                                                        <div class="col-sm-3">
+                                                <span>
+                                                    {{\App\Library\TurkishChar::tr_camel($report_person->name)}}
+                                                </span>
+                                                        </div>
+                                                        <div class="col-sm-2">
+                                                <span>
+                                                    {{\App\Library\TurkishChar::tr_up($report_person->staff->staff)}}
+                                                </span>
+                                                            {!! Form::hidden('substaffs[]', $report_person->id) !!}
+                                                        </div>
+                                                        <div class="col-sm-3">
                                                 <span>
                                                     {{\App\Library\TurkishChar::tr_up($sub->subdetail->name)}}
                                                 </span>
-                                                    {!! Form::hidden('staffs[]', $report_person->id) !!}
+                                                            {!! Form::hidden('staffs[]', $report_person->id) !!}
+                                                        </div>
+
+                                                    </div>
+                                                @endforeach
+                                            @endfor
+
+                                            {!! Form::open([
+                                             'url' => "/tekil/$site->slug/save-subcontractor-staff",
+                                             'method' => 'POST',
+                                             'class' => 'form',
+                                             'id' => 'subcontractorStaffInsertForm',
+                                             'role' => 'form form-horizontal'
+                                             ]) !!}
+                                            {!! Form::hidden('report_id', $report->id) !!}
+                                            <div class="row">
+                                                <div class="col-sm-12">
+                                                    <div class="form-group">
+                                                        <select name="substaffs[]"
+                                                                class="js-example-basic-multiple form-control"
+                                                                multiple>
+                                                            {!! $subcontractor_personnel_options !!}
+                                                        </select>
+                                                    </div>
                                                 </div>
 
                                             </div>
-                                        @endforeach
-                                    @endfor
 
-                                    {!! Form::open([
-                                     'url' => "/tekil/$site->slug/save-subcontractor-staff",
-                                     'method' => 'POST',
-                                     'class' => 'form',
-                                     'id' => 'subcontractorStaffInsertForm',
-                                     'role' => 'form form-horizontal'
-                                     ]) !!}
-                                    {!! Form::hidden('report_id', $report->id) !!}
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <div class="form-group">
-                                                <select name="substaffs[]"
-                                                        class="js-example-basic-multiple form-control" multiple>
-                                                    {!! $subcontractor_personnel_options !!}
-                                                </select>
+                                            <div class="row">
+                                                <div class="col-sm-12">
+                                                    <div class="form-group pull-right">
+                                                        <button type="submit" class="btn btn-success btn-flat ">
+                                                            Kaydet
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <div class="form-group pull-right">
-                                                <button type="submit" class="btn btn-success btn-flat ">
-                                                    Kaydet
-                                                </button>
-                                            </div>
+                                            {!! Form::close() !!}
                                         </div>
                                     </div>
-                                    {!! Form::close() !!}
                                 </div>
                             </div>
-                        </div>
+                            {{--End of subcontractors table--}}
+                        @endif
 
-
-                        {{--End of subcontractors table--}}
                     </div>
-
                     {{--End of left tables column--}}
-                </div>
 
 
-                <div class="col-xs-12 col-md-5">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <div class="box box-success box-solid">
-                                <div class="box-header with-border">
-                                    <h3 class="box-title">Ekipman Tablosu
-                                    </h3>
+                    <div class="col-xs-12 col-md-5">
 
-                                    <div class="box-tools pull-right">
-                                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                                    class="fa fa-minus"></i>
-                                        </button>
-                                    </div>
-                                    <!-- /.box-tools -->
-                                </div>
-                                <!-- /.box-header -->
-                                <div class="box-body">
-                                    <div class="row">
-                                        <div class="col-sm-5">
-                                            <span class="text-center"><strong>EKİPMAN ADI</strong></span>
-                                        </div>
-                                        <div class="col-sm-7">
-                                            <div class="row">
-                                                <div class="col-sm-4">
-                                                    <span class="text-center"><strong>ÇALIŞAN</strong></span>
-                                                </div>
-                                                <div class="col-sm-4">
-                                                    <span class="text-center"><strong>MEVCUT</strong></span>
-                                                </div>
-                                                <div class="col-sm-4">
-                                                    <span class="text-center"><strong>ARIZALI</strong></span>
-                                                </div>
+                        @if($can_edit_equipment_table)
+                            {{--Ekipman tablosu--}}
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="box box-success box-solid">
+                                        <div class="box-header with-border">
+                                            <h3 class="box-title">Ekipman Tablosu
+                                            </h3>
+
+                                            <div class="box-tools pull-right">
+                                                <button type="button" class="btn btn-box-tool"
+                                                        data-widget="collapse"><i
+                                                            class="fa fa-minus"></i>
+                                                </button>
                                             </div>
+                                            <!-- /.box-tools -->
                                         </div>
-                                    </div>
-                                    {!! Form::open([
-                                                                    'url' => "/tekil/$site->slug/save-equipment",
-                                                                    'method' => 'POST',
-                                                                    'class' => 'form',
-                                                                    'id' => 'equipmentInsertForm',
-                                                                    'role' => 'form'
-                                                                    ]) !!}
-                                    {!! Form::hidden('report_id', $report->id) !!}
-                                    <div id="equipment-insert">
-                                        @foreach($report->equipment()->get() as $equipment)
-                                            <div class="row" id="div-equipmentid{{$equipment->id}}">
+                                        <!-- /.box-header -->
+                                        <div class="box-body">
+                                            <div class="row">
                                                 <div class="col-sm-5">
-                                                    <div class="form-group">
-                                                        <div class="row">
-                                                            <div class="col-sm-1"><a href="#"
-                                                                                     class="equipmentDetach"
-                                                                                     data-id="{{$equipment->id}}"><i
-                                                                            class="fa fa-close"></i></a></div>
-                                                            <div class="col-sm-10">
-                                                                <span>{{$equipment->name}}</span>
-                                                                {!! Form::hidden('equipments[]', $equipment->id) !!}
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                    <span class="text-center"><strong>EKİPMAN ADI</strong></span>
                                                 </div>
                                                 <div class="col-sm-7">
                                                     <div class="row">
                                                         <div class="col-sm-4">
-
-                                                            <input type="number" step="1" class="form-control"
-                                                                   name="equipment-present[]"
-                                                                   value="{{$equipment->pivot->present}}"/>
+                                                            <span class="text-center"><strong>ÇALIŞAN</strong></span>
                                                         </div>
                                                         <div class="col-sm-4">
-
-                                                            <input type="number" step="1" class="form-control"
-                                                                   name="equipment-working[]"
-                                                                   value="{{$equipment->pivot->working}}"/>
+                                                            <span class="text-center"><strong>MEVCUT</strong></span>
                                                         </div>
                                                         <div class="col-sm-4">
-
-                                                            <input type="number" step="1" class="form-control"
-                                                                   name="equipment-broken[]"
-                                                                   value="{{$equipment->pivot->broken}}"/>
+                                                            <span class="text-center"><strong>ARIZALI</strong></span>
                                                         </div>
                                                     </div>
+                                                </div>
+                                            </div>
+                                            {!! Form::open([
+                                                                            'url' => "/tekil/$site->slug/save-equipment",
+                                                                            'method' => 'POST',
+                                                                            'class' => 'form',
+                                                                            'id' => 'equipmentInsertForm',
+                                                                            'role' => 'form'
+                                                                            ]) !!}
+                                            {!! Form::hidden('report_id', $report->id) !!}
+                                            <div id="equipment-insert">
+                                                @foreach($report->equipment()->get() as $equipment)
+                                                    <div class="row" id="div-equipmentid{{$equipment->id}}">
+                                                        <div class="col-sm-5">
+                                                            <div class="form-group">
+                                                                <div class="row">
+                                                                    <div class="col-sm-1"><a href="#"
+                                                                                             class="equipmentDetach"
+                                                                                             data-id="{{$equipment->id}}"><i
+                                                                                    class="fa fa-close"></i></a>
+                                                                    </div>
+                                                                    <div class="col-sm-10">
+                                                                        <span>{{$equipment->name}}</span>
+                                                                        {!! Form::hidden('equipments[]', $equipment->id) !!}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-7">
+                                                            <div class="row">
+                                                                <div class="col-sm-4">
+
+                                                                    <input type="number" step="1"
+                                                                           class="form-control"
+                                                                           name="equipment-present[]"
+                                                                           value="{{$equipment->pivot->present}}"/>
+                                                                </div>
+                                                                <div class="col-sm-4">
+
+                                                                    <input type="number" step="1"
+                                                                           class="form-control"
+                                                                           name="equipment-working[]"
+                                                                           value="{{$equipment->pivot->working}}"/>
+                                                                </div>
+                                                                <div class="col-sm-4">
+
+                                                                    <input type="number" step="1"
+                                                                           class="form-control"
+                                                                           name="equipment-broken[]"
+                                                                           value="{{$equipment->pivot->broken}}"/>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                    </div>
+                                                @endforeach
+                                            </div>
+
+                                            <div class="row">
+                                                <div class="col-sm-12">
+                                                    <div class="form-group pull-right">
+                                                        <a href="#"
+                                                           class="btn btn-primary btn-flat add-equipment-row">
+                                                            Ekipman Ekle
+                                                        </a>
+
+                                                        <button type="submit" class="btn btn-success btn-flat ">
+                                                            Kaydet
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                            {!! Form::close() !!}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {{--End of ekipman tablosu--}}
+                        @endif
+                    </div>
+                    {{--END of right side--}}
+                </div>
+                {{--end of row--}}
+
+                @if($can_edit_work_table)
+                    <div class="row">
+                        <div class="col-xs-12 col-md-12">
+                            <div class="box box-success box-solid">
+                                <div class="box-header with-border">
+                                    <h3 class="box-title">Yapılan İşler Tablosu
+                                    </h3>
+
+                                    <div class="box-tools pull-right">
+                                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                                    class="fa fa-minus"></i>
+                                        </button>
+                                    </div>
+                                    <!-- /.box-tools -->
+                                </div>
+                                <!-- /.box-header -->
+                                <div class="box-body" ng-controller="swController">
+
+                                    <p class="text-success alert-success" ng-hide="!message"><%message%></p>
+
+                                    <p class="text-danger alert-danger" ng-hide="!error"><%error%></p>
+
+                                    <h4>Alt Yüklenici Ekle</h4>
+
+                                    <p>Alt yüklenicileri sırayla ekleyebilirsiniz.</p>
+
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-sm-2">
+                                                <select class="form-control"
+                                                        ng-options="subcontractor as subcontractor.name for subcontractor in subcontractors track by subcontractor.id"
+                                                        ng-model="swSelected">
+                                                    <option value="" selected disabled>Alt Yüklenici</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-sm-1">
+                                                <input name="swQuantity" class="form-control" type="text"
+                                                       ng-model="swQuantity"
+                                                       placeholder="Kişi sayısı">
+                                            </div>
+                                            <div class="col-sm-1">
+                                                <input class="form-control" type="text" ng-model="swUnit"
+                                                       name="swunit"
+                                                       placeholder="Ölçü Birimi">
+                                            </div>
+                                            <div class="col-sm-1">
+                                                <input type="text" class="number form-control" ng-model="swPlanned"
+                                                       name="planned" placeholder="Planlanan">
+                                            </div>
+                                            <div class="col-sm-1">
+                                                <input type="text" class="number form-control" ng-model="swDone"
+                                                       name="done"
+                                                       placeholder="Yapılan">
+
+                                            </div>
+                                            <div class="col-sm-4">
+                                        <textarea class="form-control" ng-model="swWorkDone" rows="3"
+                                                  name="work_done"></textarea>
+                                            </div>
+                                            <div class="col-sm-2">
+                                                <a class="btn btn-warning btn-flat btn-block"
+                                                   ng-click="addSwunit()">
+                                                    Alt Yüklenici Ekle
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                    <div class="row">
+                                        <div class="col-sm-2 text-center">
+                                            <span><strong>ÇALIŞAN BİRİM</strong></span>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <span><strong>KİŞİ SAYISI</strong></span>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <span><strong>ÖLÇÜ BİRİMİ</strong></span>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <span><strong>PLANLANAN</strong></span>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <span><strong>YAPILAN</strong></span>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <span><strong>YAPILAN İŞLER</strong></span>
+                                        </div>
+                                    </div>
+
+                                    @if(!empty($report->pwunit()->first()))
+                                        <div id="staff-to-work-insert">
+                                            <?php
+                                            $staff = $report->pwunit()->first();
+                                            ?>
+                                            <div class="form-group">
+                                                <div class="row" id="div-pwid{{$staff->id}}">
+                                                    <div class="col-sm-2">
+                                                        <div class="row">
+                                                            <div class="col-sm-2">
+                                                                <a href="#" class="staffToWorkDelete"
+                                                                   data-id="{{$staff->id}}"><i
+                                                                            class="fa fa-close"></i></a>
+                                                            </div>
+                                                            <div class="col-sm-10">
+                                                                {{$staff->staff->staff}}
+                                                                {!! Form::hidden("staffs[]", $staff->staff_id)!!}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-1">
+                                                        <input type="number" class="form-control"
+                                                               ng-model="pwQuantity">
+                                                    </div>
+                                                    <div class="col-sm-1">
+                                                        <input type="text" class="form-control" ng-model="pwUnit">
+                                                    </div>
+                                                    <div class="col-sm-1">
+                                                        <input type="text" class="form-control number"
+                                                               ng-model="pwPlanned">
+                                                    </div>
+                                                    <div class="col-sm-1">
+                                                        <input type="text" class="form-control number"
+                                                               ng-model="pwDone">
+                                                    </div>
+                                                    <div class="col-sm-4">
+                                                <textarea name="pw-work-done" id="pw-work-done" rows="3"
+                                                          class="form-control" ng-model="pwWorkDone"></textarea>
+                                                    </div>
+                                                    <div class="col-sm-2">
+                                                        <a href="#!" class="btn btn-success btn-flat btn-block"
+                                                           ng-click="addPwunit()">Kaydet</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    @endif
+
+                                    <div id="subcontractor-to-work-insert">
+                                        <div class="form-group" ng-repeat="sw in sws track by $index">
+                                            <div class="row">
+                                                <div class="col-sm-2">
+                                                    <div class="row">
+                                                        <div class="col-sm-2">
+                                                            <a href="#!" ng-click="remove_field(sw)"><i
+                                                                        class="fa fa-close"></i></a>
+                                                        </div>
+                                                        <div class="col-sm-10">
+                                                            <%sw.name%>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-1">
+                                                    <%sw.quantity%>
+                                                </div>
+                                                <div class="col-sm-1">
+                                                    <%sw.unit%>
+                                                </div>
+                                                <div class="col-sm-1">
+                                                    <%sw.planned|numberFormatter%>
+                                                </div>
+                                                <div class="col-sm-1">
+                                                    <%sw.done | numberFormatter %>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    <%sw.work_done%>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{--Locked if--}}
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                @if($can_edit_inmaterial_table)
+                    {{--GELEN MALZEMELER TABLE--}}
+                    <div class="row" id="incoming_table">
+                        <div class="col-xs-12 col-md-12">
+                            <div class="box box-success box-solid">
+                                <div class="box-header with-border">
+                                    <h3 class="box-title">Gelen Malzemeler Tablosu
+                                    </h3>
+
+                                    <div class="box-tools pull-right">
+                                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                                    class="fa fa-minus"></i>
+                                        </button>
+                                    </div>
+                                    <!-- /.box-tools -->
+                                </div>
+                                <!-- /.box-header -->
+                                <div class="box-body">
+                                    <div class="row">
+                                        <div class="col-sm-2"><strong>GELEN MALZEME</strong></div>
+                                        <div class="col-sm-1"><strong>TAL. NO</strong></div>
+                                        <div class="col-sm-2"><strong>GELDİĞİ YER</strong></div>
+                                        <div class="col-sm-1"><strong>BİRİM</strong></div>
+                                        <div class="col-sm-1"><strong>MİKTAR</strong></div>
+                                        <div class="col-sm-4"><strong>AÇIKLAMA</strong></div>
+                                        <div class="col-sm-1"><strong>İRS. NO</strong></div>
+                                    </div>
+
+                                    {!! Form::open([
+                                                                                    'url' => "/tekil/$site->slug/save-incoming-material",
+                                                                                    'method' => 'POST',
+                                                                                    'class' => 'form',
+                                                                                    'id' => 'incomingMaterialInsertForm',
+                                                                                    'role' => 'form'
+                                                                                    ]) !!}
+                                    {!! Form::hidden('report_id', $report->id) !!}
+
+                                    <div id="inmaterial-insert">
+                                        @foreach($inmaterials as $inmaterial)
+                                            <div class="row" id="div-inmaterialid{{$inmaterial->id}}">
+
+                                                {!! Form::hidden('inmat-id[]', $inmaterial->id) !!}
+                                                <div class="col-sm-2">
+                                                    <div class="form-group">
+                                                        <div class="row">
+                                                            <div class="col-sm-2"><a href="#"
+                                                                                     class="inmaterialsDelete"
+                                                                                     data-id="{{$inmaterial->id}}"><i
+                                                                            class="fa fa-close"></i></a></div>
+                                                            <div class="col-sm-10">
+                                                                <span>{{\App\Material::find($inmaterial->material_id)->material}}</span>
+                                                                {!! Form::hidden('inmaterials[]', $inmaterial->material_id) !!}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-1">
+                                                    {{ !is_null($inmaterial->demand) ? $inmaterial->demand->id : "-" }}
+                                                </div>
+                                                <div class="col-sm-2">
+
+                                                    <input type="text" class="form-control"
+                                                           name="inmaterial-from[]"
+                                                           value="{{$inmaterial->coming_from}}"/>
+                                                </div>
+                                                <div class="col-sm-1">
+
+                                                    <input type="text" class="form-control"
+                                                           name="inmaterial-unit[]"
+                                                           value="{{$inmaterial->unit}}"/>
+                                                </div>
+                                                <div class="col-sm-1">
+
+                                                    <input type="text" class="form-control number"
+                                                           name="inmaterial-quantity[]"
+                                                           value="{{str_replace('.', ',', $inmaterial->quantity)}}"/>
+                                                </div>
+
+                                                <div class="col-sm-4">
+
+                                                    <input type="text" class="form-control"
+                                                           name="inmaterial-explanation[]"
+                                                           value="{{$inmaterial->explanation}}"/>
+                                                </div>
+                                                <div class="col-sm-1">
+                                                    <input type="text" class="form-control"
+                                                           name="inmaterial-irsaliye[]"
+                                                           value="{{$inmaterial->irsaliye}}"/>
                                                 </div>
 
                                             </div>
                                         @endforeach
                                     </div>
 
+
                                     <div class="row">
                                         <div class="col-sm-12">
                                             <div class="form-group pull-right">
-                                                <a href="#" class="btn btn-primary btn-flat add-equipment-row">
-                                                    Ekipman Ekle
+                                                <a href="#" data-target="#demandsModal" data-toggle="modal"
+                                                   class="btn btn-warning btn-flat">
+                                                    Talepten Malzeme Ekle
+                                                </a>
+
+                                                <a href="#" class="btn btn-primary btn-flat add-inmaterial-row">
+                                                    Satır Ekle
                                                 </a>
 
                                                 <button type="submit" class="btn btn-success btn-flat ">
@@ -1744,567 +2172,282 @@ EOT;
 
                                     </div>
                                     {!! Form::close() !!}
+
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                @endif
 
-                {{--END of right side--}}
+                @if($can_edit_outmaterial_table)
+                    {{--GİDEN MALZEMELER TABLE--}}
+                    <div class="row" id="outgoing_table">
+                        <div class="col-xs-12 col-md-12">
+                            <div class="box box-success box-solid">
+                                <div class="box-header with-border">
+                                    <h3 class="box-title">Giden Malzemeler Tablosu
+                                    </h3>
 
-            </div>
-            {{--end of row--}}
-
-
-            <div class="row">
-                <div class="col-xs-12 col-md-12">
-                    <div class="box box-success box-solid">
-                        <div class="box-header with-border">
-                            <h3 class="box-title">Yapılan İşler Tablosu
-                            </h3>
-
-                            <div class="box-tools pull-right">
-                                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                            class="fa fa-minus"></i>
-                                </button>
-                            </div>
-                            <!-- /.box-tools -->
-                        </div>
-                        <!-- /.box-header -->
-                        <div class="box-body" ng-controller="swController">
-
-                            <p class="text-success alert-success" ng-hide="!message"><%message%></p>
-
-                            <h4>Alt Yüklenici Ekle</h4>
-                            <p>Alt yüklenicileri sırayla ekleyebilirsiniz.</p>
-
-                            <div class="form-group">
-                                <div class="row">
-                                    <div class="col-sm-2">
-                                        <select class="form-control"
-                                                ng-options="subcontractor as subcontractor.name for subcontractor in subcontractors track by subcontractor.id"
-                                                ng-model="swSelected">
-                                            <option value="" selected disabled>Alt Yüklenici</option>
-                                        </select>
+                                    <div class="box-tools pull-right">
+                                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                                    class="fa fa-minus"></i>
+                                        </button>
                                     </div>
-                                    <div class="col-sm-1">
-                                        <input name="swQuantity" class="form-control" type="text" ng-model="swQuantity"
-                                               placeholder="Kişi sayısı">
-                                    </div>
-                                    <div class="col-sm-1">
-                                        <input class="form-control" type="text" ng-model="swUnit" name="swunit"
-                                               placeholder="Ölçü Birimi">
-                                    </div>
-                                    <div class="col-sm-1">
-                                        <input type="text" class="number form-control" ng-model="swPlanned"
-                                               name="planned" placeholder="Planlanan">
-                                    </div>
-                                    <div class="col-sm-1">
-                                        <input type="text" class="number form-control" ng-model="swDone" name="done"
-                                               placeholder="Yapılan">
-
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <textarea class="form-control" ng-model="swWorkDone" rows="3"
-                                                  name="work_done"></textarea>
-                                    </div>
-                                    <div class="col-sm-2">
-                                        <a class="btn btn-warning btn-flat btn-block" ng-click="addSwunit()">
-                                            Alt Yüklenici Ekle
-                                        </a>
-                                    </div>
+                                    <!-- /.box-tools -->
                                 </div>
-                            </div>
-
-
-                            <div class="row">
-                                <div class="col-sm-2 text-center">
-                                    <span><strong>ÇALIŞAN BİRİM</strong></span>
-                                </div>
-                                <div class="col-sm-1">
-                                    <span><strong>KİŞİ SAYISI</strong></span>
-                                </div>
-                                <div class="col-sm-1">
-                                    <span><strong>ÖLÇÜ BİRİMİ</strong></span>
-                                </div>
-                                <div class="col-sm-1">
-                                    <span><strong>PLANLANAN</strong></span>
-                                </div>
-                                <div class="col-sm-1">
-                                    <span><strong>YAPILAN</strong></span>
-                                </div>
-                                <div class="col-sm-6">
-                                    <span><strong>YAPILAN İŞLER</strong></span>
-                                </div>
-                            </div>
-
-                            @if(!empty($report->pwunit()->first()))
-                                <div id="staff-to-work-insert">
-                                    <?php
-                                    $staff = $report->pwunit()->first();
-                                    ?>
-                                    <div class="form-group">
-                                        <div class="row" id="div-pwid{{$staff->id}}">
-                                            <div class="col-sm-2">
-                                                <div class="row">
-                                                    <div class="col-sm-2">
-                                                        <a href="#" class="staffToWorkDelete"
-                                                           data-id="{{$staff->id}}"><i
-                                                                    class="fa fa-close"></i></a>
-                                                    </div>
-                                                    <div class="col-sm-10">
-                                                        {{$staff->staff->staff}}
-                                                        {!! Form::hidden("staffs[]", $staff->staff_id)!!}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-sm-1">
-                                                <input type="number" class="form-control" ng-model="pwQuantity">
-                                            </div>
-                                            <div class="col-sm-1">
-                                                <input type="text" class="form-control" ng-model="pwUnit">
-                                            </div>
-                                            <div class="col-sm-1">
-                                                <input type="text" class="form-control number" ng-model="pwPlanned">
-                                            </div>
-                                            <div class="col-sm-1">
-                                                <input type="text" class="form-control number" ng-model="pwDone">
-                                            </div>
-                                            <div class="col-sm-4">
-                                                <textarea name="pw-work-done" id="pw-work-done" rows="3"
-                                                          class="form-control" ng-model="pwWorkDone"></textarea>
-                                            </div>
-                                            <div class="col-sm-2">
-                                                <a href="#!" class="btn btn-success btn-flat btn-block"
-                                                   ng-click="addPwunit()">Kaydet</a>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                </div>
-                            @endif
-
-                            <div id="subcontractor-to-work-insert">
-                                <div class="form-group" ng-repeat="sw in sws track by $index">
+                                <!-- /.box-header -->
+                                <div class="box-body">
                                     <div class="row">
-                                        <div class="col-sm-2">
-                                            <div class="row">
+                                        <div class="col-sm-2"><strong>GİDEN MALZEME</strong></div>
+                                        <div class="col-sm-2"><strong>GÖNDERİLDİĞİ YER</strong></div>
+                                        <div class="col-sm-1"><strong>BİRİM</strong></div>
+                                        <div class="col-sm-1"><strong>MİKTAR</strong></div>
+                                        <div class="col-sm-6"><strong>AÇIKLAMA</strong></div>
+                                    </div>
+
+                                    {!! Form::open([
+                                                                                    'url' => "/tekil/$site->slug/save-outgoing-material",
+                                                                                    'method' => 'POST',
+                                                                                    'class' => 'form',
+                                                                                    'id' => 'outgoingMaterialInsertForm',
+                                                                                    'role' => 'form'
+                                                                                    ]) !!}
+                                    {!! Form::hidden('report_id', $report->id) !!}
+
+                                    <div id="outmaterial-insert">
+                                        @foreach($outmaterials as $outmaterial)
+                                            <div class="row" id="div-outmaterialid{{$outmaterial->id}}">
                                                 <div class="col-sm-2">
-                                                    <a href="#!" ng-click="remove_field(sw)"><i
-                                                                class="fa fa-close"></i></a>
-                                                </div>
-                                                <div class="col-sm-10">
-                                                    <%sw.name%>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <%sw.quantity%>
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <%sw.unit%>
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <%sw.planned|numberFormatter%>
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <%sw.done | numberFormatter %>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <%sw.work_done%>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{--Locked if--}}
-                    </div>
-                </div>
-            </div>
-
-
-            {{--GELEN MALZEMELER TABLE--}}
-            <div class="row" id="incoming_table">
-                <div class="col-xs-12 col-md-12">
-                    <div class="box box-success box-solid">
-                        <div class="box-header with-border">
-                            <h3 class="box-title">Gelen Malzemeler Tablosu
-                            </h3>
-
-                            <div class="box-tools pull-right">
-                                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                            class="fa fa-minus"></i>
-                                </button>
-                            </div>
-                            <!-- /.box-tools -->
-                        </div>
-                        <!-- /.box-header -->
-                        <div class="box-body">
-                            <div class="row">
-                                <div class="col-sm-2"><strong>GELEN MALZEME</strong></div>
-                                <div class="col-sm-1"><strong>TAL. NO</strong></div>
-                                <div class="col-sm-2"><strong>GELDİĞİ YER</strong></div>
-                                <div class="col-sm-1"><strong>BİRİM</strong></div>
-                                <div class="col-sm-1"><strong>MİKTAR</strong></div>
-                                <div class="col-sm-4"><strong>AÇIKLAMA</strong></div>
-                                <div class="col-sm-1"><strong>İRS. NO</strong></div>
-                            </div>
-
-                            {!! Form::open([
-                                                                            'url' => "/tekil/$site->slug/save-incoming-material",
-                                                                            'method' => 'POST',
-                                                                            'class' => 'form',
-                                                                            'id' => 'incomingMaterialInsertForm',
-                                                                            'role' => 'form'
-                                                                            ]) !!}
-                            {!! Form::hidden('report_id', $report->id) !!}
-
-                            <div id="inmaterial-insert">
-                                @foreach($inmaterials as $inmaterial)
-                                    <div class="row" id="div-inmaterialid{{$inmaterial->id}}">
-
-                                        {!! Form::hidden('inmat-id[]', $inmaterial->id) !!}
-                                        <div class="col-sm-2">
-                                            <div class="form-group">
-                                                <div class="row">
-                                                    <div class="col-sm-2"><a href="#"
-                                                                             class="inmaterialsDelete"
-                                                                             data-id="{{$inmaterial->id}}"><i
-                                                                    class="fa fa-close"></i></a></div>
-                                                    <div class="col-sm-10">
-                                                        <span>{{\App\Material::find($inmaterial->material_id)->material}}</span>
-                                                        {!! Form::hidden('inmaterials[]', $inmaterial->material_id) !!}
+                                                    <div class="form-group">
+                                                        <div class="row">
+                                                            <div class="col-sm-2"><a href="#"
+                                                                                     class="outmaterialsDelete"
+                                                                                     data-id="{{$outmaterial->id}}"><i
+                                                                            class="fa fa-close"></i></a></div>
+                                                            <div class="col-sm-10">
+                                                                <span>{{\App\Material::find($outmaterial->material_id)->material}}</span>
+                                                                {!! Form::hidden('outmaterials[]', $outmaterial->material_id) !!}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-1">
-                                            {{ !is_null($inmaterial->demand) ? $inmaterial->demand->id : "-" }}
-                                        </div>
-                                        <div class="col-sm-2">
 
-                                            <input type="text" class="form-control"
-                                                   name="inmaterial-from[]"
-                                                   value="{{$inmaterial->coming_from}}"/>
-                                        </div>
-                                        <div class="col-sm-1">
+                                                <div class="col-sm-2">
 
-                                            <input type="text" class="form-control"
-                                                   name="inmaterial-unit[]"
-                                                   value="{{$inmaterial->unit}}"/>
-                                        </div>
-                                        <div class="col-sm-1">
-
-                                            <input type="text" class="form-control number"
-                                                   name="inmaterial-quantity[]"
-                                                   value="{{str_replace('.', ',', $inmaterial->quantity)}}"/>
-                                        </div>
-
-                                        <div class="col-sm-4">
-
-                                            <input type="text" class="form-control"
-                                                   name="inmaterial-explanation[]"
-                                                   value="{{$inmaterial->explanation}}"/>
-                                        </div>
-                                        <div class="col-sm-1">
-                                            <input type="text" class="form-control"
-                                                   name="inmaterial-irsaliye[]"
-                                                   value="{{$inmaterial->irsaliye}}"/>
-                                        </div>
-
-                                    </div>
-                                @endforeach
-                            </div>
-
-
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <div class="form-group pull-right">
-                                        <a href="#" data-target="#demandsModal" data-toggle="modal"
-                                           class="btn btn-warning btn-flat">
-                                            Talepten Malzeme Ekle
-                                        </a>
-
-                                        <a href="#" class="btn btn-primary btn-flat add-inmaterial-row">
-                                            Satır Ekle
-                                        </a>
-
-                                        <button type="submit" class="btn btn-success btn-flat ">
-                                            Kaydet
-                                        </button>
-                                    </div>
-                                </div>
-
-                            </div>
-                            {!! Form::close() !!}
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {{--GİDEN MALZEMELER TABLE--}}
-            <div class="row" id="outgoing_table">
-                <div class="col-xs-12 col-md-12">
-                    <div class="box box-success box-solid">
-                        <div class="box-header with-border">
-                            <h3 class="box-title">Giden Malzemeler Tablosu
-                            </h3>
-
-                            <div class="box-tools pull-right">
-                                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                            class="fa fa-minus"></i>
-                                </button>
-                            </div>
-                            <!-- /.box-tools -->
-                        </div>
-                        <!-- /.box-header -->
-                        <div class="box-body">
-                            <div class="row">
-                                <div class="col-sm-2"><strong>GİDEN MALZEME</strong></div>
-                                <div class="col-sm-2"><strong>GÖNDERİLDİĞİ YER</strong></div>
-                                <div class="col-sm-1"><strong>BİRİM</strong></div>
-                                <div class="col-sm-1"><strong>MİKTAR</strong></div>
-                                <div class="col-sm-6"><strong>AÇIKLAMA</strong></div>
-                            </div>
-
-                            {!! Form::open([
-                                                                            'url' => "/tekil/$site->slug/save-outgoing-material",
-                                                                            'method' => 'POST',
-                                                                            'class' => 'form',
-                                                                            'id' => 'outgoingMaterialInsertForm',
-                                                                            'role' => 'form'
-                                                                            ]) !!}
-                            {!! Form::hidden('report_id', $report->id) !!}
-
-                            <div id="outmaterial-insert">
-                                @foreach($outmaterials as $outmaterial)
-                                    <div class="row" id="div-outmaterialid{{$outmaterial->id}}">
-                                        <div class="col-sm-2">
-                                            <div class="form-group">
-                                                <div class="row">
-                                                    <div class="col-sm-2"><a href="#"
-                                                                             class="outmaterialsDelete"
-                                                                             data-id="{{$outmaterial->id}}"><i
-                                                                    class="fa fa-close"></i></a></div>
-                                                    <div class="col-sm-10">
-                                                        <span>{{\App\Material::find($outmaterial->material_id)->material}}</span>
-                                                        {!! Form::hidden('outmaterials[]', $outmaterial->material_id) !!}
-                                                    </div>
+                                                    <input type="text" class="form-control"
+                                                           name="outmaterial-from[]"
+                                                           value="{{$outmaterial->coming_from}}"/>
                                                 </div>
+                                                <div class="col-sm-1">
+
+                                                    <input type="text" class="form-control"
+                                                           name="outmaterial-unit[]"
+                                                           value="{{$outmaterial->unit}}"/>
+                                                </div>
+                                                <div class="col-sm-1">
+
+                                                    <input type="text" class="number form-control"
+                                                           name="outmaterial-quantity[]"
+                                                           value="{{str_replace('.', ',', $outmaterial->quantity)}}"/>
+                                                </div>
+
+                                                <div class="col-sm-6">
+
+                                                    <input type="text" class="form-control"
+                                                           name="outmaterial-explanation[]"
+                                                           value="{{$outmaterial->explanation}}"/>
+                                                </div>
+
                                             </div>
-                                        </div>
+                                        @endforeach
 
-                                        <div class="col-sm-2">
-
-                                            <input type="text" class="form-control"
-                                                   name="outmaterial-from[]"
-                                                   value="{{$outmaterial->coming_from}}"/>
-                                        </div>
-                                        <div class="col-sm-1">
-
-                                            <input type="text" class="form-control"
-                                                   name="outmaterial-unit[]"
-                                                   value="{{$outmaterial->unit}}"/>
-                                        </div>
-                                        <div class="col-sm-1">
-
-                                            <input type="text" class="number form-control"
-                                                   name="outmaterial-quantity[]"
-                                                   value="{{str_replace('.', ',', $outmaterial->quantity)}}"/>
-                                        </div>
-
-                                        <div class="col-sm-6">
-
-                                            <input type="text" class="form-control"
-                                                   name="outmaterial-explanation[]"
-                                                   value="{{$outmaterial->explanation}}"/>
-                                        </div>
 
                                     </div>
-                                @endforeach
 
 
-                            </div>
-
-
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <div class="form-group pull-right">
-                                        <a href="#" class="btn btn-primary btn-flat add-outmaterial-row">
-                                            Satır Ekle
-                                        </a>
-
-                                        <button type="submit" class="btn btn-success btn-flat ">
-                                            Kaydet
-                                        </button>
-                                    </div>
-                                </div>
-
-                            </div>
-                            {!! Form::close() !!}
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {{--END OF GİDEN MALZEMELER TABLOSU--}}
-
-            {{--PUANTAJ AND YEMEK TABLE--}}
-            <div class="row" id="shifts_meals">
-                <div class="col-xs-12 col-md-12">
-                    <div class="box box-success box-solid">
-                        <div class="box-header with-border">
-                            <h3 class="box-title">Puantaj ve Yemek Tablosu
-                            </h3>
-
-                            <div class="box-tools pull-right">
-                                <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                            class="fa fa-minus"></i>
-                                </button>
-                            </div>
-                            <!-- /.box-tools -->
-                        </div>
-                        <!-- /.box-header -->
-                        <div class="box-body">
-                            <p>İlgili personeli puantaj tablosundan çıkarmak için yukarıdaki personel tablolarını
-                                kullanınız</p>
-
-                            <div class="row">
-                                <div class="col-sm-5 text-center"><strong>PERSONEL</strong></div>
-                                <div class="col-sm-3 text-center"><strong>PUANTAJ</strong></div>
-                                <div class="col-sm-4 text-center"><strong>YEMEK</strong></div>
-                            </div>
-
-                            {!! Form::open([
-                                                                            'url' => "/tekil/$site->slug/save-shifts-meals",
-                                                                            'method' => 'POST',
-                                                                            'class' => 'form',
-                                                                            'id' => 'shiftsMealsForm',
-                                                                            'role' => 'form'
-                                                                            ]) !!}
-                            {!! Form::hidden('report_id', $report->id) !!}
-                            <div id="personnel-insert">
-
-                            </div>
-                            <div id="personnel-helper-block"></div>
-                            <?php
-                            $pre_tit = 'in1t';
-                            $overtime_options = '<option></option>\n';
-
-                            foreach (\App\Overtime::all() as $overtime) {
-                                $overtime_options .= "<option value=\"$overtime->id\">" . TurkishChar::tr_up($overtime->name) . "</option>\n";
-                            }
-                            ?>
-                            @for($i = 0; $i < sizeof($report_personnel_id_arr); $i++)
-                                <?php
-                                $per = $report_personnel_id_arr[$i];
-                                $report_person = Personnel::withTrashed()->find($per);
-                                $report_shift = $report->shift()->where('personnel_id', $report_person->id)->first();
-                                $report_meal = $report->meal()->where('personnel_id', $report_person->id)->first();
-
-                                $cur_tit = $report_person->isSitePersonnel() ? 'Ana Yüklenici' : $report_person->personalize->subdetail->name;
-
-                                $overtime_options = str_replace(" selected", "", $overtime_options);
-                                if (!is_null($report_shift->overtime)) {
-                                    $search = "<option value=\"$report_shift->overtime_id\">" . TurkishChar::tr_up($report_shift->overtime->name) . "</option>";
-                                    $replace = "<option value=\"$report_shift->overtime_id\" selected>" . TurkishChar::tr_up($report_shift->overtime->name) . "</option>";
-                                    $overtime_options = str_replace($search, $replace, $overtime_options);
-                                }
-                                ?>
-                                @if(!(strpos($cur_tit, $pre_tit) !== false))
                                     <div class="row">
                                         <div class="col-sm-12">
-                                            <legend>{{$cur_tit}}</legend>
+                                            <div class="form-group pull-right">
+                                                <a href="#" class="btn btn-primary btn-flat add-outmaterial-row">
+                                                    Satır Ekle
+                                                </a>
+
+                                                <button type="submit" class="btn btn-success btn-flat ">
+                                                    Kaydet
+                                                </button>
+                                            </div>
                                         </div>
+
                                     </div>
-                                @endif
-                                <?php
-                                $pre_tit = $cur_tit;
-                                ?>
-                                <div class="row overtimes-meals-div" id="personnel-div-{{$per}}">
-                                    <div class="col-sm-5">
-                                        <div class="form-group">
+                                    {!! Form::close() !!}
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {{--END OF GİDEN MALZEMELER TABLOSU--}}
+                @endif
+
+
+                @if($can_edit_overtimes_table)
+                    {{--PUANTAJ AND YEMEK TABLE--}}
+                    <div class="row" id="shifts_meals">
+                        <div class="col-xs-12 col-md-12">
+                            <div class="box box-success box-solid">
+                                <div class="box-header with-border">
+                                    <h3 class="box-title">Puantaj ve Yemek Tablosu
+                                    </h3>
+
+                                    <div class="box-tools pull-right">
+                                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                                    class="fa fa-minus"></i>
+                                        </button>
+                                    </div>
+                                    <!-- /.box-tools -->
+                                </div>
+                                <!-- /.box-header -->
+                                <div class="box-body">
+                                    <p>İlgili personeli puantaj tablosundan çıkarmak için yukarıdaki personel
+                                        tablolarını
+                                        kullanınız</p>
+
+                                    <div class="row">
+                                        <div class="col-sm-5 text-center"><strong>PERSONEL</strong></div>
+                                        <div class="col-sm-3 text-center"><strong>PUANTAJ</strong></div>
+                                        <div class="col-sm-4 text-center"><strong>YEMEK</strong></div>
+                                    </div>
+
+                                    {!! Form::open([
+                                                                                    'url' => "/tekil/$site->slug/save-shifts-meals",
+                                                                                    'method' => 'POST',
+                                                                                    'class' => 'form',
+                                                                                    'id' => 'shiftsMealsForm',
+                                                                                    'role' => 'form'
+                                                                                    ]) !!}
+                                    {!! Form::hidden('report_id', $report->id) !!}
+                                    <div id="personnel-insert">
+
+                                    </div>
+                                    <div id="personnel-helper-block"></div>
+                                    <?php
+                                    $pre_tit = 'in1t';
+                                    $overtime_options = '<option></option>\n';
+
+                                    foreach (\App\Overtime::all() as $overtime) {
+                                        $overtime_options .= "<option value=\"$overtime->id\">" . TurkishChar::tr_up($overtime->name) . "</option>\n";
+                                    }
+                                    ?>
+                                    @for($i = 0; $i < sizeof($report_personnel_id_arr); $i++)
+                                        <?php
+                                        $per = $report_personnel_id_arr[$i];
+                                        $report_person = Personnel::withTrashed()->find($per);
+                                        $report_shift = $report->shift()->where('personnel_id', $report_person->id)->first();
+                                        $report_meal = $report->meal()->where('personnel_id', $report_person->id)->first();
+
+                                        $cur_tit = $report_person->isSitePersonnel() ? 'Ana Yüklenici' : $report_person->personalize->subdetail->name;
+
+                                        $overtime_options = str_replace(" selected", "", $overtime_options);
+                                        if (!is_null($report_shift->overtime)) {
+                                            $search = "<option value=\"$report_shift->overtime_id\">" . TurkishChar::tr_up($report_shift->overtime->name) . "</option>";
+                                            $replace = "<option value=\"$report_shift->overtime_id\" selected>" . TurkishChar::tr_up($report_shift->overtime->name) . "</option>";
+                                            $overtime_options = str_replace($search, $replace, $overtime_options);
+                                        }
+                                        ?>
+                                        @if(!(strpos($cur_tit, $pre_tit) !== false))
                                             <div class="row">
-                                                <div class="col-sm-1"></div>
-                                                <div class="col-sm-3">{{$report_person->tck_no}}</div>
-                                                <div class="col-sm-8">
-                                                    {{\App\Library\TurkishChar::tr_camel($report_person->name) . " (" . \App\Library\TurkishChar::tr_up($report_person->staff()->first()->staff) . ")"}}</div>
-
-                                                {!! Form::hidden('personnel[]', $report_person->id) !!}
+                                                <div class="col-sm-12">
+                                                    <legend>{{$cur_tit}}</legend>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-3">
-                                        <div class="row">
-                                            <div class="col-sm-8">
-                                                <select name="overtimes[]" id="select-{{$per}}"
-                                                        onchange="checkForOvertime({{$per}})"
-                                                        class="js-overtime-select form-control">
-                                                    {!! $overtime_options !!}
-                                                </select>
-                                            </div>
+                                        @endif
+                                        <?php
+                                        $pre_tit = $cur_tit;
+                                        ?>
+                                        <div class="row overtimes-meals-div" id="personnel-div-{{$per}}">
+                                            <div class="col-sm-5">
+                                                <div class="form-group">
+                                                    <div class="row">
+                                                        <div class="col-sm-1"></div>
+                                                        <div class="col-sm-3">{{$report_person->tck_no}}</div>
+                                                        <div class="col-sm-8">
+                                                            {{\App\Library\TurkishChar::tr_camel($report_person->name) . " (" . \App\Library\TurkishChar::tr_up($report_person->staff()->first()->staff) . ")"}}</div>
 
-                                            <div class="col-sm-4 overtime-input-div">
-                                                {!! Form::text('overtime', (!empty($report_shift->overtime) && stripos($report_shift->overtime->name, "Fazla Mesai") !== false ? str_replace('.', ',', $report_shift->hour) : null), ['class' => 'number form-control overtime_input',
-                                                                                    'placeholder' => 'Mesai',
-                                                                                     !empty($report_shift->overtime) && stripos($report_shift->overtime->name, "Fazla Mesai") !== false ? "" : "disabled"]) !!}
+                                                        {!! Form::hidden('personnel[]', $report_person->id) !!}
+                                                    </div>
+                                                </div>
                                             </div>
+                                            <div class="col-sm-3">
+                                                <div class="row">
+                                                    <div class="col-sm-8">
+                                                        <select name="overtimes[]" id="select-{{$per}}"
+                                                                onchange="checkForOvertime({{$per}})"
+                                                                class="js-overtime-select form-control">
+                                                            {!! $overtime_options !!}
+                                                        </select>
+                                                    </div>
 
-                                            {!! Form::hidden('overtime_arr[]', $report_shift->hour, ['class' => 'overtime-hidden']) !!}
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <div class="row col-sm-offset-1">
-                                            @if(!$report_person->isSitePersonnel() && empty($report_person->personalize->fee->first()->has_meal))
-                                                <div class="col-sm-10">
+                                                    <div class="col-sm-4 overtime-input-div">
+                                                        {!! Form::text('overtime', (!empty($report_shift->overtime) && stripos($report_shift->overtime->name, "Fazla Mesai") !== false ? str_replace('.', ',', $report_shift->hour) : null), ['class' => 'number form-control overtime_input',
+                                                                                            'placeholder' => 'Mesai',
+                                                                                             !empty($report_shift->overtime) && stripos($report_shift->overtime->name, "Fazla Mesai") !== false ? "" : "disabled"]) !!}
+                                                    </div>
+
+                                                    {!! Form::hidden('overtime_arr[]', $report_shift->hour, ['class' => 'overtime-hidden']) !!}
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-4">
+                                                <div class="row col-sm-offset-1">
+                                                    @if(!$report_person->isSitePersonnel() && empty($report_person->personalize->fee->first()->has_meal))
+                                                        <div class="col-sm-10">
                                                 <span class="text-danger">
                                                     {{$report_person->personalize->subdetail->name}} için bu şantiyede yemek verilmemektedir!
                                                 </span>
+                                                        </div>
+                                                    @else
+                                                        <div class="col-sm-3">
+                                                            <label class="checkbox-inline">
+                                                                {!! Form::checkbox("meals-$i"."[]", '1', (!is_null($report_meal) && (int) $report_meal->meal%2 == 1) ? true : false, ['class' => 'personnel-row-cb']) !!}
+                                                                Kahvaltı
+                                                            </label>
+                                                        </div>
+                                                        <div class="col-sm-3">
+                                                            <label class="checkbox-inline">
+                                                                {!! Form::checkbox("meals-$i"."[]", '2', (!is_null($report_meal) && in_array($report_meal->meal, [2,3,6,7])) ? true : false, ['class' => 'personnel-row-cb']) !!}
+                                                                Öğle
+                                                            </label>
+                                                        </div>
+                                                        <div class="col-sm-3">
+                                                            <label class="checkbox-inline">
+                                                                {!! Form::checkbox("meals-$i"."[]", '4', (!is_null($report_meal) && (int)$report_meal->meal>=4) ? true : false, ['class' => 'personnel-row-cb']) !!}
+                                                                Akşam
+                                                            </label>
+                                                        </div>
+                                                        {!! Form::hidden('meals_arr[]', (!is_null($report_meal) ? $report_meal->meal : "0"), ['class' => 'meals_arr']) !!}
+                                                    @endif
                                                 </div>
-                                            @else
-                                                <div class="col-sm-3">
-                                                    <label class="checkbox-inline">
-                                                        {!! Form::checkbox("meals-$i"."[]", '1', (!is_null($report_meal) && (int) $report_meal->meal%2 == 1) ? true : false, ['class' => 'personnel-row-cb']) !!}
-                                                        Kahvaltı
-                                                    </label>
-                                                </div>
-                                                <div class="col-sm-3">
-                                                    <label class="checkbox-inline">
-                                                        {!! Form::checkbox("meals-$i"."[]", '2', (!is_null($report_meal) && in_array($report_meal->meal, [2,3,6,7])) ? true : false, ['class' => 'personnel-row-cb']) !!}
-                                                        Öğle
-                                                    </label>
-                                                </div>
-                                                <div class="col-sm-3">
-                                                    <label class="checkbox-inline">
-                                                        {!! Form::checkbox("meals-$i"."[]", '4', (!is_null($report_meal) && (int)$report_meal->meal>=4) ? true : false, ['class' => 'personnel-row-cb']) !!}
-                                                        Akşam
-                                                    </label>
-                                                </div>
-                                                {!! Form::hidden('meals_arr[]', (!is_null($report_meal) ? $report_meal->meal : "0"), ['class' => 'meals_arr']) !!}
-                                            @endif
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            @endfor
-                            <div class="row">
-                                <div class="col-sm-12">
+                                    @endfor
+                                    <div class="row">
+                                        <div class="col-sm-12">
 
-                                    <div class="form-group pull-right">
-                                        <button type="submit" class="btn btn-success btn-flat ">
-                                            Kaydet
-                                        </button>
-                                    </div>
-                                </div>
+                                            <div class="form-group pull-right">
+                                                <button type="submit" class="btn btn-success btn-flat ">
+                                                    Kaydet
+                                                </button>
+                                            </div>
+                                        </div>
 
+                                    </div>
+                                    {!! Form::close() !!}
+
+                                </div>
                             </div>
-                            {!! Form::close() !!}
-
                         </div>
                     </div>
-                </div>
-            </div>
-            {{--END OF PUANTAJ TABLOSU--}}
+                    {{--END OF PUANTAJ TABLOSU--}}
+                @endif
+            @endif
 
         @else
 
@@ -2312,12 +2455,70 @@ EOT;
 
         @endif
 
-        @if(!$locked)
-            <div class="row hidden-print" id="notes">
+
+        @if(!$locked && !$site_ended)
+            @if($can_edit_notes)
+                <div class="row hidden-print" id="notes">
+                    <div class="col-xs-12 col-md-12">
+                        <div class="box box-success box-solid">
+                            <div class="box-header with-border">
+                                <h3 class="box-title">Ertesi Gün Notları
+                                </h3>
+
+                                <div class="box-tools pull-right">
+                                    <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                                class="fa fa-minus"></i>
+                                    </button>
+                                </div>
+                                <!-- /.box-tools -->
+                            </div>
+                            <!-- /.box-header -->
+                            <div class="box-body">
+
+                                <form action="{{url('/tekil/' . $site->slug . '/save-notes')}}" method="POST"
+                                      class="form">
+                                    {!! csrf_field() !!}
+                                    <input type="hidden" name="rid" value="{{$report->id}}">
+
+                                    <div class="row">
+                                        <div class="form-group">
+                                            <div class="col-xs-12">
+                                                <label class="control-label">Notlar: </label>
+                                            </div>
+                                            <div class="col-xs-12">
+                                                {!! Form::textarea("notes", $report->notes , ['class' => 'form-control', 'rows' => '3']) !!}
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br>
+
+                                    <div class="row">
+                                        <div class="col-xs-12 ">
+                                            <div class="form-group pull-right">
+                                                <button type="submit" class="btn btn-success btn-flat">
+                                                    Kaydet
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            @endif
+        @endif
+
+
+        @if($can_edit_attachments && !$site_ended)
+            <div class="row hidden-print">
                 <div class="col-xs-12 col-md-12">
                     <div class="box box-success box-solid">
                         <div class="box-header with-border">
-                            <h3 class="box-title">Ertesi Gün Notları
+                            <h3 class="box-title">Rapor Ekleri
                             </h3>
 
                             <div class="box-tools pull-right">
@@ -2329,95 +2530,216 @@ EOT;
                         </div>
                         <!-- /.box-header -->
                         <div class="box-body">
-
-                            <form action="{{url('/tekil/' . $site->slug . '/save-notes')}}" method="POST"
-                                  class="form">
-                                {!! csrf_field() !!}
-                                <input type="hidden" name="rid" value="{{$report->id}}">
-
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <span><strong>ŞANTİYE FOTOĞRAFLARI</strong></span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span><strong>FATURALAR</strong></span>
+                                </div>
+                            </div>
+                            @if(!$locked)
                                 <div class="row">
-                                    <div class="form-group">
-                                        <div class="col-xs-12">
-                                            <label class="control-label">Notlar: </label>
-                                        </div>
-                                        <div class="col-xs-12">
-                                            {!! Form::textarea("notes", $report->notes , ['class' => 'form-control', 'rows' => '3']) !!}
+                                    <div class="col-sm-6">
+                                        {{--photos--}}
+                                        {!! Form::open([
+                                                                                                    'url' => "/tekil/$site->slug/save-files",
+                                                                                                    'method' => 'POST',
+                                                                                                    'class' => 'dropzone',
+                                                                                                    'id' => 'file-insert-form',
+                                                                                                    'role' => 'form',
+                                                                                                    'files'=>true
+                                                                                                    ]) !!}
+                                        {!! Form::hidden('report_id', $report->id) !!}
+                                        {!! Form::hidden('type', "0") !!}
 
+                                        <div class="fallback">
+                                            <input name="file" type="file" multiple/>
+                                        </div>
+                                        <div class="dropzone-previews"></div>
+                                        <h4 style="text-align: center;color:#428bca;">Şantiye fotoğraflarını bu
+                                            alana
+                                            sürükleyin
+                                            <br>Ya da tıklayın<span
+                                                    class="glyphicon glyphicon-hand-down"></span></h4>
+
+
+                                        {!! Form::close() !!}
+                                        <div class="row">
+                                            @foreach($report->photo as $report_site_photo)
+                                                <?php
+                                                $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_photo->file()->first()->path);
+                                                $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
+                                                if (strpos($report_site_photo->file()->first()->name, 'pdf') !== false) {
+                                                    $image = URL::to('/') . "/img/pdf.jpg";
+                                                } elseif (strpos($report_site_photo->file()->first()->name, 'doc') !== false) {
+                                                    $image = URL::to('/') . "/img/word.png";
+                                                } else {
+                                                    $image = URL::to('/') . "/img/doc.png";
+                                                }
+                                                $image_path = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_photo->file()->first()->name;
+
+                                                ?>
+
+                                                <a id="lb-link-{{$report_site_photo->id}}"
+                                                   href="{{$image_path}}"
+                                                   data-toggle="lightbox" data-gallery="reportsitephotos"
+                                                   data-footer="<a data-dismiss='modal' class='remove-files' href='#' data-fileId='{{$report_site_photo->id}}'>Dosyayı Sil<a/>"
+                                                   class="col-sm-4">
+                                                    <img src="{{$image}}" class="img-responsive">
+                                                    {{$report_site_photo->file()->first()->name}}
+                                                </a>
+
+                                            @endforeach
+                                        </div>
+                                    </div>
+
+                                    <div class="col-sm-6">
+                                        {!! Form::open([
+                                        'url' => "/tekil/$site->slug/save-files",
+                                        'method' => 'POST',
+                                        'class' => 'dropzone',
+                                        'id' => 'receipt-insert-form',
+                                        'role' => 'form',
+                                        'files'=>true]) !!}
+                                        {!! Form::hidden('report_id', $report->id) !!}
+                                        {!! Form::hidden('type', "1") !!}
+
+                                        <div class="fallback">
+                                            <input name="file" type="file" multiple/>
+                                        </div>
+                                        <div class="dropzone-previews"></div>
+                                        <h4 style="text-align: center;color:#428bca;">Şantiye faturalarını bu
+                                            alana
+                                            sürükleyin
+                                            <br>Ya da tıklayın<span
+                                                    class="glyphicon glyphicon-hand-down"></span></h4>
+
+
+                                        {!! Form::close() !!}
+                                        <div class="row">
+                                            @foreach($report->receipt as $report_site_receipt)
+                                                <?php
+                                                $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_receipt->file()->first()->path);
+                                                $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
+                                                $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->file()->first()->name;
+                                                if (strpos($report_site_receipt->file()->first()->name, 'pdf') !== false) {
+                                                    $image = URL::to('/') . "/img/pdf.jpg";
+                                                } elseif (strpos($report_site_receipt->file()->first()->name, 'doc') !== false) {
+                                                    $image = URL::to('/') . "/img/word.png";
+                                                }
+                                                $image_path = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->file()->first()->name
+                                                ?>
+
+                                                <a id="lb-link-{{$report_site_receipt->id}}"
+                                                   href="{{$image_path}}"
+                                                   data-toggle="lightbox" data-gallery="reportsitereceipts"
+                                                   data-footer="<a data-dismiss='modal' class='remove-files' href='#' data-fileId='{{$report_site_receipt->id}}'>Dosyayı Sil<a/>"
+                                                   class="col-sm-4">
+                                                    <img src="{{$image}}" class="img-responsive">
+                                                    {{$report_site_receipt->file()->first()->name}}
+                                                </a>
+
+                                            @endforeach
                                         </div>
                                     </div>
                                 </div>
                                 <br>
 
                                 <div class="row">
-                                    <div class="col-xs-12 ">
-                                        <div class="form-group pull-right">
-                                            <button type="submit" class="btn btn-success btn-flat">
-                                                Kaydet
-                                            </button>
-                                        </div>
+                                    <div class="col-sm-12">
+                                        <h4><strong>Etiketler</strong></h4>
+
+                                        <p>Etiket eklemek veya düzenlemek için dosyaları yükledikten sonra
+                                            sayfayı
+                                            yenileyiniz.</p>
+                                        <span class="success-message"></span>
+
                                     </div>
                                 </div>
-                            </form>
-                        </div>
+                                @if(count($report->receipt) || count($report->photo))
+                                    <table class="table table-condensed table-bordered">
+                                        <thead>
+                                        <tr>
+                                            <th>Dosya Adı</th>
+                                            <th>Etiket</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <form id="attach-tag">
+                                            {!! csrf_field() !!}
+                                            @foreach($report->photo as $report_site_photo)
+                                                <tr>
+                                                    <input name="file_id[]" type="hidden"
+                                                           value="{{$report_site_photo->file()->first()->id}}">
+                                                    <td>{{$report_site_photo->file()->first()->name}}</td>
+                                                    <td>
+                                                        <select name="tags-{{$report_site_photo->file()->first()->id}}[]"
+                                                                class="js-example-basic-multiple form-control"
+                                                                multiple>
+                                                            @foreach(\App\Tag::all() as $tag)
+                                                                <?php
+                                                                $selected = '';
+                                                                foreach ($report_site_photo->file()->first()->tag as $ptag) {
+                                                                    if ((int)$tag->id == (int)$ptag->id) {
+                                                                        $selected = "selected";
+                                                                        break;
+                                                                    }
+                                                                }
+                                                                ?>
+                                                                <option value="{{$tag->id}}" {{$selected}}>{{$tag->name}}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </td>
+                                                </tr>
 
-                    </div>
-                </div>
-            </div>
+                                            @endforeach
+                                            @foreach($report->receipt as $report_site_receipt)
+                                                <tr>
+                                                    <input type="hidden"
+                                                           value="{{$report_site_receipt->file()->first()->id}}">
+                                                    <td>{{$report_site_receipt->file()->first()->name}}</td>
+                                                    <td>
+                                                        <div class="col-sm-12">
+                                                            <select name="tags-{{$report_site_receipt->file()->first()->id}}[]"
+                                                                    class="js-example-basic-multiple form-control"
+                                                                    multiple>
+                                                                @foreach(\App\Tag::all() as $tag)
+                                                                    <?php
+                                                                    $selected = '';
+                                                                    foreach ($report_site_receipt->file()->first()->tag as $ptag) {
+                                                                        if ((int)$tag->id == (int)$ptag->id) {
+                                                                            $selected = "selected";
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                    ?>
+                                                                    <option value="{{$tag->id}}" {{$selected}}>{{$tag->name}}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </form>
+                                        </tbody>
 
-        @endif
-
-        <div class="row hidden-print">
-            <div class="col-xs-12 col-md-12">
-                <div class="box box-success box-solid">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Rapor Ekleri
-                        </h3>
-
-                        <div class="box-tools pull-right">
-                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
-                                        class="fa fa-minus"></i>
-                            </button>
-                        </div>
-                        <!-- /.box-tools -->
-                    </div>
-                    <!-- /.box-header -->
-                    <div class="box-body">
-                        <div class="row">
-                            <div class="col-sm-6">
-                                <span><strong>ŞANTİYE FOTOĞRAFLARI</strong></span>
-                            </div>
-                            <div class="col-sm-6">
-                                <span><strong>FATURALAR</strong></span>
-                            </div>
-                        </div>
-                        @if(!$locked)
-                            <div class="row">
-                                <div class="col-sm-6">
-                                    {{--photos--}}
-                                    {!! Form::open([
-                                                                                                'url' => "/tekil/$site->slug/save-files",
-                                                                                                'method' => 'POST',
-                                                                                                'class' => 'dropzone',
-                                                                                                'id' => 'file-insert-form',
-                                                                                                'role' => 'form',
-                                                                                                'files'=>true
-                                                                                                ]) !!}
-                                    {!! Form::hidden('report_id', $report->id) !!}
-                                    {!! Form::hidden('type', "0") !!}
-
-                                    <div class="fallback">
-                                        <input name="file" type="file" multiple/>
-                                    </div>
-                                    <div class="dropzone-previews"></div>
-                                    <h4 style="text-align: center;color:#428bca;">Şantiye fotoğraflarını bu
-                                        alana
-                                        sürükleyin
-                                        <br>Ya da tıklayın<span
-                                                class="glyphicon glyphicon-hand-down"></span></h4>
-
-
-                                    {!! Form::close() !!}
+                                    </table>
+                                    <br>
                                     <div class="row">
+                                        <div class="col-sm-12 ">
+                                            <a href="#" class="btn btn-success btn-flat pull-right"
+                                               id="attachTagBtn">Kaydet</a>
+                                        </div>
+                                    </div>
+
+                                @endif
+                            @else
+
+                                {{--photos--}}
+                                <div class="row">
+                                    <div class="col-sm-6">
+
                                         @foreach($report->photo as $report_site_photo)
                                             <?php
                                             $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_photo->file()->first()->path);
@@ -2433,43 +2755,19 @@ EOT;
 
                                             ?>
 
-                                            <a id="lb-link-{{$report_site_photo->id}}"
-                                               href="{{$image_path}}"
+                                            <a id="lb-link-{{$report_site_photo->id}}" href="{{$image_path}}"
                                                data-toggle="lightbox" data-gallery="reportsitephotos"
-                                               data-footer="<a data-dismiss='modal' class='remove-files' href='#' data-fileId='{{$report_site_photo->id}}'>Dosyayı Sil<a/>"
                                                class="col-sm-4">
                                                 <img src="{{$image}}" class="img-responsive">
                                                 {{$report_site_photo->file()->first()->name}}
                                             </a>
 
                                         @endforeach
+
+
                                     </div>
-                                </div>
+                                    <div class="col-sm-6">
 
-                                <div class="col-sm-6">
-                                    {!! Form::open([
-                                    'url' => "/tekil/$site->slug/save-files",
-                                    'method' => 'POST',
-                                    'class' => 'dropzone',
-                                    'id' => 'receipt-insert-form',
-                                    'role' => 'form',
-                                    'files'=>true]) !!}
-                                    {!! Form::hidden('report_id', $report->id) !!}
-                                    {!! Form::hidden('type', "1") !!}
-
-                                    <div class="fallback">
-                                        <input name="file" type="file" multiple/>
-                                    </div>
-                                    <div class="dropzone-previews"></div>
-                                    <h4 style="text-align: center;color:#428bca;">Şantiye faturalarını bu
-                                        alana
-                                        sürükleyin
-                                        <br>Ya da tıklayın<span
-                                                class="glyphicon glyphicon-hand-down"></span></h4>
-
-
-                                    {!! Form::close() !!}
-                                    <div class="row">
                                         @foreach($report->receipt as $report_site_receipt)
                                             <?php
                                             $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_receipt->file()->first()->path);
@@ -2480,178 +2778,30 @@ EOT;
                                             } elseif (strpos($report_site_receipt->file()->first()->name, 'doc') !== false) {
                                                 $image = URL::to('/') . "/img/word.png";
                                             }
-                                            $image_path = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->file()->first()->name
+                                            $image_path = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->file()->first()->name;
+
                                             ?>
 
-                                            <a id="lb-link-{{$report_site_receipt->id}}"
-                                               href="{{$image_path}}"
+                                            <a id="lb-link-{{$report_site_receipt->id}}" href="{{$image_path}}"
                                                data-toggle="lightbox" data-gallery="reportsitereceipts"
-                                               data-footer="<a data-dismiss='modal' class='remove-files' href='#' data-fileId='{{$report_site_receipt->id}}'>Dosyayı Sil<a/>"
                                                class="col-sm-4">
                                                 <img src="{{$image}}" class="img-responsive">
                                                 {{$report_site_receipt->file()->first()->name}}
                                             </a>
-
                                         @endforeach
-                                    </div>
-                                </div>
-                            </div>
-                            <br>
 
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <h4><strong>Etiketler</strong></h4>
-
-                                    <p>Etiket eklemek veya düzenlemek için dosyaları yükledikten sonra sayfayı
-                                        yenileyiniz.</p>
-                                    <span class="success-message"></span>
-
-                                </div>
-                            </div>
-                            @if(count($report->receipt) || count($report->photo))
-                                <table class="table table-condensed table-bordered">
-                                    <thead>
-                                    <tr>
-                                        <th>Dosya Adı</th>
-                                        <th>Etiket</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <form id="attach-tag">
-                                        {!! csrf_field() !!}
-                                        @foreach($report->photo as $report_site_photo)
-                                            <tr>
-                                                <input name="file_id[]" type="hidden"
-                                                       value="{{$report_site_photo->file()->first()->id}}">
-                                                <td>{{$report_site_photo->file()->first()->name}}</td>
-                                                <td>
-                                                    <select name="tags-{{$report_site_photo->file()->first()->id}}[]"
-                                                            class="js-example-basic-multiple form-control"
-                                                            multiple>
-                                                        @foreach(\App\Tag::all() as $tag)
-                                                            <?php
-                                                            $selected = '';
-                                                            foreach ($report_site_photo->file()->first()->tag as $ptag) {
-                                                                if ((int)$tag->id == (int)$ptag->id) {
-                                                                    $selected = "selected";
-                                                                    break;
-                                                                }
-                                                            }
-                                                            ?>
-                                                            <option value="{{$tag->id}}" {{$selected}}>{{$tag->name}}</option>
-                                                        @endforeach
-                                                    </select>
-                                                </td>
-                                            </tr>
-
-                                        @endforeach
-                                        @foreach($report->receipt as $report_site_receipt)
-                                            <tr>
-                                                <input type="hidden"
-                                                       value="{{$report_site_receipt->file()->first()->id}}">
-                                                <td>{{$report_site_receipt->file()->first()->name}}</td>
-                                                <td>
-                                                    <div class="col-sm-12">
-                                                        <select name="tags-{{$report_site_receipt->file()->first()->id}}[]"
-                                                                class="js-example-basic-multiple form-control"
-                                                                multiple>
-                                                            @foreach(\App\Tag::all() as $tag)
-                                                                <?php
-                                                                $selected = '';
-                                                                foreach ($report_site_receipt->file()->first()->tag as $ptag) {
-                                                                    if ((int)$tag->id == (int)$ptag->id) {
-                                                                        $selected = "selected";
-                                                                        break;
-                                                                    }
-                                                                }
-                                                                ?>
-                                                                <option value="{{$tag->id}}" {{$selected}}>{{$tag->name}}</option>
-                                                            @endforeach
-                                                        </select>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </form>
-                                    </tbody>
-
-                                </table>
-                                <br>
-                                <div class="row">
-                                    <div class="col-sm-12 ">
-                                        <a href="#" class="btn btn-success btn-flat pull-right"
-                                           id="attachTagBtn">Kaydet</a>
                                     </div>
                                 </div>
 
                             @endif
-                        @else
 
-                            {{--photos--}}
-                            <div class="row">
-                                <div class="col-sm-6">
-
-                                    @foreach($report->photo as $report_site_photo)
-                                        <?php
-                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_photo->file()->first()->path);
-                                        $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-                                        if (strpos($report_site_photo->file()->first()->name, 'pdf') !== false) {
-                                            $image = URL::to('/') . "/img/pdf.jpg";
-                                        } elseif (strpos($report_site_photo->file()->first()->name, 'doc') !== false) {
-                                            $image = URL::to('/') . "/img/word.png";
-                                        } else {
-                                            $image = URL::to('/') . "/img/doc.png";
-                                        }
-                                        $image_path = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_photo->file()->first()->name;
-
-                                        ?>
-
-                                        <a id="lb-link-{{$report_site_photo->id}}" href="{{$image_path}}"
-                                           data-toggle="lightbox" data-gallery="reportsitephotos"
-                                           class="col-sm-4">
-                                            <img src="{{$image}}" class="img-responsive">
-                                            {{$report_site_photo->file()->first()->name}}
-                                        </a>
-
-                                    @endforeach
-
-
-                                </div>
-                                <div class="col-sm-6">
-
-                                    @foreach($report->receipt as $report_site_receipt)
-                                        <?php
-                                        $my_path_arr = explode(DIRECTORY_SEPARATOR, $report_site_receipt->file()->first()->path);
-                                        $my_path = "/uploads/" . $my_path_arr[sizeof($my_path_arr) - 1];
-                                        $image = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->file()->first()->name;
-                                        if (strpos($report_site_receipt->file()->first()->name, 'pdf') !== false) {
-                                            $image = URL::to('/') . "/img/pdf.jpg";
-                                        } elseif (strpos($report_site_receipt->file()->first()->name, 'doc') !== false) {
-                                            $image = URL::to('/') . "/img/word.png";
-                                        }
-                                        $image_path = URL::to('/') . $my_path . DIRECTORY_SEPARATOR . $report_site_receipt->file()->first()->name;
-
-                                        ?>
-
-                                        <a id="lb-link-{{$report_site_receipt->id}}" href="{{$image_path}}"
-                                           data-toggle="lightbox" data-gallery="reportsitereceipts"
-                                           class="col-sm-4">
-                                            <img src="{{$image}}" class="img-responsive">
-                                            {{$report_site_receipt->file()->first()->name}}
-                                        </a>
-                                    @endforeach
-
-                                </div>
-                            </div>
-
-                        @endif
-
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        @endif
 
-        @if (!isset($report_date))
+        @if (!isset($report_date) && $can_edit_view && !$site_ended)
             <div class="row hidden-print">
                 <div class="col-xs-12 col-md-6 col-md-offset-3">
                     {!! Form::open([
@@ -2673,6 +2823,7 @@ EOT;
                 </div>
             </div>
         @endif
+
     </div>
 
     <div class="modal modal-danger" role="dialog" id="leftDaysModal" tabindex="-1" aria-hidden="true">
@@ -2815,5 +2966,6 @@ EOT;
         </div>
         <!-- /.modal-dialog -->
     </div>
+
 
 @stop

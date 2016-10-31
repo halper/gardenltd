@@ -1,3 +1,15 @@
+<?php
+
+$user = Auth::user();
+
+$addr = explode("/", $_SERVER['REQUEST_URI']);
+$slug = $addr[sizeof($addr) - 1];
+$module = $modules->whereSlug($slug)->first();
+
+$post_permission = \App\Library\PermissionHelper::checkUserPostPermissionOnModule($user, $module);
+
+?>
+
 @extends('tekil.layout')
 
 @section('page-specific-js')
@@ -104,37 +116,38 @@
                 </div>
                 <!-- /.box-header -->
                 <div class="box-body">
-                    <form id="employee-form">
-                        <span class="success-message"></span>
+                    @if($post_permission)
+                        <form id="employee-form">
+                            <span class="success-message"></span>
 
-                        <div class="row">
-                            @foreach(\App\Personnel::sitePersonnel()->get() as $personnel)
-                                <?php
-                                $checked = !($personnel->site()->where('site_id', '=', $site->id)->get()->isEmpty());
-                                ?>
-                                <div class="col-sm-3">
-                                    <div class="form-group">
-                                        <label class="checkbox-inline">
-                                            <input type="checkbox" name="employee[]"
-                                                   value="{{$personnel->id}}" {{$checked ? "checked" : ""}}>
-                                            {{$personnel->name . " (". $personnel->tck_no.")"}}
-                                        </label>
+                            <div class="row">
+                                @foreach(\App\Personnel::sitePersonnel()->get() as $personnel)
+                                    <?php
+                                    $checked = !($personnel->site()->where('site_id', '=', $site->id)->get()->isEmpty());
+                                    ?>
+                                    <div class="col-sm-3">
+                                        <div class="form-group">
+                                            <label class="checkbox-inline">
+                                                <input type="checkbox" name="employee[]"
+                                                       value="{{$personnel->id}}" {{$checked ? "checked" : ""}}>
+                                                {{$personnel->name . " (". $personnel->tck_no.")"}}
+                                            </label>
+                                        </div>
                                     </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </form>
+                                @endforeach
+                            </div>
+                        </form>
 
-                    <div class="form-group">
-                        <div class="row">
-                            <div class="col-md-offset-2 col-md-8">
-                                <button type="button" class="btn btn-primary btn-flat btn-block" id="updateButton">
-                                    Güncelle
-                                </button>
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-md-offset-2 col-md-8">
+                                    <button type="button" class="btn btn-primary btn-flat btn-block" id="updateButton">
+                                        Güncelle
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-
+                    @endif
 
                     <div ng-app="puantajApp" ng-controller="PuantajController" id="angPuantaj">
                         <p class="text-danger alert-danger" ng-show="subError"><%subError%></p>

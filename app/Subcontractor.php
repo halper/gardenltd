@@ -13,7 +13,7 @@ class Subcontractor extends Model
     use SoftDeletes;
 
     protected $dates = ['deleted_at'];
-    protected $fillable = ['price', 'subdetail_id', 'site_id'];
+    protected $fillable = ['price', 'subdetail_id', 'site_id', 'additional_bid_cost', 'kdv'];
 
     public function subdetail()
     {

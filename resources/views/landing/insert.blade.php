@@ -1,23 +1,11 @@
 <?php
 $sites = \App\Site::getSites();
-$eq_json = json_encode(\App\Equipment::all());
-$tag_json = json_encode(\App\Tag::all());
-$staffs = \App\Staff::allStaff();
-$staff_json = [];
 $site_options = '<option></option>';
-
-
 
 foreach ($sites as $site) {
     $site_options .= "<option value=\"$site->id\">" . \App\Library\TurkishChar::tr_up($site->job_name) . "</option>";
 }
 
-foreach ($staffs as $staff) {
-    array_push($staff_json, ['name' => $staff->staff, 'department' => \App\Library\TurkishChar::tr_up($staff->department->department)]);
-}
-$staff_json = json_encode($staff_json);
-$dept_json = json_encode(\App\Department::all());
-$mat_json = json_encode(\App\Material::all());
 
 $staff_options = '<option></option>';
 $management_depts = new \App\Department();
@@ -29,10 +17,68 @@ foreach ($management_depts->management() as $dept) {
     }
 }
 
+$user = Auth::user();
+$can_add_personnel = false;
+$can_add_subcontractor = false;
+$can_add_staff = false;
+$can_add_manufacturing = false;
+$can_add_department = false;
+$can_add_stock = false;
+$can_add_material = false;
+$can_add_submaterial = false;
+$can_add_equipment = false;
+$can_add_employer_docs = false;
+
+
+if ($user->isAdmin()) {
+    $can_add_personnel = true;
+    $can_add_subcontractor = true;
+    $can_add_staff = true;
+    $can_add_manufacturing = true;
+    $can_add_department = true;
+    $can_add_stock = true;
+    $can_add_material = true;
+    $can_add_submaterial = true;
+    $can_add_equipment = true;
+    $can_add_employer_docs = true;
+} else
+    foreach ($user->group()->get() as $group) {
+        if ($group->hasSpecialPermissionForSlug('personel')) {
+            $can_add_personnel = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('alt-yuklenici')) {
+            $can_add_subcontractor = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('is-kolu')) {
+            $can_add_staff = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('faaliyet-alani')) {
+            $can_add_manufacturing = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('departman')) {
+            $can_add_department = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('demirbas')) {
+            $can_add_stock = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('malzeme-malzeme-talep')) {
+            $can_add_material = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('baglantili-malzeme')) {
+            $can_add_submaterial = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('is-makinesi')) {
+            $can_add_equipment = true;
+        }
+        if ($group->hasSpecialPermissionForSlug('ise-giris-belgesi-ekle')) {
+            $can_add_employer_docs = true;
+        }
+    }
+
 ?>
 
 
-@extends('landing/landing')
+@extends('landing.landing')
 
 @section('page-specific-css')
     <link href="<?= URL::to('/'); ?>/css/select2.min.css" rel="stylesheet"/>
@@ -43,9 +89,7 @@ foreach ($management_depts->management() as $dept) {
 @section('page-specific-js')
     <script src="<?=URL::to('/');?>/js/angular.min.js"></script>
     <script src="<?= URL::to('/'); ?>/js/select2.min.js"></script>
-    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.js" charset="UTF-8"></script>
-    <script src="<?= URL::to('/'); ?>/js/bootstrap-datepicker.tr.js" charset="UTF-8"></script>
-    <script src="<?= URL::to('/'); ?>/js/jquery.number.js" type="text/javascript"></script>
+    <script src="<?= URL::to('/'); ?>/js/personnel.js" type="text/javascript"></script>
     <script>
         String.prototype.turkishToLower = function () {
             var string = this;
@@ -55,47 +99,17 @@ foreach ($management_depts->management() as $dept) {
             });
             return string.toLowerCase();
         };
-        $("#add-personnel").on("click", function (e) {
-            e.preventDefault();
-            var tckInput = $('input[name=tck_no]');
-            var tck = tckInput.val();
-            if (tck.length != 11) {
-                tckInput.parent('div').parent().closest('div.row').append(
-                        '<div class="col-sm-4">' +
-                        '<span class="text-danger">TCK No giriniz!</span>' +
-                        '</div>'
-                );
-                tckInput.parent('div').parent().closest('div.row').addClass('has-error');
-                return;
-            }
-            var unique;
-            $.ajax({
-                type: 'POST',
-                url: '{{"/admin/check-tck"}}',
-                data: {
-                    "tck_no": tck
-                }
-            }).success(function (response) {
-                unique = (response.indexOf('unique') > -1);
-                if (!unique) {
-                    tckInput.parent('div').parent().closest('div.row').append(
-                            '<div class="col-sm-4">' +
-                            '<span class="text-danger">TCK No sistemde kayıtlı!</span>' +
-                            '</div>'
-                    );
-                    tckInput.parent('div').parent().closest('div.row').addClass('has-error');
-                }
-                else {
-                    $('#personnelInsertForm').submit();
-                }
-            });
 
-        });
         var addApp = angular.module('addApp', [], function ($interpolateProvider) {
             $interpolateProvider.startSymbol('<%');
             $interpolateProvider.endSymbol('%>');
         }).controller('EquipmentController', function ($scope, $http, $filter) {
-            $scope.presentEquipments = {!! $eq_json!!};
+            $scope.presentEquipments = '';
+
+            $http.get("<?=URL::to('/');?>/ekle/retrieve-equipments")
+                    .then(function (response) {
+                        $scope.presentEquipments = response.data;
+                    });
 
 
             $scope.error = '';
@@ -122,7 +136,7 @@ foreach ($management_depts->management() as $dept) {
                     return;
                 }
                 $scope.name = $filter('trUp')($scope.name);
-                $http.post("<?=URL::to('/');?>/admin/add-equipment", {
+                $http.post("<?=URL::to('/');?>/ekle/add-equipment", {
                     'name': $scope.name
                 }).success(function (response) {
 
@@ -136,7 +150,12 @@ foreach ($management_depts->management() as $dept) {
                 });
             }
         }).controller('TagController', function ($scope, $http, $filter) {
-            $scope.presentTags = {!! $tag_json!!};
+            $scope.presentTags = '';
+
+            $http.get("<?=URL::to('/');?>/ekle/retrieve-tags")
+                    .then(function (response) {
+                        $scope.presentTags = response.data;
+                    });
 
             $scope.error = '';
             $scope.newTag = '';
@@ -162,7 +181,7 @@ foreach ($management_depts->management() as $dept) {
                     return;
                 }
                 $scope.name = $filter('trUp')($scope.name);
-                $http.post("<?=URL::to('/');?>/admin/add-tag", {
+                $http.post("<?=URL::to('/');?>/ekle/add-tag", {
                     'name': $scope.name
                 }).success(function (response) {
 
@@ -184,9 +203,24 @@ foreach ($management_depts->management() as $dept) {
                 }
             }
         }).controller('StaffController', function ($scope, $http, $filter) {
-            $scope.staffs = {!! $staff_json!!};
-            $scope.departments = {!! $dept_json !!};
-            $scope.materials = {!! $mat_json !!};
+            $scope.staffs = '';
+
+            $http.get("<?=URL::to('/');?>/ekle/retrieve-staffs")
+                    .then(function (response) {
+                        $scope.staffs = response.data;
+                    });
+
+            $scope.departments = '';
+            $http.get("<?=URL::to('/');?>/ekle/retrieve-departments")
+                    .then(function (response) {
+                        $scope.departments = response.data;
+                    });
+
+            $scope.materials = '';
+            $http.get("<?=URL::to('/');?>/ekle/retrieve-materials")
+                    .then(function (response) {
+                        $scope.materials = response.data;
+                    });
 
             $scope.name = '';
             $scope.department_name = '';
@@ -207,7 +241,7 @@ foreach ($management_depts->management() as $dept) {
             $scope.stockTotal = '';
 
             $scope.getStocks = function () {
-                $http.get("<?=URL::to('/');?>/admin/retrieve-stocks")
+                $http.get("<?=URL::to('/');?>/ekle/retrieve-stocks")
                         .then(function (response) {
                             $scope.stocks = response.data;
                         });
@@ -226,7 +260,7 @@ foreach ($management_depts->management() as $dept) {
                 if (arrayCheck) {
                     return;
                 }
-                $http.post("<?=URL::to('/');?>/admin/add-stock", {
+                $http.post("<?=URL::to('/');?>/ekle/add-stock", {
                     name: $scope.stockName,
                     unit: $scope.stockUnit,
                     total: $scope.stockTotal
@@ -247,7 +281,7 @@ foreach ($management_depts->management() as $dept) {
             $scope.manError = '';
 
             $scope.getManufacturings = function () {
-                $http.get("<?=URL::to('/');?>/admin/retrieve-manufacturings")
+                $http.get("<?=URL::to('/');?>/ekle/retrieve-manufacturings")
                         .then(function (response) {
                             $scope.manufacturings = response.data;
                         });
@@ -266,7 +300,7 @@ foreach ($management_depts->management() as $dept) {
                 if (arrayCheck) {
                     return;
                 }
-                $http.post("<?=URL::to('/');?>/admin/add-manufacturing", {
+                $http.post("<?=URL::to('/');?>/ekle/add-manufacturing", {
                     name: $scope.manufacturing_name
                 }).then(function (response) {
                     $scope.manufacturings.push($scope.manufacturing_name);
@@ -301,7 +335,7 @@ foreach ($management_depts->management() as $dept) {
 
                     return;
                 }
-                $http.post("<?=URL::to('/');?>/admin/add-staff", {
+                $http.post("<?=URL::to('/');?>/ekle/add-staff", {
                     staff: $scope.name,
                     department_id: $scope.dept.id
                 }).success(function (response) {
@@ -342,7 +376,7 @@ foreach ($management_depts->management() as $dept) {
                     $scope.department_name = '';
                     return;
                 }
-                $http.post("<?=URL::to('/');?>/admin/add-department", {
+                $http.post("<?=URL::to('/');?>/ekle/add-department", {
                     department: $scope.department_name
                 }).success(function (response) {
 
@@ -380,7 +414,7 @@ foreach ($management_depts->management() as $dept) {
                     $scope.material_name = '';
                     return;
                 }
-                $http.post("<?=URL::to('/');?>/admin/add-material", {
+                $http.post("<?=URL::to('/');?>/ekle/add-material", {
                     material: $scope.material_name
                 }).success(function (response) {
 
@@ -401,7 +435,7 @@ foreach ($management_depts->management() as $dept) {
             $scope.newExp = '';
 
             $scope.getExpenditures = function () {
-                $http.get("<?=URL::to('/');?>/admin/retrieve-expdetail")
+                $http.get("<?=URL::to('/');?>/ekle/retrieve-expdetail")
                         .then(function (response) {
                             $scope.expenditures = response.data;
                         });
@@ -436,7 +470,7 @@ foreach ($management_depts->management() as $dept) {
 
                     return;
                 }
-                $http.post("<?=URL::to('/');?>/admin/add-expenditure", {
+                $http.post("<?=URL::to('/');?>/ekle/add-expenditure", {
                     name: $scope.expName,
                     group: $scope.expGroup
                 }).then(function (response) {
@@ -476,10 +510,6 @@ foreach ($management_depts->management() as $dept) {
                 placeholder: "İş kolu seçiniz",
                 allowClear: true
             });
-            $('.dateRangePicker').datepicker({
-                language: 'tr'
-            });
-            $('.number').number(true, 2, ',', '.');
         });
 
         $('a[href=#tab_1]').on("shown.bs.tab", function () {
@@ -504,15 +534,34 @@ foreach ($management_depts->management() as $dept) {
             <!-- Custom Tabs -->
             <div class="nav-tabs-custom" ng-app="addApp" ng-controller="StaffController" id="addApp">
                 <ul class="nav nav-tabs">
-                    <li class="active"><a href="#tab_5" data-toggle="tab">Personel</a></li>
-                    <li><a href="#tab_1" data-toggle="tab">Alt Yüklenici</a></li>
-                    <li><a href="#tab_2" data-toggle="tab">İş Kolu</a></li>
-                    <li><a href="#tab_man" data-toggle="tab">Faaliyet Alanı</a></li>
-                    <li><a href="#tab_3" data-toggle="tab">Departman</a></li>
-                    <li><a href="#tab_stock" data-toggle="tab">Demirbaş</a></li>
-                    <li><a href="#tab_mat" data-toggle="tab">Malzeme</a></li>
-                    <li><a href="#tab_submat" data-toggle="tab">Bağlantılı Malzeme</a></li>
-                    <li><a href="#tab_4" data-toggle="tab">İş Makinesi</a></li>
+                    @if($can_add_personnel)
+                        <li class="active"><a href="#tab_5" data-toggle="tab">Personel</a></li>
+                    @endif
+                    @if($can_add_subcontractor)
+                        <li><a href="#tab_1" data-toggle="tab">Alt Yüklenici</a></li>
+                    @endif
+                    @if($can_add_staff)
+                        <li class="{{ !$can_add_personnel ? "active" : "" }}"><a href="#tab_2" data-toggle="tab">İş
+                                Kolu</a></li>
+                    @endif
+                    @if($can_add_manufacturing)
+                        <li><a href="#tab_man" data-toggle="tab">Faaliyet Alanı</a></li>
+                    @endif
+                    @if($can_add_department)
+                        <li><a href="#tab_3" data-toggle="tab">Departman</a></li>
+                    @endif
+                    @if($can_add_stock)
+                        <li><a href="#tab_stock" data-toggle="tab">Demirbaş</a></li>
+                    @endif
+                    @if($can_add_material)
+                        <li><a href="#tab_mat" data-toggle="tab">Malzeme</a></li>
+                    @endif
+                    @if($can_add_submaterial)
+                        <li><a href="#tab_submat" data-toggle="tab">Bağlantılı Malzeme</a></li>
+                    @endif
+                    @if($can_add_equipment)
+                        <li><a href="#tab_4" data-toggle="tab">İş Makinesi</a></li>
+                    @endif
                     <li><a href="#tab_tag" data-toggle="tab">Etiketler</a></li>
                     <li><a href="#tab_exp" data-toggle="tab">Gider Kalemleri</a></li>
 
@@ -520,89 +569,110 @@ foreach ($management_depts->management() as $dept) {
 
                 <!-- /.tab-content -->
                 <div class="tab-content">
-                    <div class="tab-pane active" id="tab_5">
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <p>Bu alandan sadece Garden personeli ekleyebilirsiniz.
-                                    Alt yüklenici personeli eklemek için ilgili şantiyenin alt yüklenici cari hesap
-                                    sayfasına gidiniz.</p>
+                    @if($can_add_personnel)
+                        <div class="tab-pane active" id="tab_5">
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <p>Bu alandan sadece Garden personeli ekleyebilirsiniz.
+                                        Alt yüklenici personeli eklemek için ilgili şantiyenin alt yüklenici cari hesap
+                                        sayfasına gidiniz.</p>
+                                </div>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-12">
+                            <div class="row">
+                                <div class="col-sm-12">
 
-                                {!! Form::open([
-                                                    'url' => "/admin/add-personnel",
-                                                    'method' => 'POST',
-                                                    'class' => 'form',
-                                                    'id' => 'personnelInsertForm',
-                                                    'role' => 'form',
-                                                    'files' => true
-                                                    ])!!}
-                                @include('landing._personnel-insert-form')
-
-                                {!! Form::close() !!}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="tab-pane" id="tab_1">
-                        <div class="row">
-                            <div class="col-sm-12">
-
-                                {!! Form::open([
-                                                    'url' => "/admin/add-subcontractor",
-                                                    'method' => 'POST',
-                                                    'class' => 'form',
-                                                    'id' => 'subcontractorInsertForm',
-                                                    'role' => 'form'
-                                                    ])!!}
-                                @include('landing._subcontractor-insert-form')
-
-
-                                <div class="form-group pull-right">
-                                    <button type="submit" class="btn btn-flat btn-primary">Alt Yüklenici Ekle</button>
+                                    {!! Form::open([
+                                                        'url' => "/ekle/add-personnel",
+                                                        'method' => 'POST',
+                                                        'class' => 'form',
+                                                        'id' => 'ersonnelForm',
+                                                        'role' => 'form',
+                                                        'files' => true
+                                                        ])!!}
+                                    @include('landing._personnel-insert-form')
 
                                     {!! Form::close() !!}
-
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    @endif
 
-                    {{--tab pane--}}
-                    <div class="tab-pane" id="tab_2">
-                        @include('landing._insert-new-staff')
-                    </div>
-                    <!-- /.tab-pane -->
-                    {{--tab pane--}}
-                    <div class="tab-pane" id="tab_man">
-                        @include('landing._insert-new-manufacturing')
-                    </div>
-                    <!-- /.tab-pane -->
-                    <div class="tab-pane" id="tab_3">
-                        @include('landing._insert-new-dept')
-                    </div>
-                    <!-- /.tab-pane -->
-                    <div class="tab-pane" id="tab_stock">
-                        @include('landing._insert-new-stock')
-                    </div>
+                    @if($can_add_subcontractor)
+                        <div class="tab-pane" id="tab_1">
+                            <div class="row">
+                                <div class="col-sm-12">
 
-                    <!-- /.tab-pane -->
-                    <div class="tab-pane" id="tab_mat">
-                        @include('landing._insert-new-material')
-                    </div>
+                                    {!! Form::open([
+                                                        'url' => "/ekle/add-subcontractor",
+                                                        'method' => 'POST',
+                                                        'class' => 'form',
+                                                        'id' => 'subcontractorInsertForm',
+                                                        'role' => 'form'
+                                                        ])!!}
+                                    @include('landing._subcontractor-insert-form')
 
-                    <div class="tab-pane" id="tab_submat">
-                        @include('landing._insert-new-submat')
-                    </div>
 
-                    <!-- /.tab-pane -->
-                    <div class="tab-pane" id="tab_4">
-                        @include('landing._insert-new-equipment')
-                    </div>
+                                    <div class="form-group pull-right">
+                                        <button type="submit" class="btn btn-flat btn-primary">Alt Yüklenici Ekle
+                                        </button>
 
-                    <!-- /.tab-pane -->
+                                        {!! Form::close() !!}
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($can_add_staff)
+                        {{--tab pane--}}
+                        <div class="tab-pane {{ !$can_add_personnel ? "active" : "" }}" id="tab_2">
+                            @include('landing._insert-new-staff')
+                        </div>
+                        <!-- /.tab-pane -->
+                    @endif
+
+                    @if($can_add_manufacturing)
+                        {{--tab pane--}}
+                        <div class="tab-pane" id="tab_man">
+                            @include('landing._insert-new-manufacturing')
+                        </div>
+                        <!-- /.tab-pane -->
+                    @endif
+
+                    @if($can_add_department)
+                        <div class="tab-pane" id="tab_3">
+                            @include('landing._insert-new-dept')
+                        </div>
+                        <!-- /.tab-pane -->
+                    @endif
+
+                    @if($can_add_stock)
+                        <div class="tab-pane" id="tab_stock">
+                            @include('landing._insert-new-stock')
+                        </div>
+                    @endif
+
+                    @if($can_add_material)
+                        <div class="tab-pane" id="tab_mat">
+                            @include('landing._insert-new-material')
+                        </div>
+                    @endif
+
+                    @if($can_add_submaterial)
+                        <div class="tab-pane" id="tab_submat">
+                            @include('landing._insert-new-submat')
+                        </div>
+                        <!-- /.tab-pane -->
+                    @endif
+
+                    @if($can_add_equipment)
+                        <div class="tab-pane" id="tab_4">
+                            @include('landing._insert-new-equipment')
+                        </div>
+                        <!-- /.tab-pane -->
+                    @endif
+
                     <div class="tab-pane" id="tab_tag">
                         @include('landing._insert-new-tag')
                     </div>

@@ -10,6 +10,15 @@ foreach ($tags as $tag) {
 }
 $tags = json_encode($my_arr);
 
+
+$user = Auth::user();
+
+$addr = explode("/", $_SERVER['REQUEST_URI']);
+$slug = $addr[sizeof($addr) - 1];
+$module = $modules->whereSlug($slug)->first();
+
+$post_permission = \App\Library\PermissionHelper::checkUserPostPermissionOnModule($user, $module);
+
 ?>
 
 @extends('tekil.layout')
@@ -139,7 +148,9 @@ $tags = json_encode($my_arr);
                 <div class="nav-tabs-custom">
                     <ul class="nav nav-tabs">
                         <li class="active"><a href="#tab_5" data-toggle="tab">Dökümanlar Listele</a></li>
-                        <li><a href="#tab_1" data-toggle="tab">Dökümanları Güncelle</a></li>
+                        @if($post_permission)
+                            <li><a href="#tab_1" data-toggle="tab">Dökümanları Güncelle</a></li>
+                        @endif
 
                     </ul>
 
@@ -233,157 +244,158 @@ $tags = json_encode($my_arr);
                                 </div>
                             </div>
                         </div>
-
-                        <div class="tab-pane" id="tab_1">
-                            <?php
-                            $site_reports = $site->report()->with('photo', 'receipt')->get();
-                            ?>
-                            <table class="table table-responsive">
-                                <thead>
-                                <tr>
-                                    <th>Rapor Tarihi</th>
-                                    <th>Adı</th>
-                                    <th>Tipi</th>
-                                    <th class="col-sm-6">Etiketler</th>
-                                    <th style="text-align: center">İşlemler</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                @foreach ($site_reports as $site_report)
-                                    @foreach ($site_report->photo as $site_photo)
-                                        @if (count($site_photo->file))
-                                            <?php
-                                            $report_date = \App\Library\CarbonHelper::getTurkishDate($site_report->created_at);
-                                            $tags = '';
-                                            $i = 0;
-                                            foreach ($site_photo->file()->first()->tag as $tag) {
-                                                $tags .= $tag->name;
-                                                if ($i + 1 < count($site_photo->file()->first()->tag)) {
-                                                    $tags .= ', ';
+                        @if($post_permission)
+                            <div class="tab-pane" id="tab_1">
+                                <?php
+                                $site_reports = $site->report()->with('photo', 'receipt')->get();
+                                ?>
+                                <table class="table table-responsive">
+                                    <thead>
+                                    <tr>
+                                        <th>Rapor Tarihi</th>
+                                        <th>Adı</th>
+                                        <th>Tipi</th>
+                                        <th class="col-sm-6">Etiketler</th>
+                                        <th style="text-align: center">İşlemler</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach ($site_reports as $site_report)
+                                        @foreach ($site_report->photo as $site_photo)
+                                            @if (count($site_photo->file))
+                                                <?php
+                                                $report_date = \App\Library\CarbonHelper::getTurkishDate($site_report->created_at);
+                                                $tags = '';
+                                                $i = 0;
+                                                foreach ($site_photo->file()->first()->tag as $tag) {
+                                                    $tags .= $tag->name;
+                                                    if ($i + 1 < count($site_photo->file()->first()->tag)) {
+                                                        $tags .= ', ';
+                                                    }
+                                                    $i++;
                                                 }
-                                                $i++;
-                                            }
-                                            $file_name = $site_photo->file()->first()->name;
-                                            $id = $site_photo->file()->first()->id;
-                                            ?>
-                                            <tr id="tr-st-{{$id}}">
-                                                <td>{{$report_date}}</td>
-                                                <td>{{$file_name}}</td>
-                                                <td>Fotoğraf</td>
-                                                <td>
-                                                    <select name="tags-{{$site_photo->file()->first()->id}}[]"
-                                                            class="js-example-basic-multiple form-control"
-                                                            multiple data-id="{{$id}}">
-                                                        @foreach(\App\Tag::all() as $tag)
-                                                            <?php
-                                                            $selected = '';
-                                                            foreach ($site_photo->file()->first()->tag as $ptag) {
-                                                                if ((int)$tag->id == (int)$ptag->id) {
-                                                                    $selected = "selected";
-                                                                    break;
+                                                $file_name = $site_photo->file()->first()->name;
+                                                $id = $site_photo->file()->first()->id;
+                                                ?>
+                                                <tr id="tr-st-{{$id}}">
+                                                    <td>{{$report_date}}</td>
+                                                    <td>{{$file_name}}</td>
+                                                    <td>Fotoğraf</td>
+                                                    <td>
+                                                        <select name="tags-{{$site_photo->file()->first()->id}}[]"
+                                                                class="js-example-basic-multiple form-control"
+                                                                multiple data-id="{{$id}}">
+                                                            @foreach(\App\Tag::all() as $tag)
+                                                                <?php
+                                                                $selected = '';
+                                                                foreach ($site_photo->file()->first()->tag as $ptag) {
+                                                                    if ((int)$tag->id == (int)$ptag->id) {
+                                                                        $selected = "selected";
+                                                                        break;
+                                                                    }
                                                                 }
-                                                            }
-                                                            ?>
-                                                            <option value="{{$tag->id}}" {{$selected}}>{{$tag->name}}</option>
-                                                        @endforeach
-                                                    </select>
-                                                    <span class="success-message"></span>
-                                                </td>
+                                                                ?>
+                                                                <option value="{{$tag->id}}" {{$selected}}>{{$tag->name}}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        <span class="success-message"></span>
+                                                    </td>
 
-                                                <td style="text-align: center">
-                                                    <a href="#" class="btn btn-flat btn-danger btn-sm btn-approve"
-                                                       data-id="{{$id}}">
-                                                        Sil
-                                                    </a>
+                                                    <td style="text-align: center">
+                                                        <a href="#" class="btn btn-flat btn-danger btn-sm btn-approve"
+                                                           data-id="{{$id}}">
+                                                            Sil
+                                                        </a>
 
-                                                    <div class="row" style="display: none;">
-                                                        <div class="col-sm-6">
-                                                            <a href="#" class="text-danger btn-remove-sm"
-                                                               data-id="{{$id}}"><i
-                                                                        class="fa fa-check"></i>Evet </a>
+                                                        <div class="row" style="display: none;">
+                                                            <div class="col-sm-6">
+                                                                <a href="#" class="text-danger btn-remove-sm"
+                                                                   data-id="{{$id}}"><i
+                                                                            class="fa fa-check"></i>Evet </a>
 
+                                                            </div>
+                                                            <div class="col-sm-6">
+                                                                <a href="#" class="text-primary btn-cancel-sm"><i
+                                                                            class="fa fa-times"></i>Hayır</a>
+                                                            </div>
                                                         </div>
-                                                        <div class="col-sm-6">
-                                                            <a href="#" class="text-primary btn-cancel-sm"><i
-                                                                        class="fa fa-times"></i>Hayır</a>
-                                                        </div>
-                                                    </div>
 
-                                                </td>
+                                                    </td>
 
-                                            </tr>
-                                        @endif
+                                                </tr>
+                                            @endif
+                                        @endforeach
                                     @endforeach
-                                @endforeach
-                                @foreach ($site_reports as $site_report)
-                                    @foreach ($site_report->receipt as $site_receipt)
-                                        @if (count($site_receipt->file))
-                                            <?php
-                                            $report_date = \App\Library\CarbonHelper::getTurkishDate($site_report->created_at);
-                                            $tags = '';
-                                            $i = 0;
-                                            foreach ($site_receipt->file()->first()->tag as $tag) {
-                                                $tags .= $tag->name;
-                                                if ($i + 1 < count($site_receipt->file()->first()->tag)) {
-                                                    $tags .= ', ';
+                                    @foreach ($site_reports as $site_report)
+                                        @foreach ($site_report->receipt as $site_receipt)
+                                            @if (count($site_receipt->file))
+                                                <?php
+                                                $report_date = \App\Library\CarbonHelper::getTurkishDate($site_report->created_at);
+                                                $tags = '';
+                                                $i = 0;
+                                                foreach ($site_receipt->file()->first()->tag as $tag) {
+                                                    $tags .= $tag->name;
+                                                    if ($i + 1 < count($site_receipt->file()->first()->tag)) {
+                                                        $tags .= ', ';
+                                                    }
+                                                    $i++;
                                                 }
-                                                $i++;
-                                            }
-                                            $file_name = $site_receipt->file()->first()->name;
-                                            $id = $site_receipt->file()->first()->id;
-                                            ?>
-                                            <tr id="tr-st-{{$id}}">
-                                                <td>{{$report_date}}</td>
-                                                <td>{{$file_name}}</td>
-                                                <td>Fatura</td>
-                                                <td>
-                                                    <select name="tags-{{$site_receipt->file()->first()->id}}[]"
-                                                            class="js-example-basic-multiple form-control"
-                                                            multiple data-id="{{$id}}">
-                                                        @foreach(\App\Tag::all() as $tag)
-                                                            <?php
-                                                            $selected = '';
-                                                            foreach ($site_receipt->file()->first()->tag as $ptag) {
-                                                                if ((int)$tag->id == (int)$ptag->id) {
-                                                                    $selected = "selected";
-                                                                    break;
+                                                $file_name = $site_receipt->file()->first()->name;
+                                                $id = $site_receipt->file()->first()->id;
+                                                ?>
+                                                <tr id="tr-st-{{$id}}">
+                                                    <td>{{$report_date}}</td>
+                                                    <td>{{$file_name}}</td>
+                                                    <td>Fatura</td>
+                                                    <td>
+                                                        <select name="tags-{{$site_receipt->file()->first()->id}}[]"
+                                                                class="js-example-basic-multiple form-control"
+                                                                multiple data-id="{{$id}}">
+                                                            @foreach(\App\Tag::all() as $tag)
+                                                                <?php
+                                                                $selected = '';
+                                                                foreach ($site_receipt->file()->first()->tag as $ptag) {
+                                                                    if ((int)$tag->id == (int)$ptag->id) {
+                                                                        $selected = "selected";
+                                                                        break;
+                                                                    }
                                                                 }
-                                                            }
-                                                            ?>
-                                                            <option value="{{$tag->id}}" {{$selected}}>{{$tag->name}}</option>
-                                                        @endforeach
-                                                    </select>
-                                                    <span class="success-message"></span>
-                                                </td>
+                                                                ?>
+                                                                <option value="{{$tag->id}}" {{$selected}}>{{$tag->name}}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        <span class="success-message"></span>
+                                                    </td>
 
-                                                <td style="text-align: center">
-                                                    <a href="#" class="btn btn-flat btn-danger btn-sm btn-approve"
-                                                       data-id="{{$id}}">
-                                                        Sil
-                                                    </a>
+                                                    <td style="text-align: center">
+                                                        <a href="#" class="btn btn-flat btn-danger btn-sm btn-approve"
+                                                           data-id="{{$id}}">
+                                                            Sil
+                                                        </a>
 
-                                                    <div class="row" style="display: none;">
-                                                        <div class="col-sm-6">
-                                                            <a href="#" class="text-danger btn-remove-sm"
-                                                               data-id="{{$id}}"><i
-                                                                        class="fa fa-check"></i>Evet </a>
+                                                        <div class="row" style="display: none;">
+                                                            <div class="col-sm-6">
+                                                                <a href="#" class="text-danger btn-remove-sm"
+                                                                   data-id="{{$id}}"><i
+                                                                            class="fa fa-check"></i>Evet </a>
 
+                                                            </div>
+                                                            <div class="col-sm-6">
+                                                                <a href="#" class="text-primary btn-cancel-sm"><i
+                                                                            class="fa fa-times"></i>Hayır</a>
+                                                            </div>
                                                         </div>
-                                                        <div class="col-sm-6">
-                                                            <a href="#" class="text-primary btn-cancel-sm"><i
-                                                                        class="fa fa-times"></i>Hayır</a>
-                                                        </div>
-                                                    </div>
 
-                                                </td>
+                                                    </td>
 
-                                            </tr>
-                                        @endif
+                                                </tr>
+                                            @endif
+                                        @endforeach
                                     @endforeach
-                                @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
 
 
                     </div>

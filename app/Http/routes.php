@@ -14,7 +14,7 @@
 // Authentication routes...
 use Illuminate\Http\RedirectResponse;
 
-Route::get('garden/public/auth/login', 'Auth\AuthController@getLogin');
+Route::get('auth/login', 'Auth\AuthController@getLogin');
 Route::post('garden/public/auth/login', 'Auth\AuthController@postLogin');
 Route::get('garden/public/auth/logout', 'Auth\AuthController@getLogout');
 

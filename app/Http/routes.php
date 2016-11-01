@@ -15,12 +15,12 @@
 use Illuminate\Http\RedirectResponse;
 
 Route::get('auth/login', 'Auth\AuthController@getLogin');
-Route::post('garden/public/auth/login', 'Auth\AuthController@postLogin');
-Route::get('garden/public/auth/logout', 'Auth\AuthController@getLogout');
+Route::post('auth/login', 'Auth\AuthController@postLogin');
+Route::get('auth/logout', 'Auth\AuthController@getLogout');
 
 // Registration routes...
-Route::get('garden/public/auth/register', 'Auth\AuthController@getRegister');
-Route::post('garden/public/auth/register', 'Auth\AuthController@postRegister');
+Route::get('auth/register', 'Auth\AuthController@getRegister');
+Route::post('auth/register', 'Auth\AuthController@postRegister');
 
 Route::bind('site', function($slug){
    return \App\Site::whereSlug($slug)->first();
@@ -39,32 +39,32 @@ Route::model('subdetail', 'App\Subdetail');
 Route::model('subcontractor', 'App\Subcontractor');
 
 Route::group(['middleware' => ['auth', 'access']], function() {
-    Route::get('garden/public/tekil/{site}/baglanti-malzeme-duzenle/{smdemand}', 'TekilController@getBaglantiMalzemeDuzenle');
-    Route::get('garden/public/tekil/{site}/talep-duzenle/{demand}', 'TekilController@getTalepDuzenle');
-    Route::get('garden/public/tekil/{site}/talep-sevket/{demand}', 'TekilController@getTalepSevket');
-    Route::get('garden/public/tekil/{site}/alt-yuklenici-duzenle/{subcontractor}', 'TekilController@getAltYukleniciDuzenle');
-    Route::get('garden/public/tekil/{site}/alt-yuklenici-duzenle/{subcontractor}/personel-duzenle/{personnel}', 'TekilController@getPersonelDuzenle');
-    Route::controller('garden/public/tekil/{site}', 'TekilController');
+    Route::get('tekil/{site}/baglanti-malzeme-duzenle/{smdemand}', 'TekilController@getBaglantiMalzemeDuzenle');
+    Route::get('tekil/{site}/talep-duzenle/{demand}', 'TekilController@getTalepDuzenle');
+    Route::get('tekil/{site}/talep-sevket/{demand}', 'TekilController@getTalepSevket');
+    Route::get('tekil/{site}/alt-yuklenici-duzenle/{subcontractor}', 'TekilController@getAltYukleniciDuzenle');
+    Route::get('tekil/{site}/alt-yuklenici-duzenle/{subcontractor}/personel-duzenle/{personnel}', 'TekilController@getPersonelDuzenle');
+    Route::controller('tekil/{site}', 'TekilController');
 });
 
 
-Route::get('garden/public/santiye/retrieve-stocks', 'SantiyeController@getStocks');
-Route::get('garden/public/santiye-duzenle/{site}', 'SantiyeController@editSite');
-Route::post('garden/public/santiye/modify-stock', 'SantiyeController@updateStock');
-Route::controller('garden/public/santiye', 'SantiyeController');
+Route::get('santiye/retrieve-stocks', 'SantiyeController@getStocks');
+Route::get('santiye-duzenle/{site}', 'SantiyeController@editSite');
+Route::post('santiye/modify-stock', 'SantiyeController@updateStock');
+Route::controller('santiye', 'SantiyeController');
 
 Route::group(['middleware' => ['auth', 'admin']], function() {
-    Route::get('garden/public/admin/duzenle/{user}', 'AdminController@edit');
-    Route::get('garden/public/admin/talep-onay/{demand}', 'AdminController@approve');
-    Route::get('garden/public/admin/duzenle', function(){
-        return new RedirectResponse(url('garden/public//admin'));
+    Route::get('admin/duzenle/{user}', 'AdminController@edit');
+    Route::get('admin/talep-onay/{demand}', 'AdminController@approve');
+    Route::get('admin/duzenle', function(){
+        return new RedirectResponse(url('/admin'));
     });
-    Route::patch('garden/public/admin/update/{user}', 'AdminController@update');
-    Route::patch('garden/public/admin/sites/{user}', 'AdminController@editSitePermissions');
-    Route::patch('garden/public/admin/modules/{user}', 'AdminController@editModulePermissions');
-    Route::get('garden/public/admin/personel-duzenle/{personnel}', 'AdminController@getPersonelDuzenle');
-    Route::get('garden/public/admin/altyuklenici-duzenle/{subdetail}', 'AdminController@getAltyukleniciDuzenle');
-    Route::controller('garden/public/admin', 'AdminController');
+    Route::patch('admin/update/{user}', 'AdminController@update');
+    Route::patch('admin/sites/{user}', 'AdminController@editSitePermissions');
+    Route::patch('admin/modules/{user}', 'AdminController@editModulePermissions');
+    Route::get('admin/personel-duzenle/{personnel}', 'AdminController@getPersonelDuzenle');
+    Route::get('admin/altyuklenici-duzenle/{subdetail}', 'AdminController@getAltyukleniciDuzenle');
+    Route::controller('admin', 'AdminController');
 });
 
 
@@ -76,15 +76,15 @@ Route::bind('filename', function($filename){
     return $filename;
 });
 
-Route::get('garden/public/uploads/{directory}/{filename}', 'HomeController@getUploads');
-Route::get('garden/public//home', function(){
-   return redirect('garden/public/santiye');
+Route::get('uploads/{directory}/{filename}', 'HomeController@getUploads');
+Route::get('/home', function(){
+   return redirect('santiye');
 });
-Route::controller('garden/public/ekle', 'EkleController');
+Route::controller('ekle', 'EkleController');
 
-Route::get('garden/public/guncelle/personel-duzenle/{personnel}', 'GuncelleController@getPersonelDuzenle');
-Route::get('garden/public/guncelle/altyuklenici-duzenle/{subdetail}', 'GuncelleController@getAltyukleniciDuzenle');
-Route::controller('garden/public/guncelle', 'GuncelleController');
-Route::controller('garden/public/bilgilerim', 'ProfileController');
-Route::controller('garden/public/common', 'CommonController');
-Route::controller('garden/public/', 'HomeController');
+Route::get('guncelle/personel-duzenle/{personnel}', 'GuncelleController@getPersonelDuzenle');
+Route::get('guncelle/altyuklenici-duzenle/{subdetail}', 'GuncelleController@getAltyukleniciDuzenle');
+Route::controller('guncelle', 'GuncelleController');
+Route::controller('bilgilerim', 'ProfileController');
+Route::controller('common', 'CommonController');
+Route::controller('/', 'HomeController');

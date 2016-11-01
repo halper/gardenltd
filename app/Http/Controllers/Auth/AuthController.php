@@ -22,7 +22,7 @@ class AuthController extends Controller
     */
 
     use AuthenticatesAndRegistersUsers, ThrottlesLogins;
-    protected $redirectPath = 'garden/public/santiye';
+    protected $redirectPath = 'santiye';
 
     /**
      * Create a new authentication controller instance.

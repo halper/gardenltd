@@ -1,6 +1,6 @@
 <div class="row">
     <div class="col-xs-12 table-responsive">
-        <table class="table table-striped">
+        <table class="table table-striped table-responsive">
             <thead>
             <tr>
                 <th>Adı-Soyadı</th>

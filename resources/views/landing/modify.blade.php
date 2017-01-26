@@ -156,8 +156,8 @@ if ($user->isAdmin()) {
                     @if($can_add_personnel)
                         <div class="tab-pane active" id="tab_5">
                             <div class="row">
-                                <div class="col-sm-12">
-                                    <table class="table table-striped">
+                                <div class="col-sm-12 table-responsive">
+                                    <table class="table table-striped table-responsive">
                                         <thead>
                                         <tr>
                                             <th>Adı-Soyadı</th>
@@ -318,8 +318,8 @@ if ($user->isAdmin()) {
                     @if($can_add_subcontractor)
                         <div class="tab-pane" id="tab_1">
                             <div class="row">
-                                <div class="col-sm-12">
-                                    <table class="table table-striped">
+                                <div class="col-sm-12 table-responsive">
+                                    <table class="table table-striped table-responsive">
                                         <thead>
                                         <tr>
                                             <th>Alt Yüklenici</th>

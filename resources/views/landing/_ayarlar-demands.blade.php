@@ -20,6 +20,7 @@
 
             ?>
             @foreach($demands as $demand)
+                @if(!is_null($demand->site))
                 <tr class="valign {{$demand->approval_status == 3 ? "bg-success" : "bg-danger"}}">
                     <td style="text-align: center">{{$demand->site->job_name}}</td>
                     <td>{{ \App\Library\CarbonHelper::getTurkishDate($demand->created_at) }}</td>
@@ -86,6 +87,7 @@
                     </td>
 
                 </tr>
+                @endif
             @endforeach
             </tbody>
         </table>

@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Contract;
 use App\Department;
 use App\Equipment;
 use App\Expdetail;
+use App\File;
 use App\Iddoc;
 use App\Library\CarbonHelper;
 use App\Manufacturing;
 use App\Material;
 use App\Personnel;
+use App\Photo;
 use App\Site;
 use App\Staff;
 use App\Stock;
@@ -284,6 +287,27 @@ class EkleController extends ManagementController
         }
         Session::flash('flash_message', 'Bağlantılı malzeme eklendi');
         return redirect()->back();
+    }
+
+    private function uploadFile($file, $directory = null)
+    {
+        if (empty($directory)) {
+            $directory = public_path() . '/uploads/' . uniqid(rand(), true);
+        }
+        $filename = $file->getClientOriginalName();
+
+        $mime = $file->getMimeType();
+        $UPLOADABLE_FILE_TYPES = ['application/pdf', 'image/png', 'image/jpeg'];
+        if (in_array($mime, $UPLOADABLE_FILE_TYPES)) {
+            if ($file->move($directory, $filename))
+
+                return File::create([
+                    "name" => $filename,
+                    "path" => $directory
+                ]);
+        }
+
+        return null;
     }
 
 }

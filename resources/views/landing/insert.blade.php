@@ -585,7 +585,7 @@ if ($user->isAdmin()) {
                                                         'url' => "/ekle/add-personnel",
                                                         'method' => 'POST',
                                                         'class' => 'form',
-                                                        'id' => 'ersonnelForm',
+                                                        'id' => 'personnelForm',
                                                         'role' => 'form',
                                                         'files' => true
                                                         ])!!}

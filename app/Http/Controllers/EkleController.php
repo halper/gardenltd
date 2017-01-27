@@ -174,9 +174,9 @@ class EkleController extends ManagementController
             'contract_start_date' => $request->get('contract_start_date'),
             'contract_end_date' => $request->get('contract_end_date'),
         ]);
-        if($contract_file)
+        if ($contract_file)
             $contract->file()->save($contract_file);
-        else{
+        else {
             Session::flash('flash_message_error', 'Dosya yükleme sırasında hata oluştu. İlgili personel için dosyaları güncelleyin!');
             $success = false;
         }
@@ -198,12 +198,20 @@ class EkleController extends ManagementController
         $id_file = $this->uploadFile($request->file("iddoc"), $directory);
         if (is_int($id_file) && strpos('format', $id_file) !== false) {
             Session::flash('flash_message_error', 'İzin verilmeyen dosya formatı. İlgili personel için dosyaları güncelleyin!');
+            $success = false;
         }
         $iddoc = new Iddoc();
         $iddoc->save();
-        $iddoc->file()->save($id_file);
-        $personnel->iddoc()->save($iddoc);
+        if ($id_file) {
+            $iddoc->file()->save($id_file);
+
+        } else {
+            Session::flash('flash_message_error', 'Dosya yükleme sırasında hata oluştu. İlgili personel için dosyaları güncelleyin!');
+            $success = false;
+        }
+
         $personnel->contract()->save($contract);
+        $personnel->iddoc()->save($iddoc);
         (new Site)->personnel()->save($personnel);
         if (isset($request->exit_date) && !empty($request->exit_date)) {
             $contract = $personnel->contract;

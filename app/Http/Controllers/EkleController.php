@@ -174,7 +174,12 @@ class EkleController extends ManagementController
             'contract_start_date' => $request->get('contract_start_date'),
             'contract_end_date' => $request->get('contract_end_date'),
         ]);
-        $contract->file()->save($contract_file);
+        if($contract_file)
+            $contract->file()->save($contract_file);
+        else{
+            Session::flash('flash_message_error', 'Dosya yükleme sırasında hata oluştu. İlgili personel için dosyaları güncelleyin!');
+            $success = false;
+        }
 
         if (!empty($request->file("documents"))) {
             foreach ($request->file("documents") as $file) {
